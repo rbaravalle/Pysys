@@ -133,11 +133,10 @@ class Particle:
                 bestY = yh
                 bestZ = zh
             
-            if(random()>(1-randomness)): self.contorno.append(xyzd(xh,yh,zh,de))
+            if(random()>(1-randomness)): self.contorno.append([xh,yh,zh,de])
         
 
-        self.contorno.append(xyzd(bestX,bestY,bestZ,deP))
-        print "CONTORNO: ", self.contorno
+        self.contorno.append([bestX,bestY,bestZ,deP])
         self.setBorder(x,y,z)
 
     def calculatePriority(self,x,y,z,xp): 
@@ -148,33 +147,38 @@ class Particle:
         return x2*x2+y2*y2+z2*z2
 
     def setBorder(self,x,y,z):
+        from globalsv import *
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
-                    pos = (x+i)+(y+j)*maxcoord+(z+k)*maxcoord2
-                    if(pos >= 0 and pos < maxcoord3): occupied2[pos] = self.i
+                    if(x+i>= 0 and x+i <maxcoord and y+j>=0 and y+j<maxcoord and z+k>=0 and z+k < maxcoordZ):
+                        pos = np.int32((x+i)+(y+j)*maxcoord+(z+k)*maxcoord2)
+                        if(pos >= 0 and pos < maxcoord3): occupied2[pos] = self.i
 
 
     def searchBorder(self,x,y,z):
+        from globalsv import *
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
-                    pos = (x+i)+(y+j)*maxcoord+(z+k)*maxcoord2
-                    v = occupied2[pos]
-                    if(pos >= 0 and pos < maxcoord3 and v and v != self.i): return True
+                    if(x+i>= 0 and x+i <maxcoord and y+j>=0 and y+j<maxcoord and z+k>=0 and z+k < maxcoordZ):
+                        pos = np.int32((x+i)+(y+j)*maxcoord+(z+k)*maxcoord2)
+                        v = occupied2[pos]
+                        if(pos >= 0 and pos < maxcoord3 and v and v != self.i): return True
         return False
 
     def grow(self):
+        from globalsv import *
         self.tActual = self.tActual + 1
         maxim = len(self.contorno)
         w = 0
         for h in range(0,maxim):
             w = h
             cont = self.contorno[h]
-            nx = cont.x
-            ny = cont.y
-            nz = cont.z
-            pos = nx+ny*maxcoord+nz*maxcoord2
+            nx = cont[0]
+            ny = cont[1]
+            nz = cont[2]
+            pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
             o = occupied[pos]
             if(o and (ocupada(pos) == False)):
                 if(self.searchBorder(nx,ny,nz) == False):

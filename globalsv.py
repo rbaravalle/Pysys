@@ -22,7 +22,7 @@ N = 10
 cp = np.zeros(N) # # of particles per size (see below)
 lt = np.zeros(N) # lifetime of particles
 CT = 0
-occupied2 = np.zeros(maxcoord3)# contorns occupied (for self-avoidance)
+occupied2 = [] # contorns occupied (for self-avoidance)
 tOrig = 0
 distG = 0
 cantG = 0 # amount of generators
@@ -85,8 +85,7 @@ def init_variables() :
 
     for i in range(0,maxcoord3): 
         occupied.append(np.int32(-1))
-    #occupied = np.zeros(maxcoord3) - 1
-    occupied2 = np.zeros(maxcoord3)
+        occupied2.append(np.int32(0))
 
     if(sembrado == 0) :
         for i in range(0,cantG):
@@ -112,7 +111,7 @@ def init_particles():
 
 
 def ocupada(i):
-    o = occupied[i].particle
+    o = occupied[i]
     return (o >= 0 and sparticles[o])
 
 init_variables()
