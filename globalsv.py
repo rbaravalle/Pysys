@@ -49,7 +49,7 @@ diffZ = z1-z0
 generadores = []
 
 TIEMPO_VIDA = 0
-TIEMPO = 1000
+TIEMPO = 5000
 
 #gl
 sep = 5 # separation among particles
@@ -84,7 +84,7 @@ def init_variables() :
     t = 0
 
     for i in range(0,maxcoord3): 
-        occupied.append(np.int32(-1))
+        occupied.append(np.int32(0))
         occupied2.append(np.int32(0))
 
     if(sembrado == 0) :
@@ -111,7 +111,7 @@ def init_particles():
 
 
 def ocupada(i):
-    o = occupied[i]
-    return (o >= 0 and sparticles[o])
+    o = occupied2[i]
+    return (o > 0)
 
 init_variables()

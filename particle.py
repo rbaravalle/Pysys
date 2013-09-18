@@ -51,7 +51,9 @@ class Particle:
     def add(self,x,y,z):
         from globalsv import *
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
-        if(occupied[pos] != -1): return
+        if(occupied[pos] != np.int32(0)): 
+            print occupied[pos]
+            return
         # texels in the surroundings of the added point
         vals = [
             [x-1,y+1,z],
@@ -86,7 +88,7 @@ class Particle:
         # Alpha blending?
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
 
-        occupied[pos] = self.i
+        occupied[pos] = np.int32(255)
         #occupied[pos].a = self.a
 
         d = sqrt(x*x+y*y+z*z)
@@ -131,7 +133,7 @@ class Particle:
                 for k in (-sep,sep):
                     if(x+i>= 0 and x+i <maxcoord and y+j>=0 and y+j<maxcoord and z+k>=0 and z+k < maxcoordZ):
                         pos = np.int32((x+i)+(y+j)*maxcoord+(z+k)*maxcoord2)
-                        if(pos >= 0 and pos < maxcoord3): occupied2[pos] = self.i
+                        occupied2[pos] = self.i
 
 
     def searchBorder(self,x,y,z):
@@ -142,7 +144,7 @@ class Particle:
                     if(x+i>= 0 and x+i <maxcoord and y+j>=0 and y+j<maxcoord and z+k>=0 and z+k < maxcoordZ):
                         pos = np.int32((x+i)+(y+j)*maxcoord+(z+k)*maxcoord2)
                         v = occupied2[pos]
-                        if(pos >= 0 and pos < maxcoord3 and v and v != self.i): return True
+                        if(v != self.i): return True
         return False
 
     def grow(self):
@@ -158,7 +160,7 @@ class Particle:
             nz = cont[2]
             pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
             o = occupied[pos]
-            if(o and (ocupada(pos) == False)):
+            if(ocupada(pos) == False):
                 if(self.searchBorder(nx,ny,nz) == False):
                     self.add(nx,ny,nz)
                     break                
