@@ -4,28 +4,6 @@ from math import floor
 import maths
 from runge_kutta import *
 
-# point
-def xyz(x,y,z):
-    self.x = x
-    self.y = y
-    self.z = z
-
-
-# point with extra data
-def xyzd(x,y,z,d):
-    self.x = x
-    self.y = y
-    self.z = z
-    self.d = d
-
-
-def point(i,r,g,b,a,p):
-    self.particle = i
-    self.r = r or 0
-    self.g = g or 0
-    self.b = b or 0
-    self.a = a or 0
-
 def toSpace(x):
     from globalsv import diffX, maxcoord, x0
     return x*(diffX/maxcoord)+x0

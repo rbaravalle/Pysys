@@ -49,7 +49,7 @@ diffZ = z1-z0
 generadores = []
 
 TIEMPO_VIDA = 0
-TIEMPO = 40
+TIEMPO = 1000
 
 #gl
 sep = 5 # separation among particles

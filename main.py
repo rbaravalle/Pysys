@@ -9,11 +9,10 @@ from maths import *
 from runge_kutta import *
 from globalsv import *
 
-
 # una iteracion del algoritmo
 def mover() :
-    largoCont = 0
     m = []
+    largoCont = 0
     for i in range(0,len(particles)):
         pi = particles[i]
         if(pi.tActual > pi.tiempoDeVida) :
@@ -23,9 +22,10 @@ def mover() :
             pi.grow()
             largoCont = largoCont + len(pi.contorno)
 
-    print largoCont
     for i in range(0,len(m)):
         del particles[m[i]]
+
+    return largoCont
   
 
 
@@ -33,29 +33,25 @@ def mover() :
 def dibujarParticulas() :
 
     print "we'll draw soon!"
-    #print occupied[10:20]
-    # we only print those pixels that lie in the visZ plane
-    #for(var j = maxcoord2*visZ j < maxcoord2*(visZ+1) j++) :
-    #    if(occupied[j].particle > 0) :
-    #        var p = occupied[j]
-    #        j2 = j - maxcoord2*visZ
-    #        var x = j2%maxcoord
-    #        var y = Math.floor(j2*m1)
-    #        
-    #        vertices.push(x*m1,y*m1,0.0)
-    #        colors.push(p.r,p.g,p.b,1.0)
-    #        cant++
-    
+
+    I = Image.new('L',(maxcoordZ,maxcoord2),0.0)
+    rowsPerSlice = maxcoord
+
+    for i in range(maxcoordZ):
+        I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
+        I.paste(I2,(0,rowsPerSlice*i))
+
+    I.save('imagen.png')
 
 def alg() :  
 
     for t in range(0,TIEMPO-1):
-        print "IT"
-        mover()
+        largoCont = mover()
         t = t+1
+        if(t % 20 == 0) : print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
+        if(t % 100 == 0): dibujarParticulas()
         if(len(particles) == 0) : break
 
-    dibujarParticulas()
     print "good bye!"
     exit()
 
