@@ -1,22 +1,23 @@
 import numpy as np
 from random import randint, random
-from math import floor
+from math import floor, sqrt
 import maths
 from runge_kutta import *
+from globalsv import *
+
+particles = []
+sparticles = [] # binary array with particle states (live or dead)
 
 def toSpace(x):
-    from globalsv import diffX, maxcoord, x0
     return x*(diffX/maxcoord)+x0
 
 
 def toSpaceZ(x):
-    from globalsv import diffZ, maxcoord, z0
     return x*(diffZ/maxcoord)+z0
 
 
 class Particle:
     def __init__(self,i,lifet):
-        from globalsv import *
         c = randint(0,len(generadores)-1)
         gx = generadores[c][0]
         gy = generadores[c][1]
@@ -49,11 +50,10 @@ class Particle:
         self.add(x,y,z)
 
     def add(self,x,y,z):
-        from globalsv import *
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
-        if(occupied[pos] != np.int32(0)): 
-            print occupied[pos]
-            return
+        #if(occupied2[pos] != np.uint8(0)): 
+           #return
+            
         # texels in the surroundings of the added point
         vals = [
             [x-1,y+1,z],
@@ -88,8 +88,9 @@ class Particle:
         # Alpha blending?
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
 
-        occupied[pos] = np.int32(255)
-        #occupied[pos].a = self.a
+        occupied[pos] = np.uint8(255)
+        #print "ROCK!"
+        occupied2[pos] = self.i
 
         d = sqrt(x*x+y*y+z*z)
         xp = np.zeros(3)
@@ -113,10 +114,10 @@ class Particle:
                 bestY = yh
                 bestZ = zh
             
-            if(random()>(1-randomness)): self.contorno.append([xh,yh,zh,de])
+            if(random()>(1-randomness)): self.contorno.append([xh,yh,zh])
         
 
-        self.contorno.append([bestX,bestY,bestZ,deP])
+        self.contorno.append([bestX,bestY,bestZ])
         self.setBorder(x,y,z)
 
     def calculatePriority(self,x,y,z,xp): 
@@ -127,7 +128,6 @@ class Particle:
         return x2*x2+y2*y2+z2*z2
 
     def setBorder(self,x,y,z):
-        from globalsv import *
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
@@ -137,18 +137,16 @@ class Particle:
 
 
     def searchBorder(self,x,y,z):
-        from globalsv import *
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
                     if(x+i>= 0 and x+i <maxcoord and y+j>=0 and y+j<maxcoord and z+k>=0 and z+k < maxcoordZ):
                         pos = np.int32((x+i)+(y+j)*maxcoord+(z+k)*maxcoord2)
                         v = occupied2[pos]
-                        if(v != self.i): return True
+                        if(v > 0 and v != self.i): return True
         return False
 
     def grow(self):
-        from globalsv import *
         self.tActual = self.tActual + 1
         maxim = len(self.contorno)
         w = 0
@@ -158,16 +156,27 @@ class Particle:
             nx = cont[0]
             ny = cont[1]
             nz = cont[2]
-            pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
-            o = occupied[pos]
-            if(ocupada(pos) == False):
-                if(self.searchBorder(nx,ny,nz) == False):
-                    self.add(nx,ny,nz)
-                    break                
+            if(nx >= 0 and nx < maxcoord and ny >= 0 and ny < maxcoord and nz >= 0 and nz < maxcoordZ):
+                pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
+                if(ocupada(pos) == False):
+                    if(self.searchBorder(nx,ny,nz) == False):
+                        self.add(nx,ny,nz)
+                        break                
             
-        
-        self.contorno = self.contorno[w:]
+        #print "W: ", w, "cont: ", self.contorno
+        self.contorno = self.contorno[w+1:]
+        #print "then: ", self.contorno
     
     def morir(self):
-        from globalsv import *
         sparticles[self.i] = False
+
+    def alive(self):
+        return sparticles[self.i]
+
+def init_particles():
+    k = 0
+    for i in range(0,N):
+        for j in range(0,np.int32(cp[i])):
+            particles.append(Particle(k,lt[i]))
+            k = k+1
+            sparticles.append(True)

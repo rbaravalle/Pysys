@@ -4,26 +4,25 @@ from math import floor, sqrt
 from random import randint, random
 import matplotlib
 from matplotlib import pyplot as plt
-from particle import Particle
+from particle import Particle, init_particles, particles, sparticles
 from maths import *
 from runge_kutta import *
 from globalsv import *
 
+
 # una iteracion del algoritmo
 def mover() :
-    m = []
     largoCont = 0
     for i in range(0,len(particles)):
         pi = particles[i]
-        if(pi.tActual > pi.tiempoDeVida) :
-            pi.morir()
-            m.append(i) 
-        else : 
-            pi.grow()
-            largoCont = largoCont + len(pi.contorno)
-
-    #for i in range(0,len(m)):
-    #    del particles[m[i]]
+        if(pi.alive()):
+            if(pi.tActual > pi.tiempoDeVida) :
+                pi.morir()
+                #muertas = muertas +1
+                #print "Muertas: ", muertas
+            else : 
+                pi.grow()
+                largoCont = largoCont + len(pi.contorno)
 
     return largoCont
   
@@ -38,10 +37,10 @@ def dibujarParticulas() :
     rowsPerSlice = maxcoord
 
     for i in range(maxcoordZ):
-        I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.int32(255.0)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
+        I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,rowsPerSlice*i))
 
-    I.save('imagen.png')
+    I.save('../webgl-volumetric/textures/imagen.png')
 
 def alg() :  
 
@@ -49,8 +48,9 @@ def alg() :
         largoCont = mover()
         t = t+1
         if(t % 40 == 0) : print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 300 == 0): dibujarParticulas()
-        if(len(particles) == 0) : break
+        if(t % 300 == 0): dibujarParticulas()   
+        if(largoCont == 0):
+            break
 
     print "good bye!"
     exit()
@@ -59,6 +59,8 @@ def alg() :
 def main():
     print "Init..."
     init_variables()
+    print "Init Particles..."
+    init_particles()
     print "Algorithm!"
     alg()
 

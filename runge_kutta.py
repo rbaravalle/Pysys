@@ -2,7 +2,7 @@ dT = 0.05
 factual = 0
 
 # 3D Dinamic Systems
-funcs = [lambda v : [v[0]*v[0]-v[1]*v[1]+1,2*v[0]*v[1]+1,v[2]] ]
+funcs = [lambda v : [v[0]*v[0]-v[1]*v[1]+1,2*v[0]*v[1]+1,v[2]*v[2]] ]
 
 # multiply vector with an scalar
 def multV(x,e) :
