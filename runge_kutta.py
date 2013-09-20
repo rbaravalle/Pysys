@@ -1,6 +1,6 @@
 import numpy as np
 dT = np.float32(0.1)
-factual = 0
+factual = 1
 
 # 3D Dinamic Systems
 def f1(v):
@@ -12,7 +12,16 @@ def f1(v):
     c = np.float32(5.7)
     return [-y-z,x+a*y,b+z*(x-c)]
 
-funcs = [ f1 ]
+def f2(v):
+    x=v[0]
+    y=v[1]
+    z=v[2]
+    a = np.float32(10)
+    b = np.float32(28)
+    c = np.float32(8)/3
+    return [a*(y-x),x*(b-z)-y,x*y-c*z]
+
+funcs = [ f1,f2 ]
 
 # multiply vector with an scalar
 def multV(x,e) :
