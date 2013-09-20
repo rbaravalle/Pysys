@@ -17,13 +17,13 @@ N = 10
 cp = np.zeros(N) # # of particles per size (see below)
 lt = np.zeros(N) # lifetime of particles
 CT = 0
-distG = 1
-cantG = 100 # amount of generators
+distG = 0.2
+cantG = 20 # amount of generators
 sembrado = 0 # random or uniform
 VF = 0.99
-MCA = 2000
-stCA = 3000
-randomness = 0.003
+MCA = 1000
+stCA = 1000
+randomness = 0.05
 
 #2D-world limits
 x0 = -25
@@ -39,7 +39,7 @@ diffZ = z1-z0
 generadores = []
 
 TIEMPO = 120000
-sep = 0 # separation among particles
+sep = 1 # separation among particles
 
 def compute_lifetimes() :
     M = stCA*stCA
@@ -87,4 +87,4 @@ def init_variables() :
     print "GEN:" , generadores
 
 def ocupada(i):
-    return (occupied2[i] > 0)
+    return (occupied[i] > 0)
