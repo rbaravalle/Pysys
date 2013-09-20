@@ -9,11 +9,12 @@ particles = []
 sparticles = [] # binary array with particle states (live or dead)
 
 def toSpace(x):
-    return x*(diffX/maxcoord)+x0
+    return x*(np.float32(diffX)/maxcoord)+x0
 
 
 def toSpaceZ(x):
-    return x*(diffZ/maxcoord)+z0
+    h = x*(np.float32(diffZ)/maxcoord)+z0
+    return h
 
 
 class Particle:
@@ -51,45 +52,11 @@ class Particle:
 
     def add(self,x,y,z):
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
-        #if(occupied2[pos] != np.uint8(0)): 
-           #return
-            
-        # texels in the surroundings of the added point
-        vals = [
-            [x-1,y+1,z],
-            [x,y+1,z],
-            [x+1,y+1,z],
-            [x-1,y,z],
-            [x+1,y,z],
-            [x-1,y-1,z],
-            [x,y-1,z],
-            [x+1,y-1,z],
-            [x-1,y+1,z],
-            [x,y+1,z-1],
-            [x+1,y+1,z-1],
-            [x-1,y,z-1],
-            [x+1,y,z-1],
-            [x-1,y-1,z-1],
-            [x,y-1,z-1],
-            [x+1,y-1,z-1],
-            [x,y,z-1],
-            [x-1,y+1,z+1],
-            [x,y+1,z+1],
-            [x+1,y+1,z+1],
-            [x-1,y,z+1],
-            [x+1,y,z+1],
-            [x-1,y-1,z+1],
-            [x,y-1,z+1],
-            [x+1,y-1,z+1],
-            [x,y,z+1],
-        ]
 
-
-        # Alpha blending?
+        vals = contour(x,y,z)
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
 
         occupied[pos] = np.uint8(255)
-        #print "ROCK!"
         occupied2[pos] = self.i
 
         d = sqrt(x*x+y*y+z*z)
@@ -101,7 +68,7 @@ class Particle:
         bestX = vals[0][0]
         bestY = vals[0][1]
         bestZ = vals[0][2]
-        de = 0
+        de = np.float32(0)
         deP = self.calculatePriority(bestX,bestY,bestZ,xp)
         for i in range(1,len(vals)) :
             xh = vals[i][0]
@@ -116,7 +83,6 @@ class Particle:
             
             if(random()>(1-randomness)): self.contorno.append([xh,yh,zh])
         
-
         self.contorno.append([bestX,bestY,bestZ])
         self.setBorder(x,y,z)
 
@@ -125,7 +91,7 @@ class Particle:
         y2 = xp[1] - toSpace(y)
         z2 = xp[2] - toSpace(z)
         # priorities
-        return x2*x2+y2*y2+z2*z2
+        return np.float32(x2*x2+y2*y2+z2*z2)
 
     def setBorder(self,x,y,z):
         for i in (-sep,sep):
@@ -158,14 +124,11 @@ class Particle:
             nz = cont[2]
             if(nx >= 0 and nx < maxcoord and ny >= 0 and ny < maxcoord and nz >= 0 and nz < maxcoordZ):
                 pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
-                if(ocupada(pos) == False):
-                    if(self.searchBorder(nx,ny,nz) == False):
-                        self.add(nx,ny,nz)
-                        break                
+                if(ocupada(pos) == False and self.searchBorder(nx,ny,nz) == False):
+                    self.add(nx,ny,nz)
+                    break                
             
-        #print "W: ", w, "cont: ", self.contorno
         self.contorno = self.contorno[w+1:]
-        #print "then: ", self.contorno
     
     def morir(self):
         sparticles[self.i] = False
@@ -180,3 +143,35 @@ def init_particles():
             particles.append(Particle(k,lt[i]))
             k = k+1
             sparticles.append(True)
+
+          
+def contour(x,y,z):  
+    # texels in the surroundings of x,y,z
+    return [
+        [x,y+1,z],
+        [x-1,y+1,z],
+        [x+1,y+1,z],
+        [x-1,y,z],
+        [x+1,y,z],
+        [x-1,y-1,z],
+        [x,y-1,z],
+        [x+1,y-1,z],
+        [x-1,y+1,z],
+        [x,y+1,z-1],
+        [x+1,y+1,z-1],
+        [x-1,y,z-1],
+        [x+1,y,z-1],
+        [x-1,y-1,z-1],
+        [x,y-1,z-1],
+        [x+1,y-1,z-1],
+        [x,y,z-1],
+        [x-1,y+1,z+1],
+        [x,y+1,z+1],
+        [x+1,y+1,z+1],
+        [x-1,y,z+1],
+        [x+1,y,z+1],
+        [x-1,y-1,z+1],
+        [x,y-1,z+1],
+        [x+1,y-1,z+1],
+        [x,y,z+1],
+    ]
