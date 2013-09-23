@@ -21,7 +21,7 @@ def viz():
 
     for i in range(0,maxcoordZ-1):
         for k in range(0,maxcoord-1):
-            data_matrix[k,:,i] = np.array(occupied[i*maxcoord2+k*maxcoord:i*maxcoord2+(k+1)*maxcoord]).astype(np.uint8)
+            data_matrix[k,:,i] = np.uint8(255)-np.array(occupied[i*maxcoord2+k*maxcoord:i*maxcoord2+(k+1)*maxcoord]).astype(np.uint8)
 
     #data_matrix = occupied#data_matrix[20:150, 20:150, 20:150] = randint(0,150)
 

@@ -1,6 +1,6 @@
 import numpy as np
 dT = np.float32(0.1)
-factual = 1
+factual = 0
 
 # 3D Dinamic Systems
 def f1(v):

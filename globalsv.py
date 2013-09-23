@@ -4,8 +4,8 @@ from random import randint, random
 from math import floor, sqrt
 
 # global vars
-maxcoord = 100
-maxcoordZ = 50
+maxcoord = 150
+maxcoordZ = 150
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
@@ -38,7 +38,7 @@ diffZ = z1-z0
 
 generadores = []
 
-TIEMPO = 120000
+TIEMPO = 4000
 sep = 1 # separation among particles
 
 def compute_lifetimes() :
