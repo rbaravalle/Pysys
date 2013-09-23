@@ -8,6 +8,7 @@ from particle import Particle, init_particles, particles, sparticles
 from maths import *
 from runge_kutta import *
 from globalsv import *
+import viz # render
 
 
 # una iteracion del algoritmo
@@ -52,7 +53,7 @@ def alg() :
     print "last draw!"
     dibujarParticulas()
     print "good bye!"
-    exit()
+    #exit()
 
    
 def main():
@@ -65,3 +66,4 @@ def main():
 
 # start
 main()
+viz.viz()

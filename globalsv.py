@@ -5,7 +5,7 @@ from math import floor, sqrt
 
 # global vars
 maxcoord = 100
-maxcoordZ = 100
+maxcoordZ = 50
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
@@ -17,13 +17,13 @@ N = 10
 cp = np.zeros(N) # # of particles per size (see below)
 lt = np.zeros(N) # lifetime of particles
 CT = 0
-distG = 0.2
+distG = 0.8
 cantG = 20 # amount of generators
 sembrado = 0 # random or uniform
 VF = 0.99
-MCA = 1000
-stCA = 1000
-randomness = 0.05
+MCA = 10000
+stCA = 12000
+randomness = 0.03
 
 #2D-world limits
 x0 = -25
