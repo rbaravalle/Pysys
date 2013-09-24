@@ -19,7 +19,7 @@ def toSpaceZ(x):
 
 class Particle:
     def __init__(self,i,lifet):
-        c = randint(0,len(generadores)-1)
+        c = randint(0,generadores.shape[0]-1)
         gx = generadores[c][0]
         gy = generadores[c][1]
         gz = generadores[c][2]
@@ -40,7 +40,7 @@ class Particle:
 
         self.i = i
 
-        self.contorno = []
+        self.contorno = np.array([[-1,-1,-1]])
 
         self.tiempoDeVida = lifet
         self.tActual = 0
@@ -51,8 +51,6 @@ class Particle:
         self.add(x,y,z)
 
     def add(self,x,y,z):
-        pos = np.int32(x+y*maxcoord+z*maxcoord2)
-
         vals = contour(x,y,z)
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
 
@@ -81,9 +79,9 @@ class Particle:
                 bestY = yh
                 bestZ = zh
             
-            if(random()>(1-randomness)): self.contorno.append([xh,yh,zh])
+            if(random()>(1-randomness)): self.contorno = np.concatenate((self.contorno,np.array([[xh,yh,zh]])),axis=0)
         
-        self.contorno.append([bestX,bestY,bestZ])
+        self.contorno = np.concatenate((self.contorno,np.array([[bestX,bestY,bestZ]])),axis=0)
         self.setBorder(x,y,z)
 
     def calculatePriority(self,x,y,z,xp): 
@@ -139,15 +137,16 @@ class Particle:
 def init_particles():
     k = 0
     for i in range(0,N):
-        for j in range(0,np.int32(cp[i])):
-            particles.append(Particle(k,lt[i]))
-            k = k+1
-            sparticles.append(True)
+        if(lt[i]>0):
+            for j in range(0,np.int32(cp[i])):
+                particles.append(Particle(k,lt[i]))
+                k = k+1
+                sparticles.append(True)
 
           
 def contour(x,y,z):  
     # texels in the surroundings of x,y,z
-    return [
+    return np.array([
         [x,y+1,z],
         [x-1,y+1,z],
         [x+1,y+1,z],
@@ -174,4 +173,4 @@ def contour(x,y,z):
         [x,y-1,z+1],
         [x+1,y-1,z+1],
         [x,y,z+1],
-    ]
+    ])

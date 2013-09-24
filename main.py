@@ -8,7 +8,6 @@ from particle import Particle, init_particles, particles, sparticles
 from maths import *
 from runge_kutta import *
 from globalsv import *
-import viz # render
 
 
 # una iteracion del algoritmo
@@ -38,7 +37,7 @@ def dibujarParticulas() :
         I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,maxcoord*i))
 
-    I.save('../webgl-volumetric/textures/imagen.png')
+    I.save('imagen3.png')
 
 def alg() :  
 
@@ -57,8 +56,6 @@ def alg() :
 
    
 def main():
-    print "Init..."
-    init_variables()
     print "Init Particles..."
     init_particles()
     print "Algorithm!"
@@ -66,4 +63,3 @@ def main():
 
 # start
 main()
-viz.viz()

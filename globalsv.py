@@ -4,13 +4,13 @@ from random import randint, random
 from math import floor, sqrt
 
 # global vars
-maxcoord = 150
-maxcoordZ = 150
+maxcoord = 300
+maxcoordZ = 300
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
-occupied = []
-occupied2 = [] # contorns occupied (for self-avoidance)
+occupied = np.zeros(maxcoord3)
+occupied2 = np.zeros(maxcoord3)-np.int32(1) # contorns occupied (for self-avoidance)
 t = 0
 
 N = 10
@@ -36,9 +36,9 @@ diffX = x1-x0
 diffY = y1-y0
 diffZ = z1-z0
 
-generadores = []
+generadores = np.array([[0,0,0]])
 
-TIEMPO = 4000
+TIEMPO = 120000
 sep = 1 # separation among particles
 
 def compute_lifetimes() :
@@ -64,27 +64,33 @@ def compute_lifetimes() :
     print "Lt: ", lt
 
 def init_variables() :
-
+    global generadores
     compute_lifetimes()
 
-    for i in range(0,maxcoord3): 
-        occupied.append(np.int32(0))
-        occupied2.append(np.int32(0))
+    #for i in range(0,maxcoord3): 
+        #np.append(occupied,np.int32(0))
+        #np.append(occupied2,np.int32(0))
+
 
     if(sembrado == 0) :
-        #generadores = [[np.int32(50),np.int32(50),np.int32(50)]]
         for i in range(0,cantG):
-            generadores.append([randint(0,maxcoord), randint(0,maxcoord),randint(0,maxcoordZ)])
-        #print generadores
+            b = np.array([[randint(0,maxcoord), randint(0,maxcoord),randint(0,maxcoordZ)]])
+            generadores = np.concatenate((generadores,b), axis = 0)
+
         
     else :
         step = np.float32(maxcoord/cantG)
         for i in range(0,maxcoord,step):
             for j in range(0,maxcoord,step):
                 for k in range(0,maxcoordZ,step):
-                   generadores.append([floor(i),floor(j),floor(k)])
+                    b = np.array([[floor(i),floor(j),floor(k)]])
+                    generadores = np.concatenate((generadores,b), axis = 0)
 
-    print "GEN:" , generadores
+    generadores = generadores[1:] # take out the dummy (0,0,0)
+    print generadores
 
 def ocupada(i):
     return (occupied[i] > 0)
+
+print "Init..."
+init_variables()

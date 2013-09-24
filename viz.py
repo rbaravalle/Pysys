@@ -4,24 +4,33 @@ import vtk
 from numpy import *
 from random import randint
 from globalsv import *
+import Image
 
 def viz():
-    Nx = maxcoord
-    Ny = maxcoord
-    Nz = maxcoordZ
-    opaq = 0.05
+    opaq = 0.01
      
     # We begin by creating the data we want to render.
     # For this tutorial, we create a 3D-image containing three overlaping cubes.
     # This data can of course easily be replaced by data from a medical CT-scan or anything else three dimensional.
     # The only limit is that the data must be reduced to unsigned 8 bit or 16 bit integers.
+    img = Image.open('imagen3.png').convert('L')
+    img = np.asarray(img)
+    print img.shape
+
+    Nx = sqrt(img.shape[0])
+    Ny = Nx
+    Nz = img.shape[1]
+
     data_matrix = zeros([Nx, Ny, Nz], dtype=uint8)
 
-    print occupied[0:maxcoord2]
+    for i in range(0,Nz-1):
+         temp = img[Nx*i:Nx*(i+1),:]
+         data_matrix[:,:,i] = np.uint8(255)-temp
+    
 
-    for i in range(0,maxcoordZ-1):
-        for k in range(0,maxcoord-1):
-            data_matrix[k,:,i] = np.uint8(255)-np.array(occupied[i*maxcoord2+k*maxcoord:i*maxcoord2+(k+1)*maxcoord]).astype(np.uint8)
+    #for i in range(0,maxcoordZ-1):
+    #    for k in range(0,maxcoord-1):
+    #        data_matrix[k,:,i] = np.uint8(255)-np.array(occupied[i*maxcoord2+k*maxcoord:i*maxcoord2+(k+1)*maxcoord]).astype(np.uint8)
 
     #data_matrix = occupied#data_matrix[20:150, 20:150, 20:150] = randint(0,150)
 
@@ -46,16 +55,14 @@ def viz():
     # The following class is used to store transparencyv-values for later retrival. In our case, we want the value 0 to be
     # completly opaque whereas the three different cubes are given different transperancy-values to show how it works.
     alphaChannelFunc = vtk.vtkPiecewiseFunction()
-    alphaChannelFunc.AddPoint(0, opaq)
-    alphaChannelFunc.AddPoint(50, opaq)
-    alphaChannelFunc.AddPoint(100, opaq)
-    alphaChannelFunc.AddPoint(150, opaq)
+    alphaChannelFunc.AddPoint(0, 0)
+    alphaChannelFunc.AddPoint(255, opaq)
      
     # This class stores color data and can create color tables from a few color points. For this demo, we want the three cubes
     # to be of the colors red green and blue.
     colorFunc = vtk.vtkColorTransferFunction()
     colorFunc.AddRGBPoint(0, 0.0, 0.0, 0.0)
-    colorFunc.AddRGBPoint(200,0.8, 0.7, 0.6)
+    colorFunc.AddRGBPoint(255,0.8, 0.7, 0.6)
      
     # The preavius two classes stored properties. Because we want to apply these properties to the volume we want to render,
     # we have to store them in a class that stores volume prpoperties.
@@ -101,3 +108,6 @@ def viz():
     # Because nothing will be rendered without any input, we order the first render manually before control is handed over to the main-loop.
     renderWin.Render()
     renderInteractor.Start()
+
+viz()
+
