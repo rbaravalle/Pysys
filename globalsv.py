@@ -4,8 +4,8 @@ from random import randint, random
 from math import floor, sqrt
 
 # global vars
-maxcoord = 300
-maxcoordZ = 300
+maxcoord = 150
+maxcoordZ = 150
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
