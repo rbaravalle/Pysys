@@ -4,8 +4,8 @@ from random import randint, random
 from math import floor, sqrt
 
 # global vars
-maxcoord = 150
-maxcoordZ = 150
+maxcoord = 256
+maxcoordZ = 256
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
@@ -66,11 +66,6 @@ def compute_lifetimes() :
 def init_variables() :
     global generadores
     compute_lifetimes()
-
-    #for i in range(0,maxcoord3): 
-        #np.append(occupied,np.int32(0))
-        #np.append(occupied2,np.int32(0))
-
 
     if(sembrado == 0) :
         for i in range(0,cantG):

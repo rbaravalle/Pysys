@@ -34,10 +34,10 @@ def dibujarParticulas() :
     I = Image.new('L',(maxcoordZ,maxcoord2),0.0)
 
     for i in range(maxcoordZ):
-        I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
+        I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,maxcoord*i))
 
-    I.save('imagen3.png')
+    I.save('imagen3-1.png')
 
 def alg() :  
 
