@@ -37,14 +37,14 @@ global pos
 global posCam
 
 sizeOfFloat = 4
-dim = 256
+dim = 0
 angle = 0.0
-posCam = [-0.2,0.2,-2.0]
+posCam = [-2.0,0.0,0.0]
 uOffset = np.array([0.0,0.0,0.0])
 uLightP = np.array([0.0,0.0,0.0])
 alpha = 0.0
-uTMK = 12.0
-uTMK2 = 10.0
+uTMK = 6.0
+uTMK2 = 64.0
 
 class renderParam( object ):
 	"""Class holding current parameters for rendering.
@@ -73,7 +73,7 @@ def set_uniforms():
     uniforms1 = ["uTMK", "uTMK2", "uShininess","uShin2"]
     uniforms3 = [ "uCamPos", "uLightP","uLightC","uTexDim","uColor", "uOffset"]
     textures = ["uTex"]
-    values1 = [uTMK,uTMK2,2.0,8.0]
+    values1 = [uTMK,uTMK2,1.0,8.0]
     values3 = [posCam,uLightP,[1.0,1.0,1.0],[dim,dim,dim],[0.8,0.7,0.65],uOffset]
 
     temp = glGetUniformLocation(BaseProgram,"uTex")
@@ -99,6 +99,7 @@ def LoadTextures():
 
     image = image.convert("L") #np.uint8(1) #tostring("raw", "L", 0, -1)
     #im = np.array([random.randint(0,255) for _ in range(dim*dim*dim)]).astype(np.uint8)
+    dim = image.size[0]
     im = np.zeros(dim*dim*dim).astype(np.uint8)
     for i in range(dim):
         im[i*dim*dim:(i+1)*dim*dim] = np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
@@ -162,6 +163,7 @@ def DrawGLScene():
 
     glClearColor(0.0,0.0,0.0,0.0)
 
+    glEnable(GL_CULL_FACE)
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 
@@ -236,12 +238,14 @@ def keyPressed(*args):
 
     if args[0] == "c":
         angle = angle+0.05
-        r = -4        
-        posCam = [r*np.cos(angle),-2.0,r*np.sin(angle)]
+        r = -2        
+        posCam = [-2.0,r*np.cos(angle),r*np.sin(angle)]
     if args[0] == "v":
         angle = angle-0.05
-        r = -4        
-        posCam = [r*np.cos(angle),-2.0,r*np.sin(angle)]
+        r = -2        
+        posCam = [-2.0,r*np.cos(angle),r*np.sin(angle)]
+
+
 
 
     #print posCam

@@ -20,7 +20,7 @@ precision highp float;
 //---------------------------------------------------------
 
 // 32 48 64 96 128
-#define MAX_STEPS 96
+#define MAX_STEPS 256
 
 #define LIGHT_NUM 1
 //#define uTMK 20.0
@@ -113,7 +113,43 @@ vec4 raymarchNoLight(vec3 ro, vec3 rd) {
 
 }
 
-vec4 raymarchLight(vec3 ro, vec3 rd) {
+vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
+  vec3 step = rd*gStepSize;
+  vec3 pos = ro;
+  vec3 uColor2 = vec3(213.0/255.0,150.0/255.0,94.0/255.0);
+  vec3 col = vec3(0.0);   // accumulated color
+  float tm = 1.0;         // accumulated transmittance
+  
+  for (int i=0; i<MAX_STEPS; ++i) {
+    // delta transmittance 
+    float dtm = exp( -tr*gStepSize*sampleVolTex(pos).x );
+    //float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos) );
+    tm *= dtm*(1.000+(-uShininess*0.001));
+    
+    // get contribution per light
+    for (int k=0; k<LIGHT_NUM; ++k) {
+      vec3 ld = normalize( toLocal(uLightP)-pos );
+      float ltm = getTransmittance(pos,ld);
+      
+      col += (1.0-dtm) * uColor2*uLightC * tm * ltm;
+    }
+    
+    pos += step;
+    
+    if (tm < TM_MIN ||
+      pos.x > 1.0 || pos.x < 0.0 ||
+      pos.y > 1.0 || pos.y < 0.0 ||
+      pos.z > 1.0 || pos.z < 0.0)
+      break;
+  }
+  
+  float alpha = 1.0-tm;
+  //if(alpha > 0.7) alpha = 0.7;
+  return vec4(col/alpha, alpha);
+}
+
+
+/*vec4 raymarchLight(vec3 ro, vec3 rd) {
   vec3 step = rd*gStepSize;
   vec3 pos = ro;
   
@@ -145,43 +181,7 @@ vec4 raymarchLight(vec3 ro, vec3 rd) {
   
   float alpha = 1.0-tm;
   return vec4(col/alpha, alpha);
-}
-
-
-
-vec4 raymarchLight2(vec3 ro, vec3 rd) {
-  vec3 step = rd*gStepSize;
-  vec3 pos = ro;
-  vec3 col = vec3(0.0); // accumulated color
-  float tm = 1.0; // accumulated transmittance
-  
-  for (int i=0; i<MAX_STEPS; ++i) {
-    // delta transmittance
-    float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos).x );
-    tm *= dtm*(1.000+(-uShininess*0.001));
-    
-    // get contribution per light
-    for (int k=0; k<LIGHT_NUM; ++k) {
-      vec3 ld = normalize( toLocal(uLightP)-pos );
-      float ltm = getTransmittance(pos,ld);
-      
-      col += (1.0-dtm) * uColor*uLightC * tm * ltm;
-    }
-    
-    pos += step;
-    
-    if (tm < TM_MIN ||
-      pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
-      break;
-  }
-  
-  float alpha = 1.0-tm;
-  return vec4(col/alpha, alpha);
-}
-
-
+}*/
 
 
 void main()
@@ -192,5 +192,5 @@ void main()
   
   gStepSize = ROOTTHREE / float(MAX_STEPS);
   
-  gl_FragColor =   vec4(0.5,0.5,0.5,0.0)+raymarchLight(ro, rd);
+  gl_FragColor =   raymarchLight(ro, rd,uTMK2);
 }

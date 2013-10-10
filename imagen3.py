@@ -43,7 +43,7 @@ h = 0
 sep =1
 for i in range(0,maxX,sep):
     for j in range(0,maxY,sep):
-         for k in range(0,25,sep):
+         for k in range(maxZ-25,maxZ,sep):
              i2 = i-maxX/2.0
              j2 = j-maxY/2.0
              k2 = k-maxZ/2.0
@@ -87,7 +87,7 @@ for i in range(0,maxZ):
          i2 = i-maxX/2.0+randint(0,3)
          j2 = j-maxY/2.0+randint(0,3)
          k2 = k-maxZ/2.0+randint(0,3)
-         if(j2*j2/2000+k2*k2/1000>1):
+         if(j2*j2/1500+k2*k2/1500>1):
             field[i][j][k] = np.uint8(0)
          #if( j > 120):
          #   field[i][j][k] = np.uint8(0)
