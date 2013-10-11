@@ -9,6 +9,10 @@ import Image
 from OpenGL.GL.shaders import *
 import random
 import numpy as np
+import time
+last_time = time.time()
+frames = 0
+
 
 # Some api in the chain is translating the keystrokes to this octal string
 # so instead of saying: ESCAPE = 27, we use the following.
@@ -39,7 +43,7 @@ alpha = 0.0
 uTMK = 12.0
 uTMK2 = 12.0
 uShininess = 1.0
-uMaxSteps = 128
+uMaxSteps = 32
 
 def set_uniforms():
     global BaseProgram
@@ -139,6 +143,7 @@ def ReSizeGLScene(Width, Height):
 # The main drawing function.
 def DrawGLScene():
     global posCam
+    global frames, last_time
 
     glClear(GL_COLOR_BUFFER_BIT);# | GL_DEPTH_BUFFER_BIT)    # Clear The Screen And The Depth Buffer
     glLoadIdentity()                    # Reset The View
@@ -182,6 +187,15 @@ def DrawGLScene():
 
     #  since this is double buffered, swap the buffers to display what just got drawn.
     glutSwapBuffers()
+
+    # FPS
+    frames += 1
+    if time.time() - last_time >= 1:
+        current_fps = frames / (time.time() - last_time)
+        print current_fps, 'fps'
+        frames = 0
+        last_time = time.time()
+
 
 # The function called whenever a key is pressed. Note the use of Python tuples to pass in: (key, x, y)
 def keyPressed(*args):
