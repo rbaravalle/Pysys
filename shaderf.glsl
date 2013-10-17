@@ -23,7 +23,6 @@ precision highp float;
 uniform float uMaxSteps;
 
 #define LIGHT_NUM 1
-//#define uTMK 20.0
 #define TM_MIN 0.5	
 
 
