@@ -40,18 +40,20 @@ posCam = [-4.0,4.0,0.0]
 uOffset = np.array([0.0,0.0,0.0])
 uLightP = np.array([0.0,0.0,0.0])
 alpha = 0.0
-uTMK = 12.0
-uTMK2 = 12.0
+alpha2 = 0.0
+uTMK = 4.0
+uTMK2 = 5.0
 uShininess = 1.0
 uMaxSteps = 128
 
 def set_uniforms():
     global BaseProgram
     global uLightP
-    global alpha
+    global alpha, alpha2
 
-    alpha = (alpha+0.001)%np.pi
-    uLightP = np.array([0.0,4*np.cos(alpha),4*np.sin(alpha)]);
+    alpha = (alpha+0.01)%np.pi
+    alpha2 = (alpha2+0.01)%np.pi
+    uLightP = np.array([4*np.cos(alpha)*np.sin(alpha2),4*np.sin(alpha)*np.sin(alpha2),4*np.cos(alpha2)]);
 
     uniforms1 = ["uTMK", "uTMK2", "uShininess","uShin2","uMaxSteps"]
     uniforms3 = [ "uCamPos", "uLightP","uLightC","uTexDim","uColor", "uOffset"]
@@ -87,14 +89,17 @@ def LoadTextures():
     for i in range(dim):
         im[i*dim*dim:(i+1)*dim*dim] = np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
 
- #   for i in range(dim):
- #       for j in range(dim):
- #           for k in range(dim):
- #               i2 = i-dim/2
- #               j2 = j-dim/2
- #               k2 = k-dim/2
- #               if(i2*i2+j2*j2+k2*k2>10000):
- #                   im[i+j*dim+k*dim*dim] = np.uint8(0)#-random.randint(0,100)
+    for i in range(dim):
+        for j in range(dim):
+            for k in range(dim):
+                i2 = i-dim/2
+                j2 = j-dim/2
+                k2 = k-dim/2
+                i3 = i-dim/2
+                j3 = j-dim/4
+                k3 = k-dim/2
+                if(i2*i2+j2*j2>10000 or i3*i3+j3*j3+k3+k3<2000):
+                    im[i+j*dim+k*dim*dim] = np.uint8(0)#-random.randint(0,100)
 
     glPixelStorei(GL_UNPACK_ALIGNMENT,1)
     glBindTexture(GL_TEXTURE_3D, glGenTextures(1))

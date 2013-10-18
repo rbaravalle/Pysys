@@ -23,8 +23,18 @@ global points2
 
 points2 = np.zeros((c*3)).astype(np.int32)
 
-numIt = 4
+numIt = 5
 h = 0
+
+def draw():
+    rowsPerSlice = maxY
+
+    for i in range(maxZ):
+        I2 = Image.frombuffer('L',(maxX,maxY), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)
+        I.paste(I2,(0,rowsPerSlice*i))
+
+    I.save('mengel3d2.png')
+
 
     
 for w in range(c):
@@ -46,6 +56,7 @@ for i in range(numIt):
         y = points2[h+1]
         z = points2[h+2]
         if(h%600 == 0): print h, 3*c
+        if(h%6000 == 0): draw()
         for i in range(points2[h]-r-1,points2[h]+r+1):
             for j in range(points2[h+1]-r-1,points2[h+1]+r+1):
                 for k in range(points2[h+2]-r-1,points2[h+2]+r+1):
@@ -57,7 +68,7 @@ for i in range(numIt):
                              field[i][j][k] = np.uint8(0)
 
 
-    r = int(r/2)
+    r = int(r/1.6)
     orig = c
     cuant = 16
     c = int(c*cuant)
@@ -85,10 +96,6 @@ print "End."
 plt.imshow(field[2], cmap=matplotlib.cm.gray)
 plt.show()
 
-rowsPerSlice = maxY
 
-for i in range(maxZ):
-    I2 = Image.frombuffer('L',(maxX,maxY), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)
-    I.paste(I2,(0,rowsPerSlice*i))
+draw()
 
-I.save('mengel3d.png')
