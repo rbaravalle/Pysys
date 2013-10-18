@@ -4,31 +4,27 @@ from math import floor, sqrt
 from random import randint
 import matplotlib
 from matplotlib import pyplot as plt
+import random
 
 
-maxX = 350
-maxY = 350
+maxX = 512
+maxY = 512
 
 I = Image.new('L',(maxX,maxY),0.0)
 
 field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
-r = 20 # radius of initial bubbles
+r = 24 # radius of initial bubbles
 c = 4 # amount of initial bubbles
 orig = c
 points2 = np.zeros((c*2)).astype(np.uint32)
 
-numIt = 5
+numIt = 3
 h = 0
 
-    
-def sign(): 
-    if randint(0,10) > 5 : return 1
-    else : return -1
-
 for k in range(c):
-    i = randint(r,maxX-r)
-    j = randint(r,maxY-r)
+    i = randint(2*r,maxX-r)
+    j = randint(2*r,maxY-r)
     points2[h] = i
     h = h+1
     points2[h] = j
@@ -51,9 +47,9 @@ for i in range(numIt):
                      field[u][v] = np.uint8(0)
 
 
-    r = int(r/2)
+    r = int(r/1.6)
     orig = c
-    cuant = 10
+    cuant = 6
     c = int(c*cuant)
 
     # reset points
@@ -61,10 +57,10 @@ for i in range(numIt):
     points2 = np.zeros((c*2)).astype(np.uint32)
     for k in range(0,2*orig,2):
         for l in range(cuant):
-            d = randint(0,360)
-            rr = 15*r+randint(0,8)
-            i = points[k]+int(rr*np.cos(d))#+randint(0,10)
-            j = points[k+1]+int(rr*np.sin(d))#+randint(0,10)
+            d = random.random()*np.pi*2
+            rr = 10*r
+            i = points[k]+np.int32(rr*np.cos(d))#+randint(0,10)
+            j = points[k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
             pos = k*cuant + 2*l
             points2[pos] = i
             points2[pos+1] = j

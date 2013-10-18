@@ -43,7 +43,7 @@ alpha = 0.0
 uTMK = 12.0
 uTMK2 = 12.0
 uShininess = 1.0
-uMaxSteps = 32
+uMaxSteps = 128
 
 def set_uniforms():
     global BaseProgram
