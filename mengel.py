@@ -5,6 +5,7 @@ from random import randint
 import matplotlib
 from matplotlib import pyplot as plt
 import random
+import ImageDraw
 
 
 maxX = 512
@@ -12,14 +13,17 @@ maxY = 512
 
 I = Image.new('L',(maxX,maxY),0.0)
 
-field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
+#image = Image.open("x.png")
+draw = ImageDraw.Draw(I)
+
+#field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
 r = 24 # radius of initial bubbles
 c = 4 # amount of initial bubbles
 orig = c
 points2 = np.zeros((c*2)).astype(np.uint32)
 
-numIt = 3
+numIt = 4
 h = 0
 
 for k in range(c):
@@ -37,14 +41,16 @@ for i in range(numIt):
         x = points2[h]
         y = points2[h+1]
         if(h%6000 == 0): print h
-        for i in range(points2[h]-r-1,points2[h]+r+1):
-            for j in range(points2[h+1]-r-1,points2[h+1]+r+1):
-                 i2 = i-points2[h]
-                 j2 = j-points2[h+1]
-                 if(i2*i2+j2*j2 < r*r):
-                     u = max(0,min(i,maxX-1))
-                     v = max(0,min(j,maxY-1))
-                     field[u][v] = np.uint8(0)
+
+        draw.ellipse((x-r, y-r, x+r, y+r), fill=(np.uint8(255)))
+        #for i in range(points2[h]-r-1,points2[h]+r+1):
+        #    for j in range(points2[h+1]-r-1,points2[h+1]+r+1):
+        #         i2 = i-points2[h]
+        #         j2 = j-points2[h+1]
+        #         if(i2*i2+j2*j2 < r*r):
+        #             u = max(0,min(i,maxX-1))
+        #             v = max(0,min(j,maxY-1))
+        #             field[u][v] = np.uint8(0)
 
 
     r = int(r/1.6)
@@ -67,9 +73,9 @@ for i in range(numIt):
 
      
 
-plt.imshow(field, cmap=matplotlib.cm.gray)
-plt.show()
+#plt.imshow(field, cmap=matplotlib.cm.gray)
+#plt.show()
 
-I = Image.frombuffer('L',(maxX,maxY), np.array(field).astype(np.uint8),'raw','L',0,1)
+#I = Image.frombuffer('L',(maxX,maxY), np.array(field).astype(np.uint8),'raw','L',0,1)
 
 I.save('imagenpy.png')
