@@ -5,20 +5,25 @@ from random import randint
 import matplotlib
 from matplotlib import pyplot as plt
 import random
+import ImageDraw
+import time
 
+tim = time.time()
 
 maxX = 512
 maxY = 512
 
 I = Image.new('L',(maxX,maxY),0.0)
 
-field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
+draw = ImageDraw.Draw(I)
 
-r = 24 # radius of initial bubbles
-c = 2 # amount of initial bubbles
+#field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
+
+r = 28 # radius of initial bubbles
+c = 6 # amount of initial bubbles
 orig = c
 
-numIt = 5
+numIt = 1
 h = 0
 h2 = 0
 cinf = 4
@@ -28,6 +33,7 @@ mina = 100000
 
 points2 = np.zeros((c*2)).astype(np.uint32)
 points3 = np.zeros((c*cinf)).astype(np.float32)
+pointstot = points3
 
 def detcuad(i,j):
     if(i > maxX/2): 
@@ -42,31 +48,34 @@ def avoid(i,j,rac):
     global maxa, mina
     summ = np.float32(0)
     for pos in range(0,len(pointstot),cinf):
-        if(detcuad(i,j) == pointstot[pos+3]):
-            d = np.power((i - pointstot[pos]),2)+np.power((j - pointstot[pos+1]),2)
-            d = np.sqrt(d)
-            r = pointstot[pos+2]
-            #if(d==0): return False
-            #a = pow(np.e,-d)/d
-            #if a > maxa: maxa = a
-            #if a < mina: mina = a
-            #summ += a
-            if(d<r+1+rac): return False
+       # if(detcuad(i,j) == pointstot[pos+3]):
+       d = np.power((np.float32(i) - pointstot[pos]),2)+np.power((np.float32(j) - pointstot[pos+1]),2)
+       d = np.sqrt(d)
+       rr = pointstot[pos+2]
+
+       print i,j,d
+       print pointstot[pos], pointstot[pos+1], rr,rac
+       if(np.float32(d)<np.float32(rr)+rac): 
+            return False
+
     #p = pow(summ,-m)
     #if(maxa*random.random() > p): return False
+
     return True
 
 for k in range(c):
     i = randint(2*r,maxX-r)
     j = randint(2*r,maxY-r)
-    points2[h] = i
-    h = h+1
-    points2[h] = j
-    h = h+1
-    points3[h2] = i
-    points3[h2+1] = j
-    points3[h2+2] = r
-    points3[h2+3] = detcuad(i,j)
+    if(avoid(i,j,r)):
+        points2[h] = i
+        h = h+1
+        points2[h] = j
+        h = h+1
+        points3[h2] = i
+        points3[h2+1] = j
+        points3[h2+2] = r
+        points3[h2+3] = detcuad(i,j)
+        pointstot = points3
 
 pointstot = points3
 
@@ -77,17 +86,12 @@ for i in range(numIt):
         x = points2[h]
         y = points2[h+1]
         if(h%600 == 0): print h
-        for i in range(points2[h]-r-1,points2[h]+r+1):
-            for j in range(points2[h+1]-r-1,points2[h+1]+r+1):
-                 i2 = i-points2[h]
-                 j2 = j-points2[h+1]
-                 if(i2*i2+j2*j2 < r*r):
-                     u = max(0,min(i,maxX-1))
-                     v = max(0,min(j,maxY-1))
-                     field[u][v] = np.uint8(0)
+
+        r2 = r
+        draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(255)))
 
 
-    r = int(r/1.6)
+    r = int(r/1.7)
     orig = c
     cuant = 6
     c = int(c*cuant)
@@ -101,11 +105,10 @@ for i in range(numIt):
     for k in range(0,2*orig,2):
         for l in range(cuant):
             d = random.random()*np.pi*2
-            rr = 4*r
+            rr = 8*r
             i = points[k]+np.int32(rr*np.cos(d))#+randint(0,10)
             j = points[k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
-            if(avoid(i,j,r+1)):
-                #pos = k*cuant + 2*l
+            if(avoid(i,j,r)):
                 points2[pos] = i
                 points2[pos+1] = j
                 points3[pos2] = i
@@ -118,9 +121,10 @@ for i in range(numIt):
 
     pointstot = np.hstack((pointstot,points3))
 
-plt.imshow(field, cmap=matplotlib.cm.gray)
+print "Time elapsed: ", time.time()-tim
+
+plt.imshow(I, cmap=matplotlib.cm.gray)
 plt.show()
 
-I = Image.frombuffer('L',(maxX,maxY), np.array(field).astype(np.uint8),'raw','L',0,1)
 
 I.save('imagenpy.png')
