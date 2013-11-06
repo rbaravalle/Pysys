@@ -20,10 +20,10 @@ draw = ImageDraw.Draw(I)
 #field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
 r = 28 # radius of initial bubbles
-c = 20 # amount of initial bubbles
+c = 10 # amount of initial bubbles
 orig = c
 
-numIt = 3
+numIt = 4
 h = 0
 h2 = 0
 cinf = 4
@@ -31,31 +31,41 @@ cinf = 4
 maxa = -10
 mina = 100000
 
-points3 = np.zeros((c*cinf)).astype(np.float32)
+points3 = np.zeros((4,c*cinf)).astype(np.float32)
 pointstot = points3
 
 def detcuad(i,j):
     if(i > maxX/2): 
-        if(j > maxY/2): return 1
-        else: return 2
+        if(j > maxY/2): return 0
+        else: return 1
     else:
-        if(j > maxY/2): return 3
-        else: return 4
+        if(j > maxY/2): return 2
+        else: return 3
 
 # self-avoiding growth model
-def avoid(i,j,rac):
+def avoid(i,j,rac,pointsnew):
     global maxa, mina
     summ = np.float32(0)
-    for pos in range(0,len(pointstot),cinf):
-       # if(detcuad(i,j) == pointstot[pos+3]):
-       d = np.power((np.float32(i) - pointstot[pos]),2)+np.power((np.float32(j) - pointstot[pos+1]),2)
-       d = np.sqrt(d)
-       rr = pointstot[pos+2]
 
-       #print i,j,d
-       #print pointstot[pos], pointstot[pos+1], rr,rac
-       if(np.float32(d)<np.float32(rr)+rac): 
+    points = pointstot[detcuad(i,j)]
+
+    for pos in range(0,len(points),cinf):
+       d = np.power((np.float32(i) - points[pos]),2)+np.power((np.float32(j) - points[pos+1]),2)
+       d = np.sqrt(d)
+       rr = points[pos+2]
+
+       if(np.float32(d)<np.float32(rr)+rac+1): 
             return False
+
+    if(pointsnew != []):
+        pointsnew = pointsnew[detcuad(i,j)]
+        for pos in range(0,len(pointsnew),cinf):
+           d = np.power((np.float32(i) - pointsnew[pos]),2)+np.power((np.float32(j) - pointsnew[pos+1]),2)
+           d = np.sqrt(d)
+           rr = pointsnew[pos+2]
+
+           if(np.float32(d)<np.float32(rr)+rac+1): 
+                return False
 
     #p = pow(summ,-m)
     #if(maxa*random.random() > p): return False
@@ -65,50 +75,56 @@ def avoid(i,j,rac):
 for k in range(c):
     i = randint(2*r,maxX-r)
     j = randint(2*r,maxY-r)
-    if(avoid(i,j,r)):
-        pointstot[h2] = i
-        pointstot[h2+1] = j
-        pointstot[h2+2] = r
-        pointstot[h2+3] = detcuad(i,j)
+    if(avoid(i,j,r,[])):
+        cuad = detcuad(i,j)
+        pointstot[cuad,h2] = i
+        pointstot[cuad,h2+1] = j
+        pointstot[cuad,h2+2] = r
+        pointstot[cuad,h2+3] = cuad
         h2+=cinf
 
-for i in range(numIt):
-    print "It num", i
+for it in range(numIt):
+    print "It num", it
     print "Total: ", cinf*c
-    for h in range(0,cinf*c,cinf):
-        x = pointstot[h]
-        y = pointstot[h+1]
-        if(h%600 == 0): print h
 
-        r2 = r-4
-        draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(255)))
+    for cc in range(4):
+        for h in range(0,cinf*c,cinf):
+            x = pointstot[cc,h]
+            y = pointstot[cc,h+1]
+            if(h%600 == 0): print h
+
+            r2 = r
+            if x!=0 and y!=0:
+                draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(255)))
 
 
-    r = int(r/1.7)
+    r = np.int32(r/1.9)
     orig = c
     cuant = 6
-    c = int(c*cuant)
+    c = np.int32(c*cuant)
 
+    print "Calculating Next Iteration..."
     # reset points
-    points3 = np.zeros((c*cinf)).astype(np.float32)
+    points3 = np.zeros((4,c*cinf)).astype(np.float32)
     pos = 0
     for k in range(0,cinf*orig,cinf):
-        for l in range(cuant):
+        for l in range(randint(0,cuant)):
             d = random.random()*np.pi*2
             rr = 8*r
-            i = pointstot[k]+np.int32(rr*np.cos(d))#+randint(0,10)
-            j = pointstot[k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
-            if(avoid(i,j,r)==True):
-                points3[pos] = i
-                points3[pos+1] = j
-                points3[pos+2] = r
-                cuad = detcuad(i,j)
-                points3[pos+3] = cuad
+
+            i = pointstot[cuad,k]+np.int32(rr*np.cos(d))#+randint(0,10)
+            j = pointstot[cuad,k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
+            if(avoid(i,j,r,points3)==True):
+                points3[cuad,pos] = i
+                points3[cuad,pos+1] = j
+                points3[cuad,pos+2] = r
+                points3[cuad,pos+3] = cuad
                 pos+=cinf
 
     pointstot = np.hstack((pointstot,points3))
+    print "It", it, "Time elapsed: ", time.time()-tim
 
-print "Time elapsed: ", time.time()-tim
+
 
 plt.imshow(I, cmap=matplotlib.cm.gray)
 plt.show()
