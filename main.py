@@ -16,11 +16,30 @@ def mover() :
     for i in range(0,len(particles)):
         pi = particles[i]
         if(pi.alive()):
-            if(pi.tActual > pi.tiempoDeVida) :
+            if(pi.size > 6*MCA):
                 pi.morir()
-            else : 
-                pi.grow()
-                largoCont = largoCont + len(pi.contorno)
+                m.push(i);
+            if(pi.repr == 0 and pi.size > np.floor(MCA/2)):
+                pi.repr = 1
+                k = len(particles)
+                for w in range(amountSons):
+                    d = np.random*np.pi*2
+                    rr = 5*(np.sqrt(pi.size/np.pi))
+                    if(len(pi.contorno) >= 0):
+                        if(len(pi.contorno) <= w+1):
+                            con = pi.contorno[w]
+                        else: con = pi.contorno[0]
+                    else : con = [pi.xi,pi.yi,0]
+                    u = con.x+np.floor(rr*np.cos(d))
+                    v = con.y+np.floor(rr*np.sin(d))
+
+                    particles.append(Particle(k, MCA,u,v));
+                    k +=1
+                    sparticles.append(true); # la particula esta viva
+
+            for w in range(pi.fn()):
+                pi.grow(randomness)
+            largoCont = largoCont + len(pi.contorno)
 
     return largoCont
   
@@ -45,7 +64,7 @@ def alg() :
         largoCont = mover()
         t = t+1
         if(t % 40 == 0) : print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 100 == 0): dibujarParticulas()   
+        if(t % 40 == 0): dibujarParticulas()   
         if(largoCont == 0):
             break
 

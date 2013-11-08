@@ -27,7 +27,7 @@ strVS = open('shaderv.glsl').read()
 # fragment shader
 strFS = open('shaderf.glsl').read()
 
-strTex = 'mengel3d.png'
+strTex = 'imagen3-1.png'
 
 global BaseProgram
 global pos
@@ -87,7 +87,7 @@ def LoadTextures():
     dim = image.size[0]
     im = np.zeros(dim*dim*dim).astype(np.uint8)
     for i in range(dim):
-        im[i*dim*dim:(i+1)*dim*dim] = np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
+        im[i*dim*dim:(i+1)*dim*dim] = np.uint8(255)-np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
 
     for i in range(dim):
         for j in range(dim):

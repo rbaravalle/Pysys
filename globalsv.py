@@ -40,6 +40,8 @@ generadores = np.array([[0,0,0]])
 
 TIEMPO = 120000
 sep = 1 # separation among particles
+diffBubbles = 18
+amountSons = 5
 
 def compute_lifetimes() :
     M = stCA*stCA

@@ -18,7 +18,7 @@ def toSpaceZ(x):
 
 
 class Particle:
-    def __init__(self,i,lifet):
+    def __init__(self,i,lifet,u,v,w,randomParam):
         c = randint(0,generadores.shape[0]-1)
         gx = generadores[c][0]
         gy = generadores[c][1]
@@ -31,6 +31,11 @@ class Particle:
         x = self.xi
         y = self.yi
         z = self.zi
+        if(u >= 0):
+            x = u
+            y = v
+            z = w
+
         if(x < 0): x = 0
         if(y < 0): y = 0
         if(z < 0): z = 0
@@ -44,13 +49,15 @@ class Particle:
 
         self.tiempoDeVida = lifet
         self.tActual = 0
+        self.size = 0
 
         self.tInit = t
         self.randomm = random()
+        self.repr = 0
 
-        self.add(x,y,z)
+        self.add(x,y,z,randomParam)
 
-    def add(self,x,y,z):
+    def add(self,x,y,z,randomParam):
         vals = contour(x,y,z)
         pos = np.int32(x+y*maxcoord+z*maxcoord2)
 
@@ -79,10 +86,11 @@ class Particle:
                 bestY = yh
                 bestZ = zh
             
-            if(random()>(1-randomness)): self.contorno = np.concatenate((self.contorno,np.array([[xh,yh,zh]])),axis=0)
+            if(random()>(1-randomParam)): self.contorno = np.concatenate((self.contorno,np.array([[xh,yh,zh]])),axis=0)
         
         self.contorno = np.concatenate((self.contorno,np.array([[bestX,bestY,bestZ]])),axis=0)
         self.setBorder(x,y,z)
+        self.size += 1
 
     def calculatePriority(self,x,y,z,xp): 
         x2 = xp[0] - toSpace(x)
@@ -92,6 +100,7 @@ class Particle:
         return np.float32(x2*x2+y2*y2+z2*z2)
 
     def setBorder(self,x,y,z):
+        sep = self.sep()
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
@@ -101,6 +110,7 @@ class Particle:
 
 
     def searchBorder(self,x,y,z):
+        sep = self.sep()
         for i in (-sep,sep):
             for j in (-sep,sep):
                 for k in (-sep,sep):
@@ -110,7 +120,7 @@ class Particle:
                         if(v > 0 and v != self.i): return True
         return False
 
-    def grow(self):
+    def grow(self,randomParam):
         self.tActual = self.tActual + 1
         maxim = len(self.contorno)
         w = 0
@@ -123,7 +133,7 @@ class Particle:
             if(nx >= 0 and nx < maxcoord and ny >= 0 and ny < maxcoord and nz >= 0 and nz < maxcoordZ):
                 pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
                 if(ocupada(pos) == False and self.searchBorder(nx,ny,nz) == False):
-                    self.add(nx,ny,nz)
+                    self.add(nx,ny,nz,randomParam)
                     break                
             
         self.contorno = self.contorno[w+1:]
@@ -134,14 +144,34 @@ class Particle:
     def alive(self):
         return sparticles[self.i]
 
+    def fn(self):
+        size = self.size
+        if(size > 20 and size < 400): return np.floor(size/8).astype(np.int32)
+        if(self.randomm > 0.9):
+            return np.floor(size/8).astype(np.int32)
+        else: return np.floor(0).astype(np.int32)
+
+    def sep(self):
+        s = self.size
+        if(s > MCA*0.8): return 4
+        if(s > MCA*0.6): return 3
+        if(s > MCA*0.4): return 2
+        return 1
+
 def init_particles():
     k = 0
     for i in range(0,N):
         if(lt[i]>0):
             for j in range(0,np.int32(cp[i])):
-                particles.append(Particle(k,lt[i]))
+                particles.append(Particle(k,lt[i],-1,-1,-1,1))
                 k = k+1
                 sparticles.append(True)
+
+    for i in range(len(particles)):
+        for h in range(4):
+            if(random() > 0.9):
+                for j in range(diffBubbles):
+                    particles[i].grow(1) # free growth
 
           
 def contour(x,y,z):  
