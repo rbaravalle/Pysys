@@ -23,17 +23,21 @@ def mover() :
                 pi.repr = 1
                 k = len(particles)
                 for w in range(amountSons):
-                    d = np.random*np.pi*2
+                    d = random()*np.pi*2
+                    d = random()*np.pi*2
+                    e = random()*np.pi*2
                     rr = 5*(np.sqrt(pi.size/np.pi))
                     if(len(pi.contorno) >= 0):
                         if(len(pi.contorno) <= w+1):
                             con = pi.contorno[w]
                         else: con = pi.contorno[0]
-                    else : con = [pi.xi,pi.yi,0]
-                    u = con.x+np.floor(rr*np.cos(d))
-                    v = con.y+np.floor(rr*np.sin(d))
+                    else : con = [pi.xi,pi.yi,pi.zi,0]
 
-                    particles.append(Particle(k, MCA,u,v));
+                    u = con[0]+np.int32(rr*np.cos(d)*np.sin(e))
+                    v = con[1]+np.int32(rr*np.sin(d)*np.sin(e))
+                    s = con[2]+np.int32(rr*np.cos(e))
+
+                    particles.append(Particle(k, MCA,u,v,s,randomness));
                     k +=1
                     sparticles.append(true); # la particula esta viva
 
