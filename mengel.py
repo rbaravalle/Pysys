@@ -13,7 +13,7 @@ t = time.time()
 maxX = 1024
 maxY = 1024
 
-I = Image.new('L',(maxX,maxY),0.0)
+I = Image.new('L',(maxX,maxY),255)
 
 #image = Image.open("x.png")
 draw = ImageDraw.Draw(I)
@@ -47,7 +47,7 @@ for i in range(numIt):
         y = points2[h+1]
         if(h%6000 == 0): print h
 
-        draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r+16+randint(-r/2,r/2), y+r+randint(-r/2,r/2)), fill=(np.uint8(255)))
+        draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r+16+randint(-r/2,r/2), y+r+randint(-r/2,r/2)), fill=(np.uint8(0)))
 
 
     r = int(r/1.8)
