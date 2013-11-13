@@ -13,7 +13,7 @@ tim = time.time()
 maxX = 512
 maxY = 512
 
-I = Image.new('L',(maxX,maxY),0.0)
+I = Image.new('L',(maxX,maxY),255)
 
 draw = ImageDraw.Draw(I)
 
@@ -23,7 +23,7 @@ r = 28 # radius of initial bubbles
 c = 2 # amount of initial bubbles
 orig = c
 
-numIt = 4
+numIt = 3
 h = 0
 h2 = 0
 cinf = 4
@@ -37,15 +37,15 @@ pointstot = points3
 
 def f(a): # amount of sons depend in size (multifractality)
     if(a > 40): return 2
-    if(a > 30): return 4
-    if(a > 20): return 8
+    if(a > 30): return 6
+    if(a > 20): return 10
     return maxSize
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 4*a
-    if(a > 30): return 5*a
-    if(a > 20): return 10*a
-    return 12*a
+    if(a > 40): return 10*a
+    if(a > 30): return 12*a
+    if(a > 20): return 14*a
+    return 16*a
 
 
 def detcuad(i,j):
@@ -78,7 +78,7 @@ def avoid(i,j,rac,pointsnew):
            d = np.sqrt(d)
            rr = pointsnew[pos+2]
 
-           if(np.float32(d)<np.float32(rr)+rac+1): 
+           if(np.float32(d)<np.float32(rr)+rac): 
                 return False
 
     #p = pow(summ,-m)
@@ -105,22 +105,18 @@ for it in range(numIt):
         for h in range(0,pointstot.shape[1],cinf):
             x = pointstot[cc,h]
             y = pointstot[cc,h+1]
+            r = pointstot[cc,h+2]
             if(h%600 == 0): print h
 
             r2 = r
             if x!=0 and y!=0:
-                draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(255)))
+                draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(0)))
 
-
-    #r = np.int32(r/1.9)
-    #orig = c
-    #cuant = 6
-    #c = np.int32(c*cuant)
 
     c = pointstot.shape[1]*maxSize
 
     if(it == numIt-1) : break
-    print "Calculating Next Iteration..."
+    print "Computing Next Iteration..."
     # reset points
     points3 = np.zeros((4,c)).astype(np.float32)
     pos = 0
@@ -134,7 +130,7 @@ for it in range(numIt):
                 rr = fdist(r)
                 i = pointstot[cuad,k]+np.int32(rr*np.cos(d))#+randint(0,10)
                 j = pointstot[cuad,k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
-                frac = 0.8-random.random()*0.2
+                frac = 0.5-random.random()*0.2
                 r = pointstot[cuad,k+2]*frac
                 if(avoid(i,j,r,points3)==True):
                     points3[cuad,pos] = i
