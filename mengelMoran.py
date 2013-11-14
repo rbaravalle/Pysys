@@ -10,10 +10,14 @@ import random
 import ImageDraw
 import time
 
+from multifractal import *
+
 
 t = time.time()
 maxX = 1024
 maxY = 1024
+
+maxx = 6
 
 I = Image.new('RGB',(maxX,maxY),(255,255,255))
 
@@ -22,15 +26,14 @@ draw = ImageDraw.Draw(I)
 
 #field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
-r = 80 # radius of initial bubbles
+r = 50 # radius of initial bubbles
 c = 3 # amount of initial bubbles
 orig = c
 cinf = 3 # amount of information in the array
 points2 = np.zeros((c*cinf)).astype(np.uint32)
 
-numIt = 7
+numIt = 6
 h = 0
-maxSize = 9
 
 h2 = 0
 for k in range(c):
@@ -41,25 +44,20 @@ for k in range(c):
     points2[h2+2] = r
     h2+=cinf
 
+def drawShape(x,y,r,c):
+    if(c == 0): return
+    draw.ellipse((x-r, y-r, x+r, y+r), fill=(0,0,0))
 
-def f(a): # amount of sons depend in size (multifractality)
-    if(a > 40): return 8
-    if(a > 30): return 5
-    if(a > 20): return 4
-    if(a > 10): return 3
-    return maxSize
-
-def fdist(a): # distance depends on size
-    if(r > 40): return 15*r
-    if(r > 30): return 15*r
-    if(r > 20): return 15*r
-    return 8*r
-
-def ffrac(r):
-    if(r > 40): return 0.6-random.random()*0.1
-    if(r > 30): return 0.7-random.random()*0.1
-    if(r > 20): return 0.8-random.random()*0.1
-    return 0.5-random.random()*0.1
+    r2 = r
+    x2 = x
+    y2 = y
+    #for h in range(maxx):
+    r2 = int(r2/(2))
+    dd = int(r*0.9)
+    for i in range(4):
+        x3 = x2+randint(-dd,dd)
+        y3 = y2+randint(-dd,dd)
+        drawShape(x3,y3,r2,c-1)
 
 for tt in range(numIt):
     print "It num", i
@@ -70,7 +68,7 @@ for tt in range(numIt):
         r = points2[h+2]
         if(h%6000 == 0): print h
 
-        draw.ellipse((x-r+randint(-int(r/4),int(r/4)), y-r+randint(-int(r/4),int(r/4)), x+r, y+r), fill=(0,0,0))
+        drawShape(x,y,r,maxx)
 
     #plt.subplot(1,numIt-1,i)
     print "Time Elapsed: ", time.time()-t

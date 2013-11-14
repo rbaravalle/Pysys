@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import random
 import ImageDraw
 import time
+from multifractal import *
 
 tim = time.time()
 
@@ -23,30 +24,32 @@ r = 28 # radius of initial bubbles
 c = 2 # amount of initial bubbles
 orig = c
 
-numIt = 3
+numIt = 4
 h = 0
 h2 = 0
 cinf = 4
-maxSize = 12
 
 maxa = -10
 mina = 100000
+rugosity = 2
 
 points3 = np.zeros((4,c*cinf)).astype(np.float32)
 pointstot = points3
 
-def f(a): # amount of sons depend in size (multifractality)
-    if(a > 40): return 2
-    if(a > 30): return 6
-    if(a > 20): return 10
-    return maxSize
+def drawShape(x,y,r,c):
+    if(c == 0): return
+    draw.ellipse((x-r, y-r, x+r, y+r), fill=(0))
 
-def fdist(a): # distance depends on size
-    if(a > 40): return 10*a
-    if(a > 30): return 12*a
-    if(a > 20): return 14*a
-    return 16*a
-
+    r2 = r
+    x2 = x
+    y2 = y
+    #for h in range(maxx):
+    r2 = int(r2/(2))
+    dd = int(r*0.6)
+    for i in range(4):
+        x3 = x2+randint(-dd,dd)
+        y3 = y2+randint(-dd,dd)
+        drawShape(x3,y3,r2,c-1)
 
 def detcuad(i,j):
     if(i > maxX/2): 
@@ -110,7 +113,7 @@ for it in range(numIt):
 
             r2 = r
             if x!=0 and y!=0:
-                draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(0)))
+                drawShape(x,y,r2,rugosity)#draw.ellipse((x-r2, y-r2, x+r2, y+r2), fill=(np.uint8(0)))
 
 
     c = pointstot.shape[1]*maxSize
@@ -130,7 +133,7 @@ for it in range(numIt):
                 rr = fdist(r)
                 i = pointstot[cuad,k]+np.int32(rr*np.cos(d))#+randint(0,10)
                 j = pointstot[cuad,k+1]+np.int32(rr*np.sin(d))#+randint(0,10)
-                frac = 0.5-random.random()*0.2
+                frac = ffrac(r)
                 r = pointstot[cuad,k+2]*frac
                 if(avoid(i,j,r,points3)==True):
                     points3[cuad,pos] = i
@@ -138,6 +141,8 @@ for it in range(numIt):
                     points3[cuad,pos+2] = r
                     points3[cuad,pos+3] = cuad
                     pos+=cinf
+
+    I.save('imagenavoid'+str(it)+'.png')
 
     pointstot = np.hstack((pointstot,points3))
     print "It", it, "Time elapsed: ", time.time()-tim
