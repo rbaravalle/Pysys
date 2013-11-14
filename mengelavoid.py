@@ -14,14 +14,14 @@ tim = time.time()
 maxX = 512
 maxY = 512
 
-I = Image.new('L',(maxX,maxY),255)
+I = Image.new('L',(maxX,maxY),0)
 
 draw = ImageDraw.Draw(I)
 
 #field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
-r = 28 # radius of initial bubbles
-c = 2 # amount of initial bubbles
+r = 25 # radius of initial bubbles
+c = 8 # amount of initial bubbles
 orig = c
 
 numIt = 4
@@ -38,8 +38,8 @@ pointstot = points3
 
 def drawShape(x,y,r,c):
     if(c == 0): return
-    draw.ellipse((x-r, y-r, x+r, y+r), fill=(0))
-
+    draw.ellipse((x-r, y-r, x+r, y+r), fill=(255))
+    return
     r2 = r
     x2 = x
     y2 = y

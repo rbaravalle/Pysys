@@ -19,20 +19,20 @@ maxY = 1024
 
 maxx = 6
 
-I = Image.new('RGB',(maxX,maxY),(255,255,255))
+I = Image.new('RGB',(maxX,maxY),(0,0,0))
 
 #image = Image.open("x.png")
 draw = ImageDraw.Draw(I)
 
 #field = np.zeros((maxX, maxY)).astype(np.uint8) + np.uint8(255)
 
-r = 50 # radius of initial bubbles
-c = 3 # amount of initial bubbles
+r = 45 # radius of initial bubbles
+c = 10 # amount of initial bubbles
 orig = c
 cinf = 3 # amount of information in the array
 points2 = np.zeros((c*cinf)).astype(np.uint32)
 
-numIt = 6
+numIt = 5
 h = 0
 
 h2 = 0
@@ -41,13 +41,13 @@ for k in range(c):
     j = randint(2*r,maxY-r)
     points2[h2] = i
     points2[h2+1] = j
-    points2[h2+2] = r
+    points2[h2+2] = r+randint(0,15)
     h2+=cinf
 
 def drawShape(x,y,r,c):
     if(c == 0): return
-    draw.ellipse((x-r, y-r, x+r, y+r), fill=(0,0,0))
-
+    draw.ellipse((x-r, y-r, x+r, y+r), fill=(255,255,255))
+    return
     r2 = r
     x2 = x
     y2 = y
