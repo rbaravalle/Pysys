@@ -15,17 +15,17 @@ from random import randint
 from multifractal import *
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 2*a
-    if(a > 30): return 2*a
-    if(a > 20): return 2*a
-    if(a > 10): return 2*a
-    return 2*a
+    if(a > 40): return 4*a
+    if(a > 30): return 4*a
+    if(a > 20): return 4*a
+    if(a > 10): return 4*a
+    return 4*a
 
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 500
-        self.height = 500
+        self.width = 800
+        self.height = 800
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -59,22 +59,21 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 60
+        self.r = 80
         
         # ... and initialize the parser.
         self.initialize() 
 
-    def forward(self):
+    def rotate(self):
         #self.x += self.r
         #self.y += self.r
         #d = 2*np.pi*random.random()
         self.x += np.int32(fdist(self.r)*np.cos(self.angle))#+randint(-int(self.r),int(self.r))
         self.y += np.int32(fdist(self.r)*np.sin(self.angle))#+randint(-int(self.r),int(self.r))
-        self.r = int(self.r/1.8)
         #pass
 
     def moveX(self):
-        self.x += int(self.r/2)
+        self.x += self.r
     def mmoveX(self):
         self.x -= self.r
     def moveY(self):
@@ -281,7 +280,8 @@ class Lindenmayer(object):
                 # draw
                 #raphael.forward(self.lineLength)
                 draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                self.forward()
+                self.r = int(self.r/2.9)
+                #self.forward()
             if c == 'X':
                 # Move forward
                 #raphael.forward(self.lineLength)
@@ -308,10 +308,12 @@ class Lindenmayer(object):
                 # rotate clockwise
                 #raphael.right(self.alpha)
                 self.angle+=self.alpha
+                self.rotate()
             if c == '-':
                 # rotate anti-clockwise
                 #raphael.left(self.alpha)
                 self.angle-=self.alpha
+                self.rotate()
             if c == '[':
                 # Push the current turtle state to the stack
                 self.stack.append((

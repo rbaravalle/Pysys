@@ -2,12 +2,8 @@
 # Author: Andreas Wilhelm
 # Project: Tree
 
-# Image positioning and dimensions
-#Dimensions : 1920, 1080
-#Position : 0, 0
-
 # Number of iterations
-Iterations : 5
+Iterations : 4
 
 # Default angle
 Angle : '50
@@ -28,6 +24,6 @@ Background : #ffffff
 # Axiom definition
 Axiom : F
 # Definition of mappings
-F = F[xxxxxYYYYYF][XXXXXYYYYYF][xxxxxyyyyyF][XXXXXyyyyyF]
+F = F[--F][-F][++F][+F][+++F][++++F][----F]
 
 
