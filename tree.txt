@@ -1,0 +1,33 @@
+# This is a simple lindenmeyer project file
+# Author: Andreas Wilhelm
+# Project: Tree
+
+# Image positioning and dimensions
+#Dimensions : 1920, 1080
+#Position : 0, 0
+
+# Number of iterations
+Iterations : 5
+
+# Default angle
+Angle : '50
+#Alpha : '10
+
+# Default line length
+Linelength : 0.1
+
+# Default line width
+Linewidth : 1
+
+# Default line color
+Linecolor : #00ff00
+
+# Default background color
+Background : #ffffff
+
+# Axiom definition
+Axiom : F
+# Definition of mappings
+F = F[xxxxxYYYYYF][XXXXXYYYYYF][xxxxxyyyyyF][XXXXXyyyyyF]
+
+
