@@ -15,11 +15,33 @@ from random import randint
 from multifractal import *
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 4*a
-    if(a > 30): return 4*a
-    if(a > 20): return 4*a
-    if(a > 10): return 4*a
-    return 4*a
+    if(a > 40): return 3*a
+    if(a > 30): return 5*a
+    if(a > 20): return 5*a
+    if(a > 10): return 10*a
+    return 8*a
+
+def ffrac(r):
+    if(r > 40): return 0.5
+    if(r > 30): return 0.4
+    if(r > 20): return 0.3
+    if(r > 10): return 0.2
+    return 0.5
+
+def drawShape(draw,x,y,r,c):
+    if(c == 0): return
+    draw.ellipse((x-r, y-r, x+r, y+r), fill=255)
+    return
+    r2 = r
+    x2 = x
+    y2 = y
+    #for h in range(maxx):
+    r2 = int(r2/(2))
+    dd = int(r*1.0)
+    for i in range(1):
+        x3 = x2+randint(-dd,dd)
+        y3 = y2+randint(-dd,dd)
+        drawShape(draw,x3,y3,r2,c-1)
 
 class Lindenmayer(object):
     def __init__(self, stream):
@@ -31,7 +53,7 @@ class Lindenmayer(object):
         self.iterations = 5
         
         # Set the default rotation angle in degrees.
-        self.alpha = 20
+        self.alpha = 2*np.pi/5
         self.angle = 0
         
         # Initialize the branch stack, ...
@@ -59,7 +81,10 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 80
+        self.r = 60
+
+        self.xparent = self.x
+        self.yparent = self.y
         
         # ... and initialize the parser.
         self.initialize() 
@@ -68,8 +93,9 @@ class Lindenmayer(object):
         #self.x += self.r
         #self.y += self.r
         #d = 2*np.pi*random.random()
-        self.x += np.int32(fdist(self.r)*np.cos(self.angle))#+randint(-int(self.r),int(self.r))
-        self.y += np.int32(fdist(self.r)*np.sin(self.angle))#+randint(-int(self.r),int(self.r))
+        ang = self.angle#+random.random()/10
+        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
+        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
         #pass
 
     def moveX(self):
@@ -155,7 +181,6 @@ class Lindenmayer(object):
         
     def setAttribute(self, stream, loc, toks):
         if toks[0] == 'Dimensions':
-            print "OJOOOOOOOOOO"
             self.width = toks[1]
             self.height = toks[3]
         if toks[0] == 'Position':
@@ -279,8 +304,33 @@ class Lindenmayer(object):
             if c == 'F':
                 # draw
                 #raphael.forward(self.lineLength)
-                draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                self.r = int(self.r/2.9)
+    
+                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                drawShape(draw,self.x,self.y,self.r,2)
+                self.r = self.r*ffrac(self.r)
+
+            if c == 'G':
+                # draw
+                #raphael.forward(self.lineLength)
+    
+                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                drawShape(draw,self.x,self.y,self.r,2)
+                self.r = self.r*ffrac(self.r)
+            if c == 'H':
+                # draw
+                #raphael.forward(self.lineLength)
+    
+                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                drawShape(draw,self.x,self.y,self.r,2)
+                self.r = self.r*ffrac(self.r)
+                #self.forward()
+            if c == 'I':
+                # draw
+                #raphael.forward(self.lineLength)
+    
+                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                drawShape(draw,self.x,self.y,self.r,2)
+                self.r = self.r*ffrac(self.r)
                 #self.forward()
             if c == 'X':
                 # Move forward
@@ -319,9 +369,13 @@ class Lindenmayer(object):
                 self.stack.append((
                     #self.lineColor, self.lineWidth, raphael.heading(), raphael.pos()))
                     self.x, self.y, self.r,self.angle,self.alpha))
+                self.xparent = self.x
+                self.yparent = self.y
             if c == ']':
                 # restore the transform and orientation from the stack
                 self.x, self.y, self.r,self.angle,self.alpha = self.stack.pop()
+                self.xparent = self.x
+                self.yparent = self.y
                 #raphael.penup()
                 #raphael.pencolor(self.lineColor)
                 #raphael.pensize(self.lineWidth)
@@ -330,13 +384,13 @@ class Lindenmayer(object):
                 #raphael.pendown()
 
         # now save the image
-        I.save('lsystem.png')
+        I.save('lbread.png')
         
 
          
         
 def usage():
-    print "Usage: python Lindenmayer.py [-i <inputfile>] [-o <outputfile>] [-h]\n\n" \
+    print "Usage: python lsystem.py [-i <inputfile>] [-o <outputfile>] [-h]\n\n" \
         "-i\tPath to the input file.\n\n" \
         "-o\tPath to the eps output file.\n" \
         "\tDefault is Lindenmayer.eps.\n\n" \
