@@ -15,22 +15,23 @@ from random import randint
 from multifractal import *
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 3*a
-    if(a > 30): return 5*a
-    if(a > 20): return 5*a
-    if(a > 10): return 10*a
-    return 8*a
+    if(a > 40): return 14*a
+    if(a > 30): return 14*a
+    if(a > 20): return 14*a
+    if(a > 10): return 11*a
+    return 11*a
 
 def ffrac(r):
-    if(r > 40): return 0.5
-    if(r > 30): return 0.4
-    if(r > 20): return 0.3
-    if(r > 10): return 0.2
-    return 0.5
+    if(r > 40): return 0.6
+    if(r > 30): return 0.6-random.random()*0.05
+    if(r > 20): return 0.6-random.random()*0.05
+    if(r > 10): return 0.6-random.random()*0.05
+    return 0.4
 
 def drawShape(draw,x,y,r,c):
     if(c == 0): return
-    draw.ellipse((x-r, y-r, x+r, y+r), fill=255)
+    r = int(r)
+    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
     return
     r2 = r
     x2 = x
@@ -38,7 +39,7 @@ def drawShape(draw,x,y,r,c):
     #for h in range(maxx):
     r2 = int(r2/(2))
     dd = int(r*1.0)
-    for i in range(1):
+    for i in range(2):
         x3 = x2+randint(-dd,dd)
         y3 = y2+randint(-dd,dd)
         drawShape(draw,x3,y3,r2,c-1)
@@ -81,7 +82,7 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 60
+        self.r = 40
 
         self.xparent = self.x
         self.yparent = self.y
