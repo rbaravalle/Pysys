@@ -28,34 +28,21 @@ def ffrac(r):
     if(r > 10): return 0.6-random.random()*0.05
     return 0.4
 
-def drawShape(draw,x,y,r,c):
-    if(c == 0): return
-    r = int(r)
-    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
-    return
-    r2 = r
-    x2 = x
-    y2 = y
-    #for h in range(maxx):
-    r2 = int(r2/(2))
-    dd = int(r*1.0)
-    for i in range(2):
-        x3 = x2+randint(-dd,dd)
-        y3 = y2+randint(-dd,dd)
-        drawShape(draw,x3,y3,r2,c-1)
-
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 800
-        self.height = 800
+        self.width = 500
+        self.height = 500
+        self.maxZ = 500
         
         # ... and the number of iterations.
         self.iterations = 5
         
         # Set the default rotation angle in degrees.
         self.alpha = 2*np.pi/5
+        self.alpha2 = 2*np.pi/5
         self.angle = 0
+        self.angle2 = 0
         
         # Initialize the branch stack, ...
         self.stack = []
@@ -82,31 +69,60 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 40
+        self.z = int(self.maxZ/2)
+
+        self.r = int(self.width/8)
+        print self.r
 
         self.xparent = self.x
         self.yparent = self.y
+        self.zparent = self.z
+
         
         # ... and initialize the parser.
         self.initialize()
 
-    def rotate(self):
-        #self.x += self.r
-        #self.y += self.r
-        #d = 2*np.pi*random.random()
-        ang = self.angle#+random.random()/10
-        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
-        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
-        #pass
+    def drawShape(self,field,x,y,z,r,c):
+        if(c == 0): return
+        r = int(r)
+
+        for i in range(x-r-1,x+r+1):
+            for j in range(y-r-1,y+r+1):
+                for k in range(z-r-1,z+r+1):
+                     if(i >= 0 and i < self.width and j >= 0 and j < self.height and k >= 0 and k<self.maxZ):
+                         i2 = i-x
+                         j2 = j-y
+                         k2 = k-z
+                         if(i2*i2+j2*j2+k2*k2 < r*r):
+                             field[i][j][k] = np.uint8(0)
+
+        #gnomeprint "ellipse!"
+        #    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
+        return
+        r2 = r
+        x2 = x
+        y2 = y
+        z2 = z
+        #for h in range(maxx):
+        r2 = int(r2/(2))
+        dd = int(r*1.0)
+        for i in range(2):
+            x3 = x2+randint(-dd,dd)
+            y3 = y2+randint(-dd,dd)
+            z3 = z2+randint(-dd,dd)
+            self.drawShape(field,x3,y3,z3,r2,c-1)
 
     def rotate(self):
-        #self.x += self.r
-        #self.y += self.r
-        #d = 2*np.pi*random.random()
         ang = self.angle#+random.random()/10
         self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
         self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
-        #pass
+        self.z = self.zparent
+
+    def rotate2(self):
+        ang = self.angle2#+random.random()/10
+        self.x = self.xparent
+        self.y = self.yparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
+        self.z = self.zparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
 
     def moveX(self):
         self.x += self.r
@@ -287,9 +303,10 @@ class Lindenmayer(object):
         maxX = self.width
         maxY = self.height
         import Image
-        print self.width,self.height
-        I = Image.new('L',(self.width,self.height),(0))
-        draw = ImageDraw.Draw(I)
+        print self.width,self.height, self.maxZ
+        I = Image.new('L',(self.maxZ,self.width*self.height),0.0)
+        field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) + np.uint8(255)
+        #draw = ImageDraw.Draw(I)
 
         # Process the result stream symbol by symbol.
         for i in range(len(stream)):
@@ -316,7 +333,7 @@ class Lindenmayer(object):
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                drawShape(draw,self.x,self.y,self.r,2)
+                self.drawShape(field,self.x,self.y,self.z,self.r,2)
                 self.r = self.r*ffrac(self.r)
 
             if c == 'G':
@@ -324,14 +341,14 @@ class Lindenmayer(object):
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                drawShape(draw,self.x,self.y,self.r,2)
+                self.drawShape(field,self.x,self.y,self.z,self.r,2)
                 self.r = self.r*ffrac(self.r)
             if c == 'H':
                 # draw
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                drawShape(draw,self.x,self.y,self.r,2)
+                self.drawShape(field,self.x,self.y,self.z,self.r,2)
                 self.r = self.r*ffrac(self.r)
                 #self.forward()
             if c == 'I':
@@ -339,7 +356,7 @@ class Lindenmayer(object):
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
-                drawShape(draw,self.x,self.y,self.r,2)
+                self.drawShape(field,self.x,self.y,self.z,self.r,2)
                 self.r = self.r*ffrac(self.r)
                 #self.forward()
             if c == 'X':
@@ -374,18 +391,29 @@ class Lindenmayer(object):
                 #raphael.left(self.alpha)
                 self.angle-=self.alpha
                 self.rotate()
+
+            if c == 'x':
+                self.angle2+=self.alpha
+                self.rotate2()
+            if c == 'y':
+                # rotate anti-clockwise
+                #raphael.left(self.alpha)
+                self.angle2-=self.alpha
+                self.rotate2()
             if c == '[':
                 # Push the current turtle state to the stack
                 self.stack.append((
                     #self.lineColor, self.lineWidth, raphael.heading(), raphael.pos()))
-                    self.x, self.y, self.r,self.angle,self.alpha))
+                    self.x, self.y, self.z, self.r,self.angle,self.angle2,self.alpha))
                 self.xparent = self.x
                 self.yparent = self.y
+                self.zparent = self.z
             if c == ']':
                 # restore the transform and orientation from the stack
-                self.x, self.y, self.r,self.angle,self.alpha = self.stack.pop()
+                self.x, self.y, self.z, self.r,self.angle,self.angle2, self.alpha = self.stack.pop()
                 self.xparent = self.x
                 self.yparent = self.y
+                self.zparent = self.z
                 #raphael.penup()
                 #raphael.pencolor(self.lineColor)
                 #raphael.pensize(self.lineWidth)
@@ -394,7 +422,13 @@ class Lindenmayer(object):
                 #raphael.pendown()
 
         # now save the image
-        I.save('lbread.png')
+        rowsPerSlice = self.width
+
+        for i in range(self.maxZ):
+            I2 = Image.frombuffer('L',(self.width,self.height), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)
+            I.paste(I2,(0,rowsPerSlice*i))
+
+        I.save('lbread3D.png')
         
 
          

@@ -68,7 +68,7 @@ float getTransmittance(vec3 ro, vec3 rd) {
   
   float tm = 1.0;
   
-  for (int i=0; i<uMaxSteps; ++i) {
+  for (int i=0; i<int(uMaxSteps); ++i) {
     tm *= exp( -uTMK*gStepSize*sampleVolTex(pos).x );
     
     pos += step;
@@ -92,7 +92,7 @@ vec4 raymarchNoLight(vec3 ro, vec3 rd) {
   vec3 col = vec3(0.0);
   float tm = 1.0;
   
-  for (int i=0; i<uMaxSteps; ++i) {
+  for (int i=0; i<int(uMaxSteps); ++i) {
     float dtm = exp( -uTMK*gStepSize*sampleVolTex(pos).x );
     tm *= dtm;
     
@@ -119,7 +119,7 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
-  for (int i=0; i<uMaxSteps; ++i) {
+  for (int i=0; i<int(uMaxSteps); ++i) {
     // delta transmittance 
     float dtm = exp( -tr*gStepSize*sampleVolTex(pos).x );
     //float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos) );
