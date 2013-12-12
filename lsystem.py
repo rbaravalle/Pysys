@@ -19,14 +19,14 @@ def fdist(a): # distance depends on size
     if(a > 30): return 8*a
     if(a > 20): return 8*a
     if(a > 10): return 8*a
-    return 9*a
+    return 5*a
 
 def ffrac(r):
-    if(r > 40): return 0.6
-    if(r > 30): return 0.6-random.random()*0.05
-    if(r > 20): return 0.6-random.random()*0.05
-    if(r > 10): return 0.6-random.random()*0.05
-    return 0.4
+    if(r > 40): return 0.8
+    if(r > 30): return 0.8-random.random()*0.05
+    if(r > 20): return 0.8-random.random()*0.05
+    if(r > 10): return 0.8-random.random()*0.05
+    return 0.8
 
 def drawShape(draw,x,y,r,c):
     if(c == 0): return
@@ -47,14 +47,14 @@ def drawShape(draw,x,y,r,c):
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 800
-        self.height = 800
+        self.width = 1000
+        self.height = 1000
         
         # ... and the number of iterations.
         self.iterations = 5
         
         # Set the default rotation angle in degrees.
-        self.alpha = 2*np.pi/5
+        self.alpha = 2*np.pi/8
         self.angle = 0
         
         # Initialize the branch stack, ...
@@ -359,7 +359,8 @@ class Lindenmayer(object):
                 #raphael.forward(self.lineLength)
                 self.mmoveY()
             if c == 'f':
-                self.forward()
+                #self.forward()
+                self.r = self.r*ffrac(self.r)
                 # Move forward without drawing
                 #raphael.penup()
                 #raphael.forward(self.lineLength)
@@ -395,6 +396,17 @@ class Lindenmayer(object):
 
         # now save the image
         I.save('lbread.png')
+        print np.asarray(I)
+        return np.asarray(I)
+
+def lin():
+    with open('bread.txt', 'r') as fp:
+        stream = fp.read()
+    lindenmayer = Lindenmayer(stream)
+    stream = lindenmayer.iterate()
+    #lindenmayer.draw(stream, outputFile)
+    return lindenmayer.draw2(stream)
+     
         
 
          
