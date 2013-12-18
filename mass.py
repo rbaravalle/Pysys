@@ -26,8 +26,8 @@ import Image
 import lsystem
 # Declare some variables:
 
-dx=0.002        # Interval size in x-direction.
-dy=0.002        # Interval size in y-direction.
+dx=0.004        # Interval size in x-direction.
+dy=0.004        # Interval size in y-direction.
 #a=4          # Diffusion constant.
 tf = 0.0013
 timesteps=1000  # Number of time-steps to evolve system.
@@ -38,12 +38,13 @@ ny = int(1/dy)
 dx2=dx**2 # To save CPU cycles, we'll compute Delta x^2
 dy2=dy**2 # and Delta y^2 only once and store them.
 a = 4
-tinit = 60
+tinit = 6*10**-3#0.006
+tfactor = 10**2
 
 
 # For stability, this is the largest interval possible
 # for the size of the time-step:
-dt = dx2*dy2/( 2*a*(dx2+dy2) )
+dt = dx2*dy2/( 2*a*(dx2+dy2) )*2
 
 # Start u and ui off as zero matrices:
 wi = np.array(lsystem.lin()).astype(np.float32)
@@ -52,16 +53,16 @@ wi.flags.writeable = True
 print wi.sum()
 
 ti = np.zeros((nx,ny)).astype(np.float32)+tinit
-for i in range(nx):
-    for j in range(ny):
-        ti[i][j] += randint(10)
+#for i in range(nx):
+#    for j in range(ny):
+#        ti[i][j] += np.float32(randint(10))/tfactor
 ti.flags.writeable = True
 print ti.sum()
 
 
 #ui = np.ones([nx,ny])
 w = np.zeros(wi.shape).astype(np.float32)
-t = np.zeros(wi.shape).astype(np.float32)
+t = np.zeros(ti.shape).astype(np.float32)
 
 # Now, set the initial conditions (ui).
 #for i in range(nx):
@@ -120,6 +121,7 @@ def ddxt(x,y):
         #print "WX2: ", k(x+1,y)*wx(x+1,y)
         #print "WX3: ", k(x+1,y)*wx(x+1,y)-D(x,y)*wx(x,y)
         #print "WX4: ", (D(x+1,y)*wx(x+1,y)-D(x,y)*wx(x,y))/dx
+    #print "ddxt: ", (k(x,y)*tx(x,y)-k(x-1,y)*tx(x-1,y))/dx
     return (k(x,y)*tx(x,y)-k(x-1,y)*tx(x-1,y))/dx
 
 def ddyt(x,y):
@@ -172,10 +174,10 @@ def evolve_ts(w, wi,t,ti):
                 print "Wi2: ", wi[x][y] + v
             if( False and v2!=0): 
                 print "V2:", v2
-                print "Wi: ", wi[x][y]
-                print "Wi2: ", wi[x][y] + v
+                print "Wi: ", ti[x][y]
+                print "Wi2: ", ti[x][y] + np.float64(v2*10**4)
             w[x][y] = wi[x][y] + v
-            t[x][y] = ti[x][y] + v2
+            t[x][y] = ti[x][y] + np.float64(v2*10**4)
     
 
 
@@ -191,6 +193,7 @@ def updatefig(*args):
     #    + (ui[1:-1, 2:] - 2*ui[1:-1, 1:-1] + ui[1:-1, :-2])/dy2 )
     evolve_ts(w,wi,t,ti)
     wi = sp.copy(w)
+    ti = sp.copy(t)
     m+=1
 
 
@@ -202,7 +205,7 @@ def updatefig(*args):
     #I.save('images/image'+str(m)+'.png')
     I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
     I.save('images/image'+str(m)+'.png')
-    I2 = Image.frombuffer('L',(nx,ny),  (255*np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
+    I2 = Image.frombuffer('L',(nx,ny),  (tfactor*255*np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
     I2.save('images/timage'+str(m)+'.png')
     print "Computing and rendering u for m =", m
     if m >= timesteps:
