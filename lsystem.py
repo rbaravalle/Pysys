@@ -15,10 +15,10 @@ from random import randint
 from multifractal import *
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 8*a
-    if(a > 30): return 8*a
-    if(a > 20): return 8*a
-    if(a > 10): return 8*a
+    if(a > 40): return 9*a
+    if(a > 30): return 9*a
+    if(a > 20): return 9*a
+    if(a > 10): return 9*a
     return 5*a
 
 def ffrac(r):
@@ -31,7 +31,9 @@ def ffrac(r):
 def drawShape(draw,x,y,r,c):
     if(c == 0): return
     r = int(r)
-    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
+    #print str()
+    rr = int(r+10)
+    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=rr)
     return
     r2 = r
     x2 = x
@@ -47,8 +49,8 @@ def drawShape(draw,x,y,r,c):
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 1000
-        self.height = 1000
+        self.width = 250
+        self.height = 250
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -396,8 +398,8 @@ class Lindenmayer(object):
 
         # now save the image
         I.save('lbread.png')
-        print np.asarray(I)
-        return np.asarray(I)
+        print np.asarray(I)/255
+        return np.asarray(I)#/255
 
 def lin():
     with open('bread.txt', 'r') as fp:

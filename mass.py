@@ -30,7 +30,7 @@ dx=0.004        # Interval size in x-direction.
 dy=0.004        # Interval size in y-direction.
 #a=4          # Diffusion constant.
 tf = 0.0013
-timesteps=1000  # Number of time-steps to evolve system.
+timesteps=3000  # Number of time-steps to evolve system.
 
 nx = int(1/dx)
 ny = int(1/dy)
@@ -38,13 +38,14 @@ ny = int(1/dy)
 dx2=dx**2 # To save CPU cycles, we'll compute Delta x^2
 dy2=dy**2 # and Delta y^2 only once and store them.
 a = 4
-tinit = 6*10**-3#0.006
+tinit = 20#*10**-3#0.006
 tfactor = 10**2
 
 
 # For stability, this is the largest interval possible
 # for the size of the time-step:
-dt = dx2*dy2/( 2*a*(dx2+dy2) )*2
+dt = dx2*dy2/( 2*a*(dx2+dy2) )*16
+Dt = 0.5
 
 # Start u and ui off as zero matrices:
 wi = np.array(lsystem.lin()).astype(np.float32)
@@ -59,6 +60,15 @@ ti = np.zeros((nx,ny)).astype(np.float32)+tinit
 ti.flags.writeable = True
 print ti.sum()
 
+lastI = 1
+
+if(False):
+    ifile = 'images/image'+str(lastI)+'.png'
+    tfile = 'images/timage'+str(lastI)+'.png'
+    iimage = Image.open(ifile)
+    timage = Image.open(tfile)
+    wi = np.asarray(iimage)/np.float32(255)
+    ti = np.asarray(timage)/(np.float32(255)*tfactor)
 
 #ui = np.ones([nx,ny])
 w = np.zeros(wi.shape).astype(np.float32)
@@ -78,6 +88,8 @@ t = np.zeros(ti.shape).astype(np.float32)
 # EQUATIONS----------------
 
 def D(x,y):
+    #print wi[x][y]
+    if(ti[x][y] > tf+Dt): return 10**-2
     return 10**-1
 
 def wx(x,y):
@@ -135,7 +147,7 @@ def ddyt(x,y):
 
 def ro(x,y):
     global tf
-    if(ti[x][y] > tf+dt ): return 180.61 
+    if(ti[x][y] > tf+Dt ): return 180.61 
     return 321.31
 
 def cp(x,y):
@@ -143,8 +155,8 @@ def cp(x,y):
     cpw = (5.207 - 73.17 * (10**-4)*ti[x][y] + 1.35*(10**-5)*(ti[x][y]**2))*1000
     cpp = cps + wi[x][y]*cpw
 
-    lam = 1 # ?
-    nab = 1 # ?
+    lam = 2.3 #  unidad ?
+    nab = exp(-((ti[x][y]-tf)**2)/(2*Dt**2)) #1 # ?
 
     return cpp + lam*wi[x][y]*nab
 
@@ -177,7 +189,7 @@ def evolve_ts(w, wi,t,ti):
                 print "Wi: ", ti[x][y]
                 print "Wi2: ", ti[x][y] + np.float64(v2*10**4)
             w[x][y] = wi[x][y] + v
-            t[x][y] = ti[x][y] + np.float64(v2*10**4)
+            t[x][y] = ti[x][y] + np.float64(v2*10**2)
     
 
 
@@ -203,8 +215,12 @@ def updatefig(*args):
 
     #I = Image.frombuffer('L',(nx,ny),  255*(255*np.asarray(wi) > 170).astype(np.uint8) ,'raw','L',0,1)
     #I.save('images/image'+str(m)+'.png')
-    I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
+    #I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
+    #I.save('images/image'+str(m)+'.png')
+
+    I = Image.frombuffer('L',(nx,ny),  (np.asarray(wi)).astype(np.uint8)+150 ,'raw','L',0,1)
     I.save('images/image'+str(m)+'.png')
+
     I2 = Image.frombuffer('L',(nx,ny),  (tfactor*255*np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
     I2.save('images/timage'+str(m)+'.png')
     print "Computing and rendering u for m =", m
@@ -217,7 +233,7 @@ img = subplot(111)
 im = img.imshow( wi, cmap=cm.gray, interpolation='nearest', origin='lower')
 manager = get_current_fig_manager()
 
-m=1
+m=lastI
 fig.colorbar( im ) # Show the colorbar along the side
 
 # once idle, call updatefig until it returns false.
