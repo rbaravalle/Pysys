@@ -15,10 +15,20 @@ import sys
 import os
 
 total = 10*10      # number of pixels for averaging
-P = 40             # window
+P = 2            # window
 cant = 10+1           # number of fractal dimensions (-1 x2)
 
-filename = 'baguette20.jpg'
+filename = 'images/rimage1047.png'
+test = 'test.jpg'
+
+
+if len(sys.argv) >= 2:
+    arg1= np.uint8(sys.argv[1])
+else:
+    print "Este programa necesita un parametro";
+    exit()
+
+
 
 # returns the sum of (summed area) image pixels in the box between
 # (x1,y1) and (x2,y2)
@@ -83,14 +93,16 @@ def white(img,Nx,Ny,vent,bias):
     #print "IM: ", im
 
     # do an opening operation to remove small elements
-    return ndimage.binary_opening(im, structure=np.ones((20,20))).astype(np.int)
+    return ndimage.binary_opening(im, structure=np.ones((2,2))).astype(np.int)
 
 
 I = Image.open(filename)
 Nx, Ny = I.size
 gray = I.convert('L') # rgb 2 gray
-gray = white(gray,Nx,Ny,40,1.15) # local thresholding algorithm
+#gray = np.asarray(gray) > arg1
+#print gray
+gray = white(gray,Nx,Ny,40,1.0) # local thresholding algorithm
 plt.imshow(gray, cmap=matplotlib.cm.gray)
 plt.show()
-plt.show()
+#plt.show()
 
