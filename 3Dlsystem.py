@@ -31,9 +31,9 @@ def ffrac(r):
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 500
-        self.height = 500
-        self.maxZ = 500
+        self.width = 300
+        self.height = 300
+        self.maxZ = 300
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -44,7 +44,8 @@ class Lindenmayer(object):
         self.angle = 0
         self.angle2 = 0
         
-        # Initialize the branch stack, ...
+        # Initialize th
+        # e branch stack, ...
         self.stack = []
         
         # ... the constants, the rules, the variables and the axiom ...
