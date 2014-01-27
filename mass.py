@@ -29,7 +29,8 @@ import lsystem
 dx=0.004        # Interval size in x-direction.
 dy=0.004        # Interval size in y-direction.
 #a=4          # Diffusion constant.
-tf = 0.0013
+#tf = 0.0013
+tf = 100
 timesteps=3000  # Number of time-steps to evolve system.
 
 nx = int(1/dx)
@@ -39,19 +40,21 @@ dx2=dx**2 # To save CPU cycles, we'll compute Delta x^2
 dy2=dy**2 # and Delta y^2 only once and store them.
 a = 4
 tinit = 20#*10**-3#0.006
-tfactor = 10**2
+tfactor = 1#10**2
 
 
 # For stability, this is the largest interval possible
 # for the size of the time-step:
-dt = dx2*dy2/( 2*a*(dx2+dy2) )*16
+dt = dx2*dy2/( 2*a*(dx2+dy2) )#*16
 Dt = 0.5
 
+dt = 0.1
 # Start u and ui off as zero matrices:
-wi = np.array(lsystem.lin()).astype(np.float32)
+wi = np.array(lsystem.lin()).astype(np.float32) # (255)? cuanto es el valor original de la masa?
 wi = np.max(wi)-wi
 wi.flags.writeable = True
 print wi.sum()
+print '{0:.16f}'.format(np.float64(wi.sum()))
 
 ti = np.zeros((nx,ny)).astype(np.float32)+tinit
 #for i in range(nx):
@@ -71,7 +74,7 @@ if(False):
     ti = np.asarray(timage)/(np.float32(255)*tfactor)
 
 #ui = np.ones([nx,ny])
-w = np.zeros(wi.shape).astype(np.float32)
+w = np.zeros(wi.shape).astype(np.float64)
 t = np.zeros(ti.shape).astype(np.float32)
 
 # Now, set the initial conditions (ui).
@@ -90,7 +93,7 @@ t = np.zeros(ti.shape).astype(np.float32)
 def D(x,y):
     #print wi[x][y]
     if(ti[x][y] > tf+Dt): return 10**-2
-    return 10**-1
+    return 10**-10
 
 def wx(x,y):
     #global wi
@@ -120,11 +123,9 @@ def ddy(x,y):
 # Temperature
 
 def tx(x,y):
-    #global wi
     return (ti[x+1][y]-ti[x][y])/np.float32(dx)
 
 def ty(x,y):
-    #print wi[x][y+1]-wi[x][y]
     return (ti[x][y+1]-ti[x][y])/np.float32(dy)
 
 def ddxt(x,y):
@@ -156,7 +157,10 @@ def cp(x,y):
     cpp = cps + wi[x][y]*cpw
 
     lam = 2.3 #  unidad ?
-    nab = exp(-((ti[x][y]-tf)**2)/(2*Dt**2)) #1 # ?
+    nab = 0
+    if(ti[x][y] >= tf): nab = 1
+    #nab = exp(-((ti[x][y]-tf)**2)/(2*Dt**2)) #1 # ?
+    #print "Tf: ", tf
 
     return cpp + lam*wi[x][y]*nab
 
@@ -178,7 +182,9 @@ def evolve_ts(w, wi,t,ti):
 
     for x in range(2,nx-2):
         for y in range(2,ny-2):
+            h = ddx(x,y)+ddy(x,y)
             v = (ddx(x,y) + ddy(x,y))*dt
+            #if(v > 0): print "DDX: ", wi[x][y] + v
             v2 = (ddxt(x,y) + ddyt(x,y))*dt/(ro(x,y)*cp(x,y))
             if( False and v!=0 and wi[x][y]!=0): 
                 print "V:", v
@@ -188,8 +194,9 @@ def evolve_ts(w, wi,t,ti):
                 print "V2:", v2
                 print "Wi: ", ti[x][y]
                 print "Wi2: ", ti[x][y] + np.float64(v2*10**4)
+            #print ro(x,y),cp(x,y), v,v2
             w[x][y] = wi[x][y] + v
-            t[x][y] = ti[x][y] + np.float64(v2*10**2)
+            t[x][y] = ti[x][y] + np.float64(v2)#*10**2)
     
 
 
@@ -210,7 +217,8 @@ def updatefig(*args):
 
 
     #print 255*np.asarray(ui).astype(np.uint8)
-    print wi.sum()
+    #print wi.sum()
+    print '{0:.16f}'.format(np.float64(wi.sum()))
     print ti.sum()
 
     #I = Image.frombuffer('L',(nx,ny),  255*(255*np.asarray(wi) > 170).astype(np.uint8) ,'raw','L',0,1)
