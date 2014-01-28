@@ -172,6 +172,33 @@ def k(x,y):
 
 ######
 
+Tinf = 20 # ambient REVISAR
+Ts = 60 # ???? BUSCAR
+eps = 0.85 # emissivity of bread surface REVISAR
+sigm = 5.67 * 10**-8 # stefan-boltzmann constant
+ros = 241.76 # solid density
+
+def aw(x,y): # water activity
+    return ((100*w[x][y]/exp(-0.0056*t[x][y]+5.5))**(-1/0.38)+1)**(-1)
+
+def h(x): # ??? BUSCAR
+    return 6
+
+def rightTBC(x,y):
+    return h(Ts-Tinf)  + eps*sigm*(Ts**4-Tinf**4)
+
+def Psat(x): # ??? Presion de vapor de agua de saturacion BUSCAR FUNCION
+    return x
+
+def Ps(x,y):
+    return aw(x,y)*Psat(Ts)
+
+def Pinf(): # RH: relacion entre la presion de vapor y la presion de vapor de saturacion BUSCAR
+    return RH*Psat(Tinf)
+
+def rightWBC(x,y):
+    return kg*(Ps*Ts-Pinf*Tinf) # REVISAR si es Ps(Ts) o Ps*Ts idem Pinf Tinf
+
 def evolve_ts(w, wi,t,ti):
     """
     This function uses a numpy expression to
@@ -198,6 +225,29 @@ def evolve_ts(w, wi,t,ti):
             w[x][y] = wi[x][y] + v
             t[x][y] = ti[x][y] + np.float64(v2)#*10**2)
     
+
+    if(False):
+        # Boundary conditions
+        for x in range(1,2):
+            for y in range(ny):
+                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+
+        for x in range(nx-2,nx-1):
+            for y in range(ny):
+                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+
+        for x in range(2,nx-2):
+            for y in range(1,2):
+                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+
+        for x in range(2,nx-2):
+            for y in range(ny-2,ny-1):
+                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+                
 
 
 def updatefig(*args):
@@ -226,7 +276,7 @@ def updatefig(*args):
     #I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
     #I.save('images/image'+str(m)+'.png')
 
-    I = Image.frombuffer('L',(nx,ny),  (np.asarray(wi)).astype(np.uint8)+150 ,'raw','L',0,1)
+    I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8)+150 ,'raw','L',0,1)
     I.save('images/image'+str(m)+'.png')
 
     I2 = Image.frombuffer('L',(nx,ny),  (tfactor*255*np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
