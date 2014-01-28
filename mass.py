@@ -187,8 +187,14 @@ def h(x): # ??? BUSCAR
 def rightTBC(x,y):
     return h(Ts-Tinf)  + eps*sigm*(Ts**4-Tinf**4)
 
-def Psat(x): # ??? Presion de vapor de agua de saturacion BUSCAR FUNCION
-    return x
+def Psat(x): # ??? Presion de vapor de agua de saturacion REVISAR FUNCION
+    a = [6.7, 17.2, 23.7, 26.4, 28.6, 32.6, 40, 45.5, 53.6, 59.7, 64.6, 68.7, 75.4, 85.4, 93.0, 99.1,110.8, 119.6, 126.8, 132.9, 138.2, 142.9, 147.2, 151.1, 158.1, 164.2, 169.6, 174.5, 179, 183.2, 187.1,190.7]
+    b = [0.01,0.02,0.03,0.035,0.04,0.05,0.075,0.1,0.15,0.2,0.25,0.3,0.4,0.6,0.8,1,1.5,2,2.5,3, 3.5,4,4.6,5,6,7,8,9,10,11,12,13]
+
+    z = np.polyfit(a, b, 3)
+    f = np.poly1d(z)
+
+    return f(x)
 
 def Ps(x,y):
     return aw(x,y)*Psat(Ts)
