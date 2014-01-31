@@ -57,7 +57,7 @@ tfactor = 1#10**2
 dt = dx2*dy2/( 2*a*(dx2+dy2) )#*16
 Dt = 0.5
 
-dt = 0.5
+dt = 5
 # Start u and ui off as zero matrices:
 wi = np.array(lsystem.lin()).astype(np.float32)/510  # (255)? cuanto es el valor original de la masa?
 
@@ -94,19 +94,19 @@ t = np.zeros(ti.shape).astype(np.float32)
 # forced convection REVISAR
 for i in range(0,1):
     for j in range(ny-1):
-        ti[i][j] = tOven
+        t[i][j] = tOven
 
 for i in range(1,nx-1):
     for j in range(0,1):
-        ti[i][j] = tOven
+        t[i][j] = tOven
 
 for i in range(nx-2,nx-1):
     for j in range(1,ny-1):
-        ti[i][j] = tOven
+        t[i][j] = tOven
 
 for i in range(1,nx-2):
     for j in range(ny-2,ny-1):
-        ti[i][j] = tOven
+        t[i][j] = tOven
 
 # EQUATIONS----------------
 
@@ -197,7 +197,7 @@ Ts = toKelvin(60) # ???? BUSCAR
 eps = 0.85 # emissivity of bread surface REVISAR
 sigm = 5.67 * 10**-8 # stefan-boltzmann constant
 ros = 241.76 # solid density
-RH = 0.6 # ??? BUSCAR
+RH = 60 # ??? BUSCAR
 
 # Change as necessary..
 # Forced convection 200 C baking temperature
@@ -205,14 +205,11 @@ hh =11.96
 kg =8.46*(10**-9)
 
 def aw(x,y): # water activity
-    v = ((100*wi[x][y]/np.exp(-0.0056*ti[x][y]+5.5)))
-    print "V:", v, x, y
-    if isnan(v):
-        print "T,W,V", ti[x][y], wi[x][y], v, x, y
-        exit()
-    print "AW1: ", np.exp(-0.0056*ti[x][y]+5.5)
-    print "AW3: ", ((100*wi[x][y]/np.exp(-0.0056*ti[x][y]+5.5)))
-    return ((100*wi[x][y]/np.exp(-0.0056*ti[x][y]+5.5))**(-1/0.38) + 1)**(-1)
+    #v = ((100*wi[x][y]/np.exp(-0.0056*ti[x][y]+5.5)))
+    a = 100*wi[x][y]
+    b = np.exp(-0.0056*ti[x][y]+5.5)
+
+    return ((a/b)**(-1/0.38) + 1)**(-1)
 
 def rightTBC(x,y):
     return hh*(Ts-Tinf)  + eps*sigm*(Ts**4-Tinf**4)
@@ -252,7 +249,6 @@ def evolve_ts(w, wi,t,ti):
         for y in range(2,ny-3):
             h = ddx(x,y)+ddy(x,y)
             v = (ddx(x,y) + ddy(x,y))*dt
-            #if(v > 0): print "DDX: ", wi[x][y] + v
             v2 = (ddxt(x,y) + ddyt(x,y))*dt/(ro(x,y)*cp(x,y))
             if( False and v!=0 and wi[x][y]!=0): 
                 print "V:", v
@@ -262,7 +258,6 @@ def evolve_ts(w, wi,t,ti):
                 print "V2:", v2
                 print "Wi: ", ti[x][y]
                 print "Wi2: ", ti[x][y] + np.float64(v2*10**4)
-            #print ro(x,y),cp(x,y), v,v2
 
             w[x][y] = wi[x][y] + v
             t[x][y] = ti[x][y] + np.float64(v2)#*10**2)
@@ -274,28 +269,36 @@ def evolve_ts(w, wi,t,ti):
     if(True):
         # Boundary conditions
         for x in range(1,2):
-            for y in range(1,ny-2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+            for y in range(ny-2,1): # backwards! since we need x+1,y and x,y+1
+                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+                #print "AA1: ", w[x+1][y] + w[x][y+1]
+                #print "AA2: ", w[x+1][y] + w[x][y+1]
+                #print "AA3: ", rightWBC(x,y)*dx
+                print "AA: ", w[x+1][y] + w[x][y+1]
+                print "AA2: ", rightWBC(x,y)*dx
+                print "AA3: ", (D(x,y)*ros)
+                if(m>1): exit()
+                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
         for x in range(nx-3,nx-2):
-            for y in range(2,ny-3):
-                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+            for y in range(ny-3,2):
+                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
-        for x in range(2,nx-2):
+        for x in range(nx-2,2):
             for y in range(1,2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
-        for x in range(2,nx-2):
+        for x in range(nx-2,2):
             for y in range(ny-3,ny-2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] + rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] + rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
                 
 
-    print "WS:"
-    print wi[1][0:10]
+    #print "WS:"
+    #print ti[0][0:nx-1]
+    #print ti[1][0:nx-1]
 
 
 def updatefig(*args):
