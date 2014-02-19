@@ -1,22 +1,5 @@
 #!/usr/bin/env python
-"""
-Author: Timothy A.V. Teatro <http://www.timteatro.net>
-Date  : Oct 25, 2010
-Lisence: Creative Commons BY-SA
-(http://creativecommons.org/licenses/by-sa/2.0/)
 
-Description:
-    A program which uses an explicit finite difference
-    scheme to solve the diffusion equation with fixed
-    boundary values and a given initial value for the
-    density u(x,y,t). This version uses a numpy
-    expression which is evaluated in C, so the
-    computation time is greatly reduced over plain
-    Python code.
-
-    This version also uses matplotlib to create an
-    animation of the time evolution of the density.
-"""
 import scipy as sp
 import matplotlib
 matplotlib.use('GTKAgg') # Change this as desired.
@@ -24,10 +7,11 @@ import gobject
 from pylab import *
 import Image
 import lsystem
+import string
 # Declare some variables:
 
-dx=0.004        # Interval size in x-direction.
-dy=0.004        # Interval size in y-direction.
+dx=0.1        # Interval size in x-direction.
+dy=0.1        # Interval size in y-direction.
 #a=4          # Diffusion constant.
 #tf = 0.0013
 
@@ -38,7 +22,7 @@ def toKelvin(c):
 
 tOven = toKelvin(200) # temperature Oven
 tf = toKelvin(100)
-timesteps=3000  # Number of time-steps to evolve system.
+timesteps=30000  # Number of time-steps to evolve system.
 
 nx = int(1/dx)
 ny = int(1/dy)
@@ -47,33 +31,33 @@ dx2=dx**2 # To save CPU cycles, we'll compute Delta x^2
 dy2=dy**2 # and Delta y^2 only once and store them.
 a = 4
 
-
 tinit = toKelvin(27) # Zhang&Datta
-tfactor = 1#10**2
-
+tfactor = 1
 
 # For stability, this is the largest interval possible
 # for the size of the time-step:
 dt = dx2*dy2/( 2*a*(dx2+dy2) )#*16
 Dt = 0.5
 
-dt = 5
+dt = 0.1
 # Start u and ui off as zero matrices:
-wi = np.array(lsystem.lin()).astype(np.float32)/510  # (255)? cuanto es el valor original de la masa?
+wi = np.array(lsystem.lin()[0:nx,0:ny]).astype(np.float32)  # (255)? cuanto es el valor original de la masa?
 
-wi = np.max(wi)-wi + 0.1
+wi = wi/255.0
+#wi = (np.max(wi)-wi)*0.001 + 0.1
+
+#print  
+
+#exit()
 
 print "MAX W: ",np.max(wi)
 print "MIN W: ", np.min(wi)
 
 wi.flags.writeable = True
 #print wi.sum()
-print 'Total moisture content (W): {0:.16f}'.format(np.float64(wi.sum()))
+#print 'Total moisture content (W): {0:.16f}'.format(np.float64(wi.sum()))
 
 ti = np.zeros((nx,ny)).astype(np.float32)+tinit
-#for i in range(nx):
-#    for j in range(ny):
-#        ti[i][j] += np.float32(randint(10))/tfactor
 ti.flags.writeable = True
 print ti.sum()
 
@@ -85,28 +69,27 @@ if(False):
     iimage = Image.open(ifile)
     timage = Image.open(tfile)
     wi = np.asarray(iimage)/np.float32(255)
-    ti = np.asarray(timage)/(np.float32(255)*tfactor)
+    ti = np.asarray(timage)/np.float32(255)
 
-#ui = np.ones([nx,ny])
 w = np.zeros(wi.shape).astype(np.float64)
-t = np.zeros(ti.shape).astype(np.float32)
+t = np.zeros(ti.shape).astype(np.float64)+tinit
 
-# forced convection REVISAR
-for i in range(0,1):
-    for j in range(ny-1):
-        t[i][j] = tOven
+# ###OVEN### : forced convection REVISAR
+i = 0
+for j in range(ny):
+    t[i][j] = tOven
 
+j = 0
+for i in range(1,nx):
+    t[i][j] = tOven
+
+i = nx-1
+for j in range(1,ny):
+    t[i][j] = tOven
+
+j = ny-1
 for i in range(1,nx-1):
-    for j in range(0,1):
-        t[i][j] = tOven
-
-for i in range(nx-2,nx-1):
-    for j in range(1,ny-1):
-        t[i][j] = tOven
-
-for i in range(1,nx-2):
-    for j in range(ny-2,ny-1):
-        t[i][j] = tOven
+    t[i][j] = tOven
 
 # EQUATIONS----------------
 
@@ -155,7 +138,7 @@ def ddxt(x,y):
         #print "WX3: ", k(x+1,y)*wx(x+1,y)-D(x,y)*wx(x,y)
         #print "WX4: ", (D(x+1,y)*wx(x+1,y)-D(x,y)*wx(x,y))/dx
     #print "ddxt: ", (k(x,y)*tx(x,y)-k(x-1,y)*tx(x-1,y))/dx
-    return (k(x,y)*tx(x,y)-k(x-1,y)*tx(x-1,y))/dx
+    return (k(x,y)*tx(x,y)-k(x-1,y)*tx(x-1,y))/np.float32(dx)
 
 def ddyt(x,y):
     #if(False and wy(x,y+1) != 0): 
@@ -163,8 +146,7 @@ def ddyt(x,y):
         #print "WY2: ", D(x,y+1)*wy(x,y+1)
         #print "WY3: ", D(x,y+1)*wy(x,y+1)-D(x,y)*wy(x,y)
         #print "WY4: ", (D(x,y+1)*wy(x,y+1)-D(x,y)*wy(x,y))/dy
-    return (k(x,y)*tx(x,y)-k(x,y-1)*tx(x,y-1))/dy
-    #return (D(x,y)*wy(x,y)-D(x,y-1)*wy(x,y-1))/dy
+    return (k(x,y)*tx(x,y)-k(x,y-1)*tx(x,y-1))/np.float32(dy)
 
 def ro(x,y):
     global tf
@@ -174,11 +156,13 @@ def ro(x,y):
 def cp(x,y):
     cps = 5*ti[x][y]+25
     cpw = (5.207 - 73.17 * (10**-4)*ti[x][y] + 1.35*(10**-5)*(ti[x][y]**2))*1000
+    #print "CPW: ", cpw
     cpp = cps + wi[x][y]*cpw
+    #print "CPP: ", cpp
 
     lam = 2.3 #  ? REVISAR
     nab = 0
-    if(ti[x][y] >= tf): nab = 1 # REVISAR
+    if(ti[x][y] >= tf+Dt): nab = 1 # REVISAR
     #nab = exp(-((ti[x][y]-tf)**2)/(2*Dt**2)) #1 # ?
     #print "Tf: ", tf
 
@@ -242,15 +226,14 @@ def evolve_ts(w, wi,t,ti):
     evaluate the derivatives in the Laplacian, and
     calculates u[i,j] based on ui[i,j].
     """
-    #u[1:-1, 1:-1] = ui[1:-1, 1:-1] + a*dt*( (ui[2:, 1:-1] - 2*ui[1:-1, 1:-1] + ui[:-2, 1:-1])/dx2 + (ui[1:-1, 2:] - 2*ui[1:-1, 1:-1] + ui[1:-1, :-2])/dy2 )
 
     p = 0
-    for x in range(2,nx-3):
-        for y in range(2,ny-3):
+    for x in range(2,nx-2):
+        for y in range(2,ny-2):
             h = ddx(x,y)+ddy(x,y)
             v = (ddx(x,y) + ddy(x,y))*dt
             v2 = (ddxt(x,y) + ddyt(x,y))*dt/(ro(x,y)*cp(x,y))
-            if( False and v!=0 and wi[x][y]!=0): 
+            if(False and v!=0 and wi[x][y]!=0): 
                 print "V:", v
                 print "Wi: ", wi[x][y]
                 print "Wi2: ", wi[x][y] + v
@@ -260,93 +243,81 @@ def evolve_ts(w, wi,t,ti):
                 print "Wi2: ", ti[x][y] + np.float64(v2*10**4)
 
             w[x][y] = wi[x][y] + v
-            t[x][y] = ti[x][y] + np.float64(v2)#*10**2)
-            #if(wi[x][y] > 0 and v!= 0 and p== 0): 
-            #    print "x, y, W: ", x, y, w[x][y]
-            #    p = 1
+            t[x][y] = ti[x][y] + np.float64(v2)
     
+            #print v, v2
 
     if(True):
         # Boundary conditions
-        for x in range(1,2):
-            for y in range(ny-2,1): # backwards! since we need x+1,y and x,y+1
-                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
-                #print "AA1: ", w[x+1][y] + w[x][y+1]
-                #print "AA2: ", w[x+1][y] + w[x][y+1]
-                #print "AA3: ", rightWBC(x,y)*dx
-                print "AA: ", w[x+1][y] + w[x][y+1]
-                print "AA2: ", rightWBC(x,y)*dx
-                print "AA3: ", (D(x,y)*ros)
-                if(m>1): exit()
-                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+        x = 1
+        for y in range(ny-2,1,-1): # backwards! since we need x+1,y and x,y+1
+            t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+            w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
-        for x in range(nx-3,nx-2):
-            for y in range(ny-3,2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+        x = nx-2
+        for y in range(ny-2,1,-1):
+            t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+            w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
-        for x in range(nx-2,2):
-            for y in range(1,2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+        y = 1
+        for x in range(nx-2,0,-1):
+            t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+            w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
 
-        for x in range(nx-2,2):
-            for y in range(ny-3,ny-2):
-                t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
-                w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
-                
-
-    #print "WS:"
-    #print ti[0][0:nx-1]
-    #print ti[1][0:nx-1]
-
+        y = ny-2
+        for x in range(nx-3,1,-1):
+            t[x][y] = (t[x+1][y] + t[x][y+1] - rightTBC(x,y)*dx/k(x,y))/2.0
+            w[x][y] = (w[x+1][y] + w[x][y+1] - rightWBC(x,y)*dx/(D(x,y)*ros))/2.0
+            
 
 def updatefig(*args):
     global w, wi, m, t, ti
     im.set_array(wi)
     manager.canvas.draw()
-    # Uncomment the next two lines to save images as png
-    # filename='diffusion_ts'+str(m)+'.png'
-    # fig.savefig(filename)
-    #u[1:-1, 1:-1] = ui[1:-1, 1:-1] + a*dt*(
-    #    (ui[2:, 1:-1] - 2*ui[1:-1, 1:-1] + ui[:-2, 1:-1])/dx2
-    #    + (ui[1:-1, 2:] - 2*ui[1:-1, 1:-1] + ui[1:-1, :-2])/dy2 )
     evolve_ts(w,wi,t,ti)
     wi = sp.copy(w)
     ti = sp.copy(t)
     m+=1
-
-
-    #print 255*np.asarray(ui).astype(np.uint8)
-    #print wi.sum()
-    print 'Total moisture content: {0:.16f}'.format(np.float64(wi.sum()))
-    print ti.sum()
-
-    #I = Image.frombuffer('L',(nx,ny),  255*(255*np.asarray(wi) > 170).astype(np.uint8) ,'raw','L',0,1)
-    #I.save('images/image'+str(m)+'.png')
-    #I = Image.frombuffer('L',(nx,ny),  (255*np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
-    #I.save('images/image'+str(m)+'.png')
-
-    print ((np.asarray(wi))).astype(np.uint8)
+    #print 'Total moisture content: {0:.16f}'.format(np.float64(wi.sum()))
+    #print 'Total temperature content: {0:.16f}'.format(np.float64(ti.sum()))
 
     I = Image.frombuffer('L',(nx,ny),  (np.asarray(wi)).astype(np.uint8) ,'raw','L',0,1)
-    I.save('images/image'+str(m)+'.png')
-    print wi[100][200]
+    #I.save('images/image'+str(m)+'.png')
 
-    I2 = Image.frombuffer('L',(nx,ny),  (tfactor*255*np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
-    I2.save('images/timage'+str(m)+'.png')
+    my_matrix = ti
+    max_lens = [max([len(str(r[i])) for r in my_matrix])
+                    for i in range(len(my_matrix[0]))]
+
+    import os
+    clear = lambda: os.system('clear')
+    clear()
+
+    print "Temperatures:"
+    print "\n".join(["".join([string.ljust(str(e), l + 2)
+                    for e, l in zip(r, max_lens)]) for r in my_matrix])
+
+    my_matrix = wi
+    print "Moisture"
+    print "\n".join(["".join([string.ljust(str(e), l + 2)
+                    for e, l in zip(r, max_lens)]) for r in my_matrix])
+
+    #I2 = Image.frombuffer('L',(nx,ny),  (np.asarray(ti)).astype(np.uint8) ,'raw','L',0,1)
+    #I2.save('images/timage'+str(m)+'.png')
     print "Computing and rendering u for m =", m
     if m >= timesteps:
         return False
     return True
 
 fig = plt.figure(1)
-img = subplot(111)
-im = img.imshow( wi, cmap=cm.gray, interpolation='nearest', origin='lower')
+img = fig.add_subplot(121)
+im = img.imshow( wi, cmap=cm.hot, interpolation='nearest', origin='top')
+fig.colorbar( im ) # Show the colorbar along the side
+img = fig.add_subplot(122)
+im2 = img.imshow( ti, cmap=cm.hot, interpolation='nearest', origin='top')
+fig.colorbar( im2 ) # Show the colorbar along the side
 manager = get_current_fig_manager()
 
 m=lastI
-fig.colorbar( im ) # Show the colorbar along the side
 
 # once idle, call updatefig until it returns false.
 gobject.idle_add(updatefig)
