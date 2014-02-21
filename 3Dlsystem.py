@@ -22,18 +22,18 @@ def fdist(a): # distance depends on size
     return 9*a
 
 def ffrac(r):
-    if(r > 40): return 0.6
-    if(r > 30): return 0.6-random.random()*0.05
-    if(r > 20): return 0.6-random.random()*0.05
-    if(r > 10): return 0.6-random.random()*0.05
-    return 0.4
+    if(r > 40): return 0.8
+    if(r > 30): return 0.8-random.random()*0.05
+    if(r > 20): return 0.8-random.random()*0.05
+    if(r > 10): return 0.8-random.random()*0.05
+    return 0.6
 
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 300
-        self.height = 300
-        self.maxZ = 300
+        self.width = 150
+        self.height = 150
+        self.maxZ = 150
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -72,7 +72,7 @@ class Lindenmayer(object):
         self.y = int(self.height/2)
         self.z = int(self.maxZ/2)
 
-        self.r = int(self.width/8)
+        self.r = int(self.width/6)
         print self.r
 
         self.xparent = self.x
@@ -97,7 +97,7 @@ class Lindenmayer(object):
                          if(i2*i2+j2*j2+k2*k2 < r*r):
                              field[i][j][k] = np.uint8(0)
 
-        #gnomeprint "ellipse!"
+        #print "ellipse!"
         #    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
         return
         r2 = r
@@ -427,12 +427,13 @@ class Lindenmayer(object):
 
         for i in range(self.maxZ):
             I2 = Image.frombuffer('L',(self.width,self.height), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)
+            print np.array(field[:,:,i]).astype(np.uint8)
+            print np.array(field[:,:,i]).astype(np.uint8).sum()
             I.paste(I2,(0,rowsPerSlice*i))
+
 
         I.save('lbread3D.png')
         
-
-         
         
 def usage():
     print "Usage: python lsystem.py [-i <inputfile>] [-o <outputfile>] [-h]\n\n" \
