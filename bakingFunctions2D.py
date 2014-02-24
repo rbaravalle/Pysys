@@ -5,7 +5,7 @@ import numpy as np
 from math import atan
 from scipy import interpolate
 
-def Tnew(T,V,W,N,dt,dx,theta):
+def Tnew(T,V,W,N,dt,dx,dy,theta1,theta2):
 #**********************************
 #constants below
 #**********************************
@@ -24,14 +24,33 @@ def Tnew(T,V,W,N,dt,dx,theta):
     #*********************************
     #loop starts
     #********************************
-    a=np.zeros((N+1,N+1))
-    b=np.zeros((N+1))
-    for i in range(1,N):#i=2:N
-        r=k*dt/((170+284*W[i])*cp*dx*dx)
-        a[i,i-1]=-r*(1-theta)
-        a[i,i]=1+2*r*(1-theta)
-        a[i,i+1]=-r*(1-theta)
-        b[i]=r*theta*T[i-1]+(1-2*r*theta)*T[i]+r*theta*T[i+1]+lam*Dw*dt/(cp*dx*dx)*(W[i+1]-2*W[i]+W[i-1])
+    a=np.zeros(((Nx+1)*(Ny+1),(Nx+1)*(Ny+1)))
+    b=np.zeros((Nx+1)*(Ny+1))
+    alpha5 = lam*Dw*dt/(cp*dx*dx)
+    alpha6 = lam*Dw*dt/(cp*dy*dy)
+    for i in range(1,Nx):
+        for j in range(1,Ny):
+            actual = i*Nx+j # actual index
+
+            rx=k*dt/((170+284*W[i,j])*cp*dx*dx)
+            ry=k*dt/((170+284*W[i,j])*cp*dy*dy)
+            alpha1 = -ry*(1-theta2)
+            alpha2 = -rx*(1-theta1)
+            alpha3 = ry*theta2
+            alpha4 = rx*theta1
+
+
+            a[i,j] = 1+2*alpha1+2*alpha2
+            a[i,j-1] = -alpha2
+            a[i,j+1] = -alpha2
+            a[i+1,j] = -alpha1
+            a[i-1,j] = -alpha1
+
+            #a[i,i-1]=-r*(1-theta)
+            #a[i,i]=1+2*r*(1-theta)
+            #a[i,i+1]=-r*(1-theta)
+            b[actual] = alpha3*T[i-1,j]+(1-2*alpha3-2*alpha4)*T[i,j]+alpha3*T[i+1,j]+alpha4*T[i,j-1]+alpha4*T[i,j+1]+alpha5*(W[i-1,j]-2*W[i,j]+W[i+1,j])+alpha6*(W[i,j-1]-2*W[i,j]+W[i,j+1])
+            #b[i]=r*theta*T[i-1]+(1-2*r*theta)*T[i]+r*theta*T[i+1]+lam*Dw*dt/(cp*dx*dx)*(W[i+1]-2*W[i]+W[i-1])
     #**********************************************
     #for temp at 1st node where T_f is fictious node
     #**********************************************
@@ -79,10 +98,10 @@ def correction(T_new,V,W,N):
     # interpolation and calculation of saturated amount of vapor
     #************************************************************
 
-    P = np.zeros((N+2))
-    V_s = np.zeros((N+2))
-    V_temp = np.zeros((N+2))
-    W_temp = np.zeros((N+2))
+    P = np.zeros((N+1))
+    V_s = np.zeros((N+1))
+    V_temp = np.zeros((N+1))
+    W_temp = np.zeros((N+1))
 
     for i in range(0,N+1):
         f=interpolate.interp1d(x,y) #interp1(x,y,T_new[i],'spline')*1000
@@ -130,11 +149,11 @@ def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
     #**************************
     #V at last boundary
     #**************************
-    V_temp[N+1]=V_temp[N-1]
+    V_temp[N]=V_temp[N-2]
     r=dt*9.0*10**(-12)*(T_new[N]+273.5)**(2)/(dx*dx)
     a[N,N-1]=-2*r*(1-theta)
     a[N,N]=1+2*r*(1-theta)
-    b[N]=r*theta*V_temp[N-1]+(1-2*r*theta)*V_temp[N]+r*theta*V_temp[N+1]
+    b[N]=r*theta*V_temp[N-2]+(1-2*r*theta)*V_temp[N]+r*theta*V_temp[N]
     #********************
     #solving
     #*********************
@@ -187,11 +206,11 @@ def Wnew(T_new,V_new,W_temp,dx,dt,N,theta):
     #*****************************
     #W at last boundary
     #*****************************
-    W_temp[N+1]=W_temp[N-1]
+    W_temp[N]=W_temp[N-2]
     r=dt*Dw/(dx*dx)
     a[N,N-1]=-2*r*(1-theta)
     a[N,N]=1+2*r*(1-theta)
-    b[N]=r*theta*W_temp[N-1]+(1-2*r*theta)*W_temp[N]+r*theta*W_temp[N+1]
+    b[N]=r*theta*W_temp[N-2]+(1-2*r*theta)*W_temp[N-1]+r*theta*W_temp[N]
 
     return np.linalg.solve(a,b)
  
