@@ -41,11 +41,11 @@ def Tnew(T,V,W,N,dt,dx,theta):
     b2=1+b1*b1
     F_sp=(2./(np.pi*a1*b1))*(np.log(np.sqrt(a2*b2/(1+a1*a1+b1*b1)))+a1*np.sqrt(b2)*atan(a1/np.sqrt(b2)) +b1*np.sqrt(a2)*atan(b1/np.sqrt(a2))-a1*atan(a1)-b1*atan(b1))
     hr=sig*((T_r+273.5)**(2)+(T[0]+273.5)**(2))*((T_r+273.5)+(T[0]+273.5))/(1/esp_p+1/esp_r-2+1/F_sp)
-    hw=1.4*10**(-3)*T[1]+0.27*W[1]-4.0*10**(-4)*T[1]*W[1]-0.77*W[1]**(2)
-    temp=lam*(170+284*W[1])*Dw*hw;
-    T_f=T[2]+2*dx/k*(hr*(T_r-T[1])+hc*(T_air-T[1])-temp*(W[1]-W_air))
-    w_f=W[2]-2*dx*hw*(W[1]-W_air)
-    r=k*dt/((170+284*W[1])*cp*dx*dx);
+    hw=1.4*10**(-3)*T[0]+0.27*W[0]-4.0*10**(-4)*T[0]*W[0]-0.77*W[0]**(2)
+    temp=lam*(170+284*W[0])*Dw*hw;
+    T_f=T[1]+2*dx/k*(hr*(T_r-T[0])+hc*(T_air-T[0])-temp*(W[0]-W_air))
+    w_f=W[1]-2*dx*hw*(W[0]-W_air)
+    r=k*dt/((170+284*W[0])*cp*dx*dx);
     a[0,0]=1+2*r*(1-theta)*(1+dx*hr/k+dx*hc/k)
     a[0,1]=-2*r*(1-theta)
     b[0]=r*theta*T_f+(1-2*r*theta)*T[0]+r*theta*T[1]+lam*Dw*dt/(cp*dx*dx)*(W[1]-2*W[0]+w_f)+r*(1-theta)*2*(dx/k)*(hr*T_r+hc*T_air-temp*(W[0]-W_air))
