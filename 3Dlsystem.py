@@ -62,7 +62,7 @@ class Lindenmayer(object):
         
         # Calculate the starting position.
         self.offset = (0, -self.height*0.5)
-        print 'Offset :', self.offset
+        #print 'Offset :', self.offset
         
         # Finally store the stream ...
         self.stream = stream
@@ -73,7 +73,7 @@ class Lindenmayer(object):
         self.z = int(self.maxZ/2)
 
         self.r = int(self.width/6)
-        print self.r
+        #print self.r
 
         self.xparent = self.x
         self.yparent = self.y
@@ -95,6 +95,7 @@ class Lindenmayer(object):
                          j2 = j-y
                          k2 = k-z
                          if(i2*i2+j2*j2+k2*k2 < r*r):
+                             print float(i), ",", float(j),",", float(k)
                              field[i][j][k] = np.uint8(0)
 
         #print "ellipse!"
@@ -204,7 +205,7 @@ class Lindenmayer(object):
             print " "*(err.column-1) + "^"
             print err
             
-        print 'Rules:', self.rules
+        #print 'Rules:', self.rules
         
     def setAttribute(self, stream, loc, toks):
         if toks[0] == 'Dimensions':
@@ -304,7 +305,7 @@ class Lindenmayer(object):
         maxX = self.width
         maxY = self.height
         import Image
-        print self.width,self.height, self.maxZ
+        #print self.width,self.height, self.maxZ
         I = Image.new('L',(self.maxZ,self.width*self.height),0.0)
         field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) + np.uint8(255)
         #draw = ImageDraw.Draw(I)
@@ -427,8 +428,8 @@ class Lindenmayer(object):
 
         for i in range(self.maxZ):
             I2 = Image.frombuffer('L',(self.width,self.height), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)
-            print np.array(field[:,:,i]).astype(np.uint8)
-            print np.array(field[:,:,i]).astype(np.uint8).sum()
+            #print np.array(field[:,:,i]).astype(np.uint8)
+            #print np.array(field[:,:,i]).astype(np.uint8).sum()
             I.paste(I2,(0,rowsPerSlice*i))
 
 
