@@ -4,15 +4,6 @@
 from bakingFunctions2D import *
 import numpy as np
 
-Nx=32
-Ny=32
-theta1=0
-theta2=0
-dx=0.01/np.float32(Nx) 
-dy=0.01/np.float32(Ny)
-dt=30
-Time=5400
-M=Time/np.float32(dt)
 # Nx is number of spacial nodes (in x)
 # Ny is number of spacial nodes (in y)
 # M is number of temporal nodes
@@ -30,8 +21,8 @@ W = np.zeros((Nx+2,Ny+2)).astype(np.float32)
 
 
 # initial conditions
-for i in range(0,N+1):
-    for j in range(0,N+1):
+for i in range(0,Nx+1):
+    for j in range(0,Ny+1):
         T[i,j]=25
         V[i,j]=0
         W[i,j]=0.4061
@@ -40,7 +31,8 @@ for i in range(0,N+1):
         #W1[0,i]=W[i]
 
 #for t in range(0,np.int(M)+1):
-T_new=Tnew(T,V,W,N,dt,dx,dy,theta1,theta2)
+T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
+print T_new
     #V_temp,W_temp,V_s,P=correction(T_new,V,W,N) #,P) ;
     #V_new=Vnew(T_new,V_temp,W_temp,dx,dt,N,theta)
     #V_new,W_temp=Correction2(T_new,V_new,W_temp,V_s,N,P,W)
@@ -73,7 +65,12 @@ T_new=Tnew(T,V,W,N,dt,dx,dy,theta1,theta2)
 #print Times
 #plt.plot(Times,T)
 
-plt.plot(T)
+import matplotlib
+from matplotlib import pyplot as plt
+import Image
+I = Image.frombuffer('L',T.shape, np.array(T).astype(np.uint8),'raw','L',0,1)
+
+plt.imshow(I, cmap=matplotlib.cm.gray)
 plt.show()
 
 exit()
