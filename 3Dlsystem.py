@@ -95,8 +95,8 @@ class Lindenmayer(object):
                          j2 = j-y
                          k2 = k-z
                          if(i2*i2+j2*j2+k2*k2 < r*r):
-                             print float(i), ",", float(j),",", float(k)
-                             field[i][j][k] = np.uint8(0)
+                             #print float(i), ",", float(j),",", float(k)
+                             field[i][j][k] = np.uint8(255)
 
         #print "ellipse!"
         #    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
@@ -307,7 +307,7 @@ class Lindenmayer(object):
         import Image
         #print self.width,self.height, self.maxZ
         I = Image.new('L',(self.maxZ,self.width*self.height),0.0)
-        field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) + np.uint8(255)
+        field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) #+ np.uint8(255)
         #draw = ImageDraw.Draw(I)
 
         # Process the result stream symbol by symbol.

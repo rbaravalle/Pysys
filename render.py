@@ -27,7 +27,7 @@ strVS = open('shaderv.glsl').read()
 # fragment shader
 strFS = open('shaderf.glsl').read()
 
-strTex = 'imagen3-1.png'
+strTex = 'lbread3D.png'
 
 global BaseProgram
 global pos
@@ -44,7 +44,7 @@ alpha2 = 0.0
 uTMK = 4.0
 uTMK2 = 5.0
 uShininess = 1.0
-uMaxSteps = 128
+uMaxSteps = 64
 
 def set_uniforms():
     global BaseProgram
@@ -86,6 +86,10 @@ def LoadTextures():
     #im = np.array([random.randint(0,255) for _ in range(dim*dim*dim)]).astype(np.uint8)
     dim = image.size[0]
     im = np.zeros(dim*dim*dim).astype(np.uint8)
+
+
+    print dim
+
     for i in range(dim):
         im[i*dim*dim:(i+1)*dim*dim] = np.uint8(255)-np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
 
