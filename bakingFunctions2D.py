@@ -76,10 +76,6 @@ def W263(W,i,j):
 
 
 def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
-#**********************************
-#constants below
-#**********************************
-
     #*********************************
     #interior nodes
     #********************************
@@ -313,20 +309,61 @@ def correction(T_new,V,W,Nx,Ny):
 ####################################
 # Function to find new Vapour
 ####################################
+def Dv(T_new,i,j):
+    return 9.0*10**(-12)*(T_new[i,j]+273.5)**(2) 
 
+def hv(T_new,i,j):
+    return 3.2*10**(9)/((T_new[i,j]+273.5)**(3))
 def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
-    a=np.zeros((N+1,N+1))
-    b=np.zeros((N+1))
+    a=np.zeros(((Nx+1)*(Ny+1),(Nx+1)*(Ny+1)))
+    b=np.zeros((Nx+1)*(Ny+1))
     V_air=0
     #**********************************
     # V at internal points
     #**********************************
-    for i in range(1,N):# i=2:1:N
-        r=dt*9.0*10**(-12)*(T_new[i]+273.5)**(2)/(dx*dx)
-        a[i,i-1]=-r*(1-theta)
-        a[i,i]=1+2*r*(1-theta)
-        a[i,i+1]=-r*(1-theta)
-        b[i]=r*theta*V_temp[i-1]+(1-2*r*theta)*V_temp[i]+r*theta*V_temp[i+1]
+
+    for i in range(1,Nx):
+        for j in range(1,Ny):
+            actual = i*(Ny+1)+j
+            Dvij = Dv(T_new,i,j)
+            eta1 = 2*Dvij # author's implementation did it wrong?
+            eta2 = 2*Dvij
+            alpha1 = (1-theta1)*dt/(dx*dx)
+            alpha2 = (1-theta1)*dt/(dy*dy)
+            alpha3 = (theta1)*dt/(dx*dx)
+            alpha4 = (theta2)*dt/(dy*dy)
+            r=dt*Dvij/(dx*dx)
+
+            a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+            a[actual,actual-1] = -alpha1*Dvij
+            a[actual,actual+1] = -alpha1*Dvij
+            a[actual,actual-(Ny+1)] = -alpha2*Dvij
+            a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+            b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V[i,j-1] - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V[i-1,j]
+    #BConditions
+
+    i=0
+    j=0
+
+    actual = i*(Ny+1)+j
+    Dvij = Dv(T_new,i,j)
+    eta1 = 2*Dvij # author's implementation did it wrong?
+    eta2 = 2*Dvij
+    alpha1 = (1-theta1)*dt/(dx*dx)
+    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha3 = (theta1)*dt/(dx*dx)
+    alpha4 = (theta2)*dt/(dy*dy)
+    r=dt*Dvij/(dx*dx)
+
+    a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+    a[actual,actual+1] = -alpha1*Dvij
+    a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+    b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V2672(V,i,-1) - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V[i-1,j]
+
+
+
     #*************************
     # V at 1st boundary
     #*************************
