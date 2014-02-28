@@ -8,11 +8,11 @@ from scipy import interpolate
 
 Nx=32
 Ny=32
-theta1=0
-theta2=0
+theta1=0.95
+theta2=0.95
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
-dt=30
+dt=5200
 Time=5400
 M=Time/np.float32(dt)
 
@@ -38,19 +38,18 @@ def hr(T,x,y):
     return sig*((T_r+273.5)**(2)+(T[x,y]+273.5)**(2))*((T_r+273.5)+(T[x,y]+273.5))/(1/esp_p+1/esp_r-2+1/F_sp)
 
 def hw(T,W,x,y):
-    hw=1.4*10**(-3)*T[x,y]+0.27*W[x,y]-4.0*10**(-4)*T[x,y]*W[x,y]-0.77*W[x,y]**(2)
-    return hw
+    return 1.4*10**(-3)*T[x,y]+0.27*W[x,y]-4.0*10**(-4)*T[x,y]*W[x,y]-0.77*W[x,y]**(2)
 
 # Border conditions
 
 def T256(T,W,i,j): # equation (2.56) # i always -1, only for clarity below
-    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,0) # REVISAR W[0,j] ????
+    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j) # REVISAR W[0,j] ????
     right = hr(T,0,j)*(T_r-T[0,j])+hc*(T_air-T[0,j])-temp*(W[0,j]-W_air)
     return T[1,j] + (2*dy/k)*right
 
 
 def T257(T,W,i,j): # equation (2.57) j always -1
-    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,0);
+    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j);
     right = hr(T,i,0)*(T_r-T[i,0])+hc*(T_air-T[i,0])-temp*(W[i,0]-W_air)
     return T[i,1] + (2*dx/k)*right
 
@@ -90,12 +89,12 @@ def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
     alpha6 = lam*Dw*dt/(cp*dy*dy)
     for i in range(1,Nx):
         for j in range(1,Ny):
-            actual = i*(Nx+1)+j # actual index
+            actual = i*(Ny+1)+j # actual index
 
             rx=k*dt/((170+284*W[i,j])*cp*dx*dx)
             ry=k*dt/((170+284*W[i,j])*cp*dy*dy)
-            alpha1 = -ry*(1-theta2)
-            alpha2 = -rx*(1-theta1)
+            alpha1 = ry*(1-theta2)
+            alpha2 = rx*(1-theta1)
             alpha3 = ry*theta2
             alpha4 = rx*theta1
 
@@ -103,8 +102,8 @@ def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
             a[actual,actual] = 1+2*alpha1+2*alpha2
             a[actual,actual-1] = -alpha2
             a[actual,actual+1] = -alpha2
-            a[actual,actual+Ny] = -alpha1
-            a[actual,actual-Ny] = -alpha1
+            a[actual,actual+(Ny+1)] = -alpha1
+            a[actual,actual-(Ny+1)] = -alpha1
 
             b[actual] = alpha3*T[i-1,j]+(1-2*alpha3-2*alpha4)*T[i,j]+alpha3*T[i+1,j]+alpha4*T[i,j-1]+alpha4*T[i,j+1]+alpha5*(W[i-1,j]-2*W[i,j]+W[i+1,j])+alpha6*(W[i,j-1]-2*W[i,j]+W[i,j+1])
     #**********************************************
@@ -117,158 +116,145 @@ def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
 
     rx=k*dt/((170+284*W[0,0])*cp*dx*dx)
     ry=k*dt/((170+284*W[0,0])*cp*dy*dy)
-    alpha1 = -ry*(1-theta2)
-    alpha2 = -rx*(1-theta1)
+    alpha1 = ry*(1-theta2)
+    alpha2 = rx*(1-theta1)
     alpha3 = ry*theta2
     alpha4 = rx*theta1
 
     a[0,0] = 1+2*alpha1+2*alpha2
-    #a[0,actual-1] = -alpha2
     a[0,1] = -alpha2
-    a[0,Ny] = -alpha1
-    #a[actual,actual-Ny] = -alpha1
+    a[0,Ny+1] = -alpha1
 
     b[actual] = alpha3*T256(T,W,-1,0)+(1-2*alpha3-2*alpha4)*T[0,0] + alpha3*T[1,0] + alpha4*T257(T,W,0,-1) + alpha4*T[0,1] + alpha5*(W260(T,W,-1,0)-2*W[0,0] + W[1,0]) + alpha6*(W261(T,W,0,-1)-2*W[0,0]+W[0,1])
 
     i = 0
     for j in range(1,Ny):
-        actual = i*(Nx+1)+j # actual index
+        actual = i*(Ny+1)+j # actual index
 
         rx=k*dt/((170+284*W[i,j])*cp*dx*dx)
         ry=k*dt/((170+284*W[i,j])*cp*dy*dy)
-        alpha1 = -ry*(1-theta2)
-        alpha2 = -rx*(1-theta1)
+        alpha1 = ry*(1-theta2)
+        alpha2 = rx*(1-theta1)
         alpha3 = ry*theta2
         alpha4 = rx*theta1
 
         a[actual,actual] = 1+2*alpha1+2*alpha2
         a[actual,actual-1] = -alpha2
         a[actual,actual+1] = -alpha2
-        a[actual,actual+Ny] = -alpha1
-        a[actual,actual-Ny] = -alpha1
+        a[actual,actual+(Ny+1)] = -alpha1
 
         b[actual] = alpha3*T256(T,W,-1,j)+(1-2*alpha3-2*alpha4)*T[0,j]+alpha3*T[1,j]+alpha4*T[0,j-1]+alpha4*T[0,j+1]+alpha5*(W260(T,W,-1,j)-2*W[0,j]+W[1,j])+alpha6*(W[0,j-1]-2*W[0,j]+W[0,j+1])
 
     j = Ny
     i = 0
-    actual = i*(Nx+1)+j # actual index
+    actual = i*(Ny+1)+j # actual index
 
     rx=k*dt/((170+284*W[0,Ny])*cp*dx*dx)
     ry=k*dt/((170+284*W[0,Ny])*cp*dy*dy)
-    alpha1 = -ry*(1-theta2)
-    alpha2 = -rx*(1-theta1)
+    alpha1 = ry*(1-theta2)
+    alpha2 = rx*(1-theta1)
     alpha3 = ry*theta2
     alpha4 = rx*theta1
 
-    a[0,0] = 1+2*alpha1+2*alpha2
-    a[0,actual-1] = -alpha2
-    a[0,1] = -alpha2
-    a[0,Ny] = -alpha1
-    a[actual,actual-Ny] = -alpha1
+    a[actual,actual] = 1+2*alpha1+2*alpha2
+    a[actual,actual-1] = -alpha2
+    a[actual,actual+(Ny+1)] = -alpha1
 
     b[actual] = alpha3*T256(T,W,-1,Ny)+(1-2*alpha3-2*alpha4)*T[0,Ny]+alpha3*T[1,Ny]+alpha4*T[0,Ny-1]+alpha4*T259(T,0,Ny+1)+alpha5*(W260(T,W,-1,Ny)-2*W[0,Ny]+W[1,Ny])+alpha6*(W[0,Ny-1]-2*W[0,Ny]+W263(W,0,Ny+1))
 
     j = 0
     for i in range(1,Nx):
-        actual = i*(Nx+1)+j # actual index
+        actual = i*(Ny+1)+j # actual index
 
         # ghost points # hr(x) == hr(i,0) ??
 
         rx=k*dt/((170+284*W[i,j])*cp*dx*dx)
         ry=k*dt/((170+284*W[i,j])*cp*dy*dy)
-        alpha1 = -ry*(1-theta2)
-        alpha2 = -rx*(1-theta1)
+        alpha1 = ry*(1-theta2)
+        alpha2 = rx*(1-theta1)
         alpha3 = ry*theta2
         alpha4 = rx*theta1
 
         a[actual,actual] = 1+2*alpha1+2*alpha2
-        a[actual,actual-1] = -alpha2
         a[actual,actual+1] = -alpha2
-        a[actual,actual+Ny] = -alpha1
-        a[actual,actual-Ny] = -alpha1
+        a[actual,actual+(Ny+1)] = -alpha1
+        a[actual,actual-(Ny+1)] = -alpha1
 
         b[actual] = alpha3*T[i-1,j]+(1-2*alpha3-2*alpha4)*T[i,j]+alpha3*T[i+1,j]+alpha4*T[i-1,0]+alpha4*T[i,j+1]+alpha5*(W[i-1,j]-2*W[i,j]+W[i+1,j])+alpha6*(W261(T,W,i,-1)-2*W[i,j]+W[i,j+1])
 
     j = Ny
     for i in range(1,Nx):
-        actual = i*(Nx+1)+j # actual index
+        actual = i*(Ny+1)+j # actual index
 
         # ghost points # hr(x) == hr(i,0) ??
 
         rx=k*dt/((170+284*W[i,Nx])*cp*dx*dx)
         ry=k*dt/((170+284*W[i,Nx])*cp*dy*dy)
-        alpha1 = -ry*(1-theta2)
-        alpha2 = -rx*(1-theta1)
+        alpha1 = ry*(1-theta2)
+        alpha2 = rx*(1-theta1)
         alpha3 = ry*theta2
         alpha4 = rx*theta1
 
         a[actual,actual] = 1+2*alpha1+2*alpha2
         a[actual,actual-1] = -alpha2
-        a[actual,actual+1] = -alpha2
-        a[actual,actual+Ny] = -alpha1
-        a[actual,actual-Ny] = -alpha1
+        a[actual,actual+(Ny+1)] = -alpha1
+        a[actual,actual-(Ny+1)] = -alpha1
 
         b[actual] = alpha3*T[i-1,Ny]+(1-2*alpha3-2*alpha4)*T[i,Ny]+alpha3*T[i+1,Ny]+alpha4*T[i,Ny-1]+alpha4*T259(T,i,Ny+1)+alpha5*(W[i-1,Ny]-2*W[i,Ny]+W[i+1,Ny])+alpha6*(W[i,Ny-1]-2*W[i,Ny]+W263(W,i,Ny+1))
 
     j = 0
     i = Nx
-    actual = i*(Nx+1)+j # actual index
+    actual = i*(Ny+1)+j # actual index
 
     rx=k*dt/((170+284*W[Nx,0])*cp*dx*dx)
     ry=k*dt/((170+284*W[Nx,0])*cp*dy*dy)
-    alpha1 = -ry*(1-theta2)
-    alpha2 = -rx*(1-theta1)
+    alpha1 = ry*(1-theta2)
+    alpha2 = rx*(1-theta1)
     alpha3 = ry*theta2
     alpha4 = rx*theta1
 
 
     a[actual,actual] = 1+2*alpha1+2*alpha2
-    a[actual,actual-1] = -alpha2
     a[actual,actual+1] = -alpha2
-    a[actual,actual+Ny] = -alpha1
-    a[actual,actual-Ny] = -alpha1
+    a[actual,actual-(Ny+1)] = -alpha1
 
     b[actual] = alpha3*T[Nx-1,0]+(1-2*alpha3-2*alpha4)*T[Nx,0]+alpha3*T258(T,Nx+1,0)+alpha4*T257(T,W,Nx,-1)+alpha4*T[Nx,1]+alpha5*(W[Nx-1,0]-2*W[Nx,0]+W262(W,Nx+1,0))+alpha6*(W261(T,W,Nx,-1)-2*W[Nx,0]+W[Nx,1])
 
     i = Nx
     for j in range(1,Ny):
-        actual = i*(Nx+1)+j # actual index
+        actual = i*(Ny+1)+j # actual index
 
         rx=k*dt/((170+284*W[Nx,j])*cp*dx*dx)
         ry=k*dt/((170+284*W[Nx,j])*cp*dy*dy)
-        alpha1 = -ry*(1-theta2)
-        alpha2 = -rx*(1-theta1)
+        alpha1 = ry*(1-theta2)
+        alpha2 = rx*(1-theta1)
         alpha3 = ry*theta2
         alpha4 = rx*theta1
 
         a[actual,actual] = 1+2*alpha1+2*alpha2
         a[actual,actual-1] = -alpha2
         a[actual,actual+1] = -alpha2
-        #a[actual,actual+Ny] = -alpha1
-        a[actual,actual-Ny] = -alpha1
+        a[actual,actual-(Ny+1)] = -alpha1
 
         b[actual] = alpha3*T[Nx-1,j]+(1-2*alpha3-2*alpha4)*T[Nx,j]+alpha3*T258(T,Nx+1,j)+alpha4*T[Nx,j-1]+alpha4*T[Nx,j+1]+alpha5*(W[Nx-1,j]-2*W[Nx,j]+W262(W,Nx+1,j))+alpha6*(W[Nx,j-1]-2*W[Nx,j]+W[Nx,j+1])
 
 
     j = Ny
     i = Nx
-    actual = i*(Nx+1)+j # actual index
+    actual = i*(Ny+1)+j # actual index
 
     rx=k*dt/((170+284*W[Nx,Ny])*cp*dx*dx)
     ry=k*dt/((170+284*W[Nx,Ny])*cp*dy*dy)
-    alpha1 = -ry*(1-theta2)
-    alpha2 = -rx*(1-theta1)
+    alpha1 = ry*(1-theta2)
+    alpha2 = rx*(1-theta1)
     alpha3 = ry*theta2
     alpha4 = rx*theta1
 
 
     a[actual,actual] = 1+2*alpha1+2*alpha2
     a[actual,actual-1] = -alpha2
-    #a[actual,actual+1] = -alpha2
-    #a[actual,actual+Ny] = -alpha1
-    a[actual,actual-Ny] = -alpha1
+    a[actual,actual-(Ny+1)] = -alpha1
 
-    print actual
     b[actual] = alpha3*T[Nx-1,Ny]+(1-2*alpha3-2*alpha4)*T[Nx,Ny]+alpha3*T258(T,Nx+1,Ny)+alpha4*T[Nx,Ny-1]+alpha4*T259(T,Nx,Ny+1)+alpha5*(W[Nx-1,Ny]-2*W[Nx,Ny]+W262(W,Nx+1,Ny))+alpha6*(W[Nx,Ny-1]-2*W[Nx,Ny]+W263(W,Nx,Ny+1))
 
     for i in range(a.shape[0]):
@@ -283,7 +269,7 @@ def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
 ################################################
 #Function to correct vapour and water content.
 ################################################
-def correction(T_new,V,W,N):
+def correction(T_new,V,W,Nx,Ny):
     R=8.314
     #********************************
     # data points for interploation
@@ -298,25 +284,29 @@ def correction(T_new,V,W,N):
     # interpolation and calculation of saturated amount of vapor
     #************************************************************
 
-    P = np.zeros((N+1))
-    V_s = np.zeros((N+1))
-    V_temp = np.zeros((N+1))
-    W_temp = np.zeros((N+1))
+    P = np.zeros((Nx+1,Ny+1))
+    V_s = np.zeros((Nx+1,Ny+1))
+    V_temp = np.zeros((Nx+1,Ny+1))
+    W_temp = np.zeros((Nx+1,Ny+1))
 
-    for i in range(0,N+1):
-        f=interpolate.interp1d(x,y) #interp1(x,y,T_new[i],'spline')*1000
-        P[i] = f(T_new[i])*1000
-        V_s[i]=18.*10**(-3)*P[i]/(R*(T_new[i]+273.5)*(170+281*W[i]))*0.7*3.8
+    f=interpolate.interp1d(x,y) #interp1(x,y,T_new[i],'spline')*1000
+    for i in range(0,Nx+1):
+        for j in range(0,Ny+1):
+            actual = i*(Nx+1)+j
+            if(T_new[actual] < 0): print "TEMPERATURA NEGATIVA: ",i,j
+            P[i,j] = f(T_new[actual])*1000
+            V_s[i,j]=18.*10**(-3)*P[i,j]/(R*(T_new[actual]+273.5)*(170+281*W[i,j]))*0.7*3.8
     #****************************************
     # correction in vapour and water content
     #****************************************
-    for i in range(0,N+1):
-        if (W[i]+V[i]<V_s[i]):
-            V_temp[i]=W[i]+V[i]
-            W_temp[i]=0
-        else:
-            V_temp[i]=V_s[i]
-            W_temp[i]=W[i]+V[i]-V_s[i]
+    for i in range(0,Nx+1):
+        for j in range(0,Ny+1):
+            if (W[i,j]+V[i,j]<V_s[i,j]):
+                V_temp[i,j]=W[i,j]+V[i,j]
+                W_temp[i,j]=0
+            else:
+                V_temp[i,j]=V_s[i,j]
+                W_temp[i,j]=W[i,j]+V[i,j]-V_s[i,j]
 
     return V_temp,W_temp,V_s,P
 

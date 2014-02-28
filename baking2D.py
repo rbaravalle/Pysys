@@ -11,9 +11,9 @@ import numpy as np
 #% inputting the initial values
 #**********************************
 
-T = np.zeros((Nx+2,Ny+2)).astype(np.float32)
-V = np.zeros((Nx+2,Ny+2)).astype(np.float32)
-W = np.zeros((Nx+2,Ny+2)).astype(np.float32)
+T = np.zeros((Nx+1,Ny+1)).astype(np.float32)
+V = np.zeros((Nx+1,Ny+1)).astype(np.float32)
+W = np.zeros((Nx+1,Ny+1)).astype(np.float32)
 
 #T1 = np.zeros((M+2,Nx+2)).astype(np.float32)
 #V1 = np.zeros((M+2,Nx+2)).astype(np.float32)
@@ -32,8 +32,24 @@ for i in range(0,Nx+1):
 
 #for t in range(0,np.int(M)+1):
 T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
-print T_new
-    #V_temp,W_temp,V_s,P=correction(T_new,V,W,N) #,P) ;
+suma = 0
+#T_new = np.array(map (lambda i: i>0, T_new))
+#print np.sum(t2)
+
+
+import matplotlib
+from matplotlib import pyplot as plt
+import Image
+
+V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny) #,P) ;
+
+b = T_new.reshape((Nx+1,Ny+1))
+I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)
+
+plt.imshow(I, cmap=matplotlib.cm.hot)
+plt.colorbar()
+plt.show()
+print V_temp, W_temp, V_s, P
     #V_new=Vnew(T_new,V_temp,W_temp,dx,dt,N,theta)
     #V_new,W_temp=Correction2(T_new,V_new,W_temp,V_s,N,P,W)
     #W_new=Wnew(T_new,V_new,W_temp,dx,dt,N,theta)
@@ -65,13 +81,7 @@ print T_new
 #print Times
 #plt.plot(Times,T)
 
-import matplotlib
-from matplotlib import pyplot as plt
-import Image
-I = Image.frombuffer('L',T.shape, np.array(T).astype(np.uint8),'raw','L',0,1)
 
-plt.imshow(I, cmap=matplotlib.cm.gray)
-plt.show()
 
 exit()
 plt.plot(Times,V)
