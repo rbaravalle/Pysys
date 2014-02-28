@@ -314,6 +314,13 @@ def Dv(T_new,i,j):
 
 def hv(T_new,i,j):
     return 3.2*10**(9)/((T_new[i,j]+273.5)**(3))
+
+def V2671(V,i,j):
+    pass
+
+def V2672(V,i,j):
+    pass
+
 def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
     a=np.zeros(((Nx+1)*(Ny+1),(Nx+1)*(Ny+1)))
     b=np.zeros((Nx+1)*(Ny+1))
@@ -360,7 +367,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
     a[actual,actual+1] = -alpha1*Dvij
     a[actual,actual+(Ny+1)] = -alpha2*Dvij
 
-    b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V2672(V,i,-1) - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V[i-1,j]
+    b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V2672(V,i,-1) - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V2671(V,i-1,j)
 
 
 
