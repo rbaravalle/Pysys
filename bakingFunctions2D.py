@@ -344,7 +344,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
             eta1 = 2*Dvij # author's implementation did it wrong?
             eta2 = 2*Dvij
             alpha1 = (1-theta1)*dt/(dx*dx)
-            alpha2 = (1-theta1)*dt/(dy*dy)
+            alpha2 = (1-theta2)*dt/(dy*dy)
             alpha3 = (theta1)*dt/(dx*dx)
             alpha4 = (theta2)*dt/(dy*dy)
             r=dt*Dvij/(dx*dx)
@@ -384,7 +384,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
         eta1 = 2*Dvij # author's implementation did it wrong?
         eta2 = 2*Dvij
         alpha1 = (1-theta1)*dt/(dx*dx)
-        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha2 = (1-theta2)*dt/(dy*dy)
         alpha3 = (theta1)*dt/(dx*dx)
         alpha4 = (theta2)*dt/(dy*dy)
         r=dt*Dvij/(dx*dx)
@@ -404,7 +404,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
     eta1 = 2*Dvij # author's implementation did it wrong?
     eta2 = 2*Dvij
     alpha1 = (1-theta1)*dt/(dx*dx)
-    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha2 = (1-theta2)*dt/(dy*dy)
     alpha3 = (theta1)*dt/(dx*dx)
     alpha4 = (theta2)*dt/(dy*dy)
     r=dt*Dvij/(dx*dx)
@@ -422,7 +422,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
         eta1 = 2*Dvij # author's implementation did it wrong?
         eta2 = 2*Dvij
         alpha1 = (1-theta1)*dt/(dx*dx)
-        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha2 = (1-theta2)*dt/(dy*dy)
         alpha3 = (theta1)*dt/(dx*dx)
         alpha4 = (theta2)*dt/(dy*dy)
         r=dt*Dvij/(dx*dx)
@@ -442,7 +442,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
     eta1 = 2*Dvij # author's implementation did it wrong?
     eta2 = 2*Dvij
     alpha1 = (1-theta1)*dt/(dx*dx)
-    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha2 = (1-theta2)*dt/(dy*dy)
     alpha3 = (theta1)*dt/(dx*dx)
     alpha4 = (theta2)*dt/(dy*dy)
     r=dt*Dvij/(dx*dx)
@@ -460,7 +460,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
         eta1 = 2*Dvij # author's implementation did it wrong?
         eta2 = 2*Dvij
         alpha1 = (1-theta1)*dt/(dx*dx)
-        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha2 = (1-theta2)*dt/(dy*dy)
         alpha3 = (theta1)*dt/(dx*dx)
         alpha4 = (theta2)*dt/(dy*dy)
         r=dt*Dvij/(dx*dx)
@@ -479,7 +479,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
         eta1 = 2*Dvij # author's implementation did it wrong?
         eta2 = 2*Dvij
         alpha1 = (1-theta1)*dt/(dx*dx)
-        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha2 = (1-theta2)*dt/(dy*dy)
         alpha3 = (theta1)*dt/(dx*dx)
         alpha4 = (theta2)*dt/(dy*dy)
         r=dt*Dvij/(dx*dx)
@@ -499,7 +499,7 @@ def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
     eta1 = 2*Dvij # author's implementation did it wrong?
     eta2 = 2*Dvij
     alpha1 = (1-theta1)*dt/(dx*dx)
-    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha2 = (1-theta2)*dt/(dy*dy)
     alpha3 = (theta1)*dt/(dx*dx)
     alpha4 = (theta2)*dt/(dy*dy)
     r=dt*Dvij/(dx*dx)
