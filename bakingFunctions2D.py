@@ -8,11 +8,11 @@ from scipy import interpolate
 
 Nx=32
 Ny=32
-theta1=0.95
-theta2=0.95
+theta1=0.8
+theta2=0.8
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
-dt=5200
+dt=600
 Time=5400
 M=Time/np.float32(dt)
 
@@ -315,13 +315,21 @@ def Dv(T_new,i,j):
 def hv(T_new,i,j):
     return 3.2*10**(9)/((T_new[i,j]+273.5)**(3))
 
-def V2671(V,i,j):
-    pass
+def V2671(T_new,V_temp,i,j):
+    Vair = 0
+    return V_temp[1,j]+2*dy*hv(T_new,0,j)*(V_temp[0,j]-Vair)
 
-def V2672(V,i,j):
-    pass
+def V2672(T_new,V_temp,i,j):
+    Vair = 0
+    return V_temp[i,1]+2*dx*hv(T_new,i,0)*(V_temp[i,0]-Vair)
 
-def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
+def V2674(V_temp,i,j):
+    return V_temp[i,Nx-1]
+
+def V2673(V_temp,i,j):
+    return V_temp[Ny-1,j]
+
+def Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2):
     a=np.zeros(((Nx+1)*(Ny+1),(Nx+1)*(Ny+1)))
     b=np.zeros((Nx+1)*(Ny+1))
     V_air=0
@@ -347,13 +355,89 @@ def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
             a[actual,actual-(Ny+1)] = -alpha2*Dvij
             a[actual,actual+(Ny+1)] = -alpha2*Dvij
 
-            b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V[i,j-1] - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V[i-1,j]
+            b[actual]=alpha3*Dvij*V_temp[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[i,j]-alpha3*Dvij*V_temp[i,j-1] - alpha4*Dvij*V_temp[i+1,j] - alpha4*Dvij*V_temp[i-1,j]
     #BConditions
 
     i=0
     j=0
 
     actual = i*(Ny+1)+j
+    Dvij = Dv(T_new,i,j)
+    eta1 = 2*Dvij # author's implementation did it wrong?
+    eta2 = 2*Dvij
+    alpha1 = (1-theta1)*dt/(dx*dx)
+    alpha2 = (1-theta2)*dt/(dy*dy)
+    alpha3 = (theta1)*dt/(dx*dx)
+    alpha4 = (theta2)*dt/(dy*dy)
+    r=dt*Dvij/(dx*dx)
+
+    a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+    a[actual,actual+1] = -alpha1*Dvij
+    a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+    b[actual]=alpha3*Dvij*V_temp[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[i,j]-alpha3*Dvij*V2672(T_new,V_temp,i,-1) - alpha4*Dvij*V_temp[i+1,j] - alpha4*Dvij*V2671(T_new,V_temp,i-1,j)
+
+    i = 0
+    for j in range(1,Ny):
+        actual = i*(Ny+1)+j # actual index
+        Dvij = Dv(T_new,i,j)
+        eta1 = 2*Dvij # author's implementation did it wrong?
+        eta2 = 2*Dvij
+        alpha1 = (1-theta1)*dt/(dx*dx)
+        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha3 = (theta1)*dt/(dx*dx)
+        alpha4 = (theta2)*dt/(dy*dy)
+        r=dt*Dvij/(dx*dx)
+
+        a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+        a[actual,actual-1] = -alpha1*Dvij
+        a[actual,actual+1] = -alpha1*Dvij
+        a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+        b[actual]=alpha3*Dvij*V_temp[0,j+1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[0,j]-alpha3*Dvij*V_temp[0,j-1] - alpha4*Dvij*V_temp[1,j] - alpha4*Dvij*V2671(T_new,V_temp,-1,j)
+
+    j = Ny
+    i = 0
+    actual = i*(Ny+1)+j # actual index
+
+    Dvij = Dv(T_new,i,j)
+    eta1 = 2*Dvij # author's implementation did it wrong?
+    eta2 = 2*Dvij
+    alpha1 = (1-theta1)*dt/(dx*dx)
+    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha3 = (theta1)*dt/(dx*dx)
+    alpha4 = (theta2)*dt/(dy*dy)
+    r=dt*Dvij/(dx*dx)
+
+    a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+    a[actual,actual-1] = -alpha1*Dvij
+    a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+    b[actual]=alpha3*Dvij*V2674(V_temp,0,Ny+1) + (1+alpha3*eta1+alpha4*eta2)*V_temp[0,Ny]-alpha3*Dvij*V_temp[0,Ny-1] - alpha4*Dvij*V_temp[1,Ny] - alpha4*Dvij*V2672(T_new,V_temp,-1,Ny)
+
+    j = 0
+    for i in range(1,Nx):
+        actual = i*(Ny+1)+j # actual index
+        Dvij = Dv(T_new,i,j)
+        eta1 = 2*Dvij # author's implementation did it wrong?
+        eta2 = 2*Dvij
+        alpha1 = (1-theta1)*dt/(dx*dx)
+        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha3 = (theta1)*dt/(dx*dx)
+        alpha4 = (theta2)*dt/(dy*dy)
+        r=dt*Dvij/(dx*dx)
+
+        a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+        a[actual,actual+1] = -alpha1*Dvij
+        a[actual,actual-(Ny+1)] = -alpha2*Dvij
+        a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+        b[actual]=alpha3*Dvij*V_temp[i,1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[i,0]-alpha3*Dvij*V2672(T_new, V_temp, i,-1) - alpha4*Dvij*V_temp[i+1,0] - alpha4*Dvij*V_temp[i-1,0]       
+
+
+    j = 0
+    i = Nx
+    actual = i*(Ny+1)+j # actual index
     Dvij = Dv(T_new,i,j)
     eta1 = 2*Dvij # author's implementation did it wrong?
     eta2 = 2*Dvij
@@ -365,29 +449,69 @@ def Vnew(T_new,V_temp,W_temp,dx,dt,N,theta):
 
     a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
     a[actual,actual+1] = -alpha1*Dvij
-    a[actual,actual+(Ny+1)] = -alpha2*Dvij
+    a[actual,actual-(Ny+1)] = -alpha2*Dvij
 
-    b[actual]=alpha3*Dvij*V[i,j+1] + (1+alpha3*eta1+alpha4*eta2)*V[i,j]-alpha3*Dvij*V2672(V,i,-1) - alpha4*Dvij*V[i+1,j] - alpha4*Dvij*V2671(V,i-1,j)
+    b[actual]=alpha3*Dvij*V_temp[Nx,1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[Nx,0]-alpha3*Dvij*V2671(T_new, V_temp, Nx,-1) - alpha4*Dvij*V2673(V_temp,Nx+1,0) - alpha4*Dvij*V_temp[Nx-1,0]
+
+    i = Nx
+    for j in range(1,Ny):
+        actual = i*(Ny+1)+j # actual index
+        Dvij = Dv(T_new,i,j)
+        eta1 = 2*Dvij # author's implementation did it wrong?
+        eta2 = 2*Dvij
+        alpha1 = (1-theta1)*dt/(dx*dx)
+        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha3 = (theta1)*dt/(dx*dx)
+        alpha4 = (theta2)*dt/(dy*dy)
+        r=dt*Dvij/(dx*dx)
+
+        a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+        a[actual,actual-1] = -alpha1*Dvij
+        a[actual,actual+1] = -alpha1*Dvij
+        a[actual,actual-(Ny+1)] = -alpha2*Dvij
+
+        b[actual]=alpha3*Dvij*V_temp[Nx,j+1] + (1+alpha3*eta1+alpha4*eta2)*V_temp[Nx,j]-alpha3*Dvij*V_temp[Nx,j-1] - alpha4*Dvij*V2673(V_temp,Nx+1,j) - alpha4*Dvij*V_temp[Nx-1,j]
+    
+    j = Ny
+    for i in range(1,Nx):
+        actual = i*(Ny+1)+j # actual index
+        Dvij = Dv(T_new,i,j)
+        eta1 = 2*Dvij # author's implementation did it wrong?
+        eta2 = 2*Dvij
+        alpha1 = (1-theta1)*dt/(dx*dx)
+        alpha2 = (1-theta1)*dt/(dy*dy)
+        alpha3 = (theta1)*dt/(dx*dx)
+        alpha4 = (theta2)*dt/(dy*dy)
+        r=dt*Dvij/(dx*dx)
+
+        a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+        a[actual,actual-1] = -alpha1*Dvij
+        a[actual,actual-(Ny+1)] = -alpha2*Dvij
+        a[actual,actual+(Ny+1)] = -alpha2*Dvij
+
+        b[actual]=alpha3*Dvij*V2674(V_temp,i,Ny+1) + (1+alpha3*eta1+alpha4*eta2)*V_temp[i,Ny]-alpha3*Dvij*V_temp[i,Ny-1] - alpha4*Dvij*V_temp[i+1,Ny] - alpha4*Dvij*V_temp[i-1,Ny]
+
+    i = Nx
+    j = Ny
+    actual = i*(Ny+1)+j # actual index
+
+    Dvij = Dv(T_new,i,j)
+    eta1 = 2*Dvij # author's implementation did it wrong?
+    eta2 = 2*Dvij
+    alpha1 = (1-theta1)*dt/(dx*dx)
+    alpha2 = (1-theta1)*dt/(dy*dy)
+    alpha3 = (theta1)*dt/(dx*dx)
+    alpha4 = (theta2)*dt/(dy*dy)
+    r=dt*Dvij/(dx*dx)
+
+    a[actual,actual] = 1+alpha1*eta1+alpha2*eta2
+    a[actual,actual-1] = -alpha1*Dvij
+    a[actual,actual-(Ny+1)] = -alpha2*Dvij
+
+    b[actual]=alpha3*Dvij*V2674(V_temp,Nx,Ny+1) + (1+alpha3*eta1+alpha4*eta2)*V_temp[Ny,Ny]-alpha3*Dvij*V_temp[Nx,Ny-1] - alpha4*Dvij*V2673(V_temp,Nx+1,Ny) - alpha4*Dvij*V_temp[Nx-1,Ny]
 
 
 
-    #*************************
-    # V at 1st boundary
-    #*************************
-    temp=2*dx*3.2*10**(9)/((T_new[0]+273.5)**(3))
-    r=dt*9.0*10**(-12)*(T_new[0]+273.5)**(2)/(dx*dx)
-    V_f=V_temp[1]-temp*(V_temp[0]-V_air)
-    a[0,0]=1+r*(1-theta)*(2+temp)
-    a[0,1]=-2*r*(1-theta)
-    b[0]=r*theta*V_f+(1-2*r*theta)*V_temp[0]+r*theta*V_temp[1]+temp*r*(1-theta)*V_air
-    #**************************
-    #V at last boundary
-    #**************************
-    V_temp[N]=V_temp[N-2]
-    r=dt*9.0*10**(-12)*(T_new[N]+273.5)**(2)/(dx*dx)
-    a[N,N-1]=-2*r*(1-theta)
-    a[N,N]=1+2*r*(1-theta)
-    b[N]=r*theta*V_temp[N-2]+(1-2*r*theta)*V_temp[N]+r*theta*V_temp[N]
     #********************
     #solving
     #*********************

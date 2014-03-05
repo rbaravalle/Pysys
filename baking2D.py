@@ -45,12 +45,13 @@ V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny) #,P) ;
 
 b = T_new.reshape((Nx+1,Ny+1))
 I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)
-
+T_new=b
 plt.imshow(I, cmap=matplotlib.cm.hot)
 plt.colorbar()
 plt.show()
 print V_temp, W_temp, V_s, P
-    #V_new=Vnew(T_new,V_temp,W_temp,dx,dt,N,theta)
+V_new=Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2)
+print V_new
     #V_new,W_temp=Correction2(T_new,V_new,W_temp,V_s,N,P,W)
     #W_new=Wnew(T_new,V_new,W_temp,dx,dt,N,theta)
     #T=T_new
