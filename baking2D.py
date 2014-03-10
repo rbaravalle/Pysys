@@ -35,30 +35,34 @@ for i in range(0,Nx+1):
 
 for t in range(0,np.int(M)+1):
     T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
+
+    b = T_new.reshape((Nx+1,Ny+1))
+    I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)
+    plt.imshow(I, cmap=matplotlib.cm.hot)
+    plt.colorbar()
+    plt.show()
+
     suma = 0
-
-
     V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny) #,P) ;
+    T_new=b
+    print T_new[Ny]
 
-    #b = T_new.reshape((Nx+1,Ny+1))
-    #I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)
-    #T_new=b
-    #plt.imshow(I, cmap=matplotlib.cm.hot)
-    #plt.colorbar()
-    #plt.show()
-    print V_temp, W_temp, V_s, P
+
     V_new=Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2)
-    print "V_new:", V_new[0:100];
-    #b = V_new.reshape((Nx+1,Ny+1))
+    b = V_new.reshape((Nx+1,Ny+1))
     #I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)
-    #V_new=b
+    V_new=b
     #plt.imshow(I, cmap=matplotlib.cm.hot)
     #plt.colorbar()
-    #plt.show()
-
+    plt.show()
+    b = W_temp.reshape((Nx+1,Ny+1))
+    W_temp = b
 
     V_new,W_temp=Correction2(b,V_new,W_temp,V_s,Nx,Ny,P,W)
     W_new=Wnew(b,V_new,W_temp,dx,dy,dt,Nx,Ny,theta1,theta2)
+
+    b = W_new.reshape((Nx+1,Ny+1))
+    W_new = b
 
     #b = W_new.reshape((Nx+1,Ny+1))
     #I = Image.frombuffer('L',b.shape, np.array(b).astype(np.uint8),'raw','L',0,1)

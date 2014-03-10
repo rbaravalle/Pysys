@@ -8,8 +8,8 @@ from scipy import interpolate
 
 Nx=32
 Ny=32
-theta1=0
-theta2=0
+theta1=0.2
+theta2=0.2
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
 dt=30
@@ -49,7 +49,7 @@ def T256(T,W,i,j): # equation (2.56) # i always -1, only for clarity below
 
 
 def T257(T,W,i,j): # equation (2.57) j always -1
-    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j);
+    temp=lam*(170+284*W[i,0])*Dw*hw(T,W,i,0);
     right = hr(T,i,0)*(T_r-T[i,0])+hc*(T_air-T[i,0])-temp*(W[i,0]-W_air)
     return T[i,1] + (2*dx/k)*right
 
@@ -253,10 +253,10 @@ def Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2):
 
     b[actual] = alpha3*T[Nx-1,Ny]+(1-2*alpha3-2*alpha4)*T[Nx,Ny]+alpha3*T258(T,Nx+1,Ny)+alpha4*T[Nx,Ny-1]+alpha4*T259(T,Nx,Ny+1)+alpha5*(W[Nx-1,Ny]-2*W[Nx,Ny]+W262(W,Nx+1,Ny))+alpha6*(W[Nx,Ny-1]-2*W[Nx,Ny]+W263(W,Nx,Ny+1))
 
-    for i in range(a.shape[0]):
-        v = np.count_nonzero(a[i])
-        if(v!=5): print v, i
-        if(b[i]==0): print "B:",i
+    #for i in range(a.shape[0]):
+    #    v = np.count_nonzero(a[i])
+    #    if(v!=5): print v, i
+    #    if(b[i]==0): print "B:",i
 
 
     return np.linalg.solve(a,b)
@@ -530,12 +530,12 @@ def Correction2(T_new,V_new,W_temp,V_s,Nx, Ny,P,W):
     for i in range(0,Nx+1):
         for i in range(0,Ny+1):
             actual = i*(Ny+1)+j
-            if (W_temp[i,j]+V_new[actual]<V_s[i,j]):
-                V_new[actual]=W_temp[i,j]+V_new[actual]
+            if (W_temp[i,j]+V_new[i,j]<V_s[i,j]):
+                V_new[i,j]=W_temp[i,j]+V_new[i,j]
                 W_temp[i,j]=0
             else:
-                W_temp[i,j]=W_temp[i,j]+V_new[actual]-V_s[i,j]
-                V_new[actual]=V_s[i,j]
+                W_temp[i,j]=W_temp[i,j]+V_new[i,j]-V_s[i,j]
+                V_new[i,j]=V_s[i,j]
 
     return V_new,W_temp
 
