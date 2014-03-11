@@ -8,8 +8,8 @@ from scipy import interpolate
 
 Nx=32
 Ny=32
-theta1=0
-theta2=0
+theta1=0.1
+theta2=0.2
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
 dt=30
@@ -43,7 +43,8 @@ def hw(T,W,x,y):
 # Border conditions
 
 def T256(T,W,i,j): # equation (2.56) # i always -1, only for clarity below
-    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j) # REVISAR W[0,j] ????
+    temp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j) # REVISE W[0,j] ?
+    print "temp T256: ", temp
     right = hr(T,0,j)*(T_r-T[0,j])+hc*(T_air-T[0,j])-temp*(W[0,j]-W_air)
     return T[1,j] + (2*dy/k)*right
 
@@ -61,11 +62,11 @@ def T259(T,i,j):
 
 def W260(T,W,i,j): # equation (2.60) # i always -1, only for clarity below
     right = hw(T,W,0,j)*(W[0,j]-W_air)
-    return W[1,j] + 2*dy*right
+    return W[1,j] - 2*dy*right
 
 def W261(T,W,i,j): # j = -1
     right = hw(T,W,i,0)*(W[i,0]-W_air)
-    return W[i,1] + 2*dx*right
+    return W[i,1] - 2*dx*right
 
 def W262(W,i,j):
     return W[Nx-1,j]
@@ -99,14 +100,19 @@ def tf(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2,i,j,a,b):
     # Ghost points handling
     temp = 0
     if(i!=0):
-        temp  += alpha3*T[i-1,j]
+        temp += alpha3*T[i-1,j]
     else:
+        print "T-1,j:",alpha3*T256(T,W,-1,j)
         temp += alpha3*T256(T,W,-1,j)
 
+    print "TEMP: ", temp
+
+    print "(1-2*alpha3-2*alpha4)*T[i,j]",(1-2*alpha3-2*alpha4)*T[i,j]
     temp+= (1-2*alpha3-2*alpha4)*T[i,j]
     
     if(i!=Nx):
-        temp  += alpha3*T[i+1,j]
+        print "alpha3*T[i+1,j]",alpha3*T[i+1,j]
+        temp += alpha3*T[i+1,j]
     else:
         temp += alpha3*T258(T,Nx+1,j)
 
@@ -114,21 +120,26 @@ def tf(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2,i,j,a,b):
     if(j!=0):
         temp += alpha4*T[i,j-1]
     else:
+        print "Ti,-1:",T257(T,W,-1,j)
         temp += alpha4*T257(T,W,i,-1)
 
     if(j!=Ny):
+        print "alpha4*T[i,j+1]",alpha4*T[i,j+1]
         temp += alpha4*T[i,j+1]
     else:
         temp += alpha4*T259(T,i,Ny+1)
 
     if(i!=0):
-        temp+= alpha5*W[i-1,j]
+        temp += alpha5*W[i-1,j]
     else:
-        temp+= alpha5*W260(T,W,-1,j)
+        print "Wi,-1:",W260(T,W,-1,j)
+        temp += alpha5*W260(T,W,-1,j)
 
-    temp+= -2*alpha5*W[i,j]
+    print "-2*alpha5*W[i,j]",-2*alpha5*W[i,j]
+    temp += -2*alpha5*W[i,j]
 
     if(i!=Nx):
+        print "alpha5*W[i+1,j]",alpha5*W[i+1,j]
         temp += alpha5*W[i+1,j]
     else:
         temp += alpha5*W262(W,Nx+1,j)
@@ -136,14 +147,34 @@ def tf(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2,i,j,a,b):
     if(j!=0):
         temp += alpha6*W[i,j-1]
     else:
+        print "W-1,j:",alpha6*W261(T,W,i,-1)
         temp += alpha6*W261(T,W,i,-1)
 
+    print "HASTA ACA: temp=",temp
+    print "-2*alpha6*W[i,j]",-2*alpha6*W[i,j]
     temp += -2*alpha6*W[i,j]
 
     if(j!=Ny):
+        print "alpha6*W[i,j+1]",alpha6*W[i,j+1]
         temp += alpha6*W[i,j+1]
     else:
         temp += alpha6*W263(W,i,Ny+1)
+
+    print alpha1,alpha2,alpha3,alpha4,alpha5,alpha6
+    print "TEMP: ", temp,i,j
+    #exit()
+    if(i==0):
+        # WTF?
+        r=k*dt/((170+284*W[0,j])*cp*dx*dx)
+        tempp=lam*(170+284*W[0,j])*Dw*hw(T,W,0,j)
+        temp+= r*(1-theta1)*2*(dx/k)*(hr(T,0,j)*T_r+hc*T_air-tempp*(W[0,j]-W_air))
+        print "NEW i:",r*(1-theta1)*2*(dx/k)*(hr(T,0,j)*T_r+hc*T_air-tempp*(W[0,j]-W_air))
+
+    if(j==0):
+        r=k*dt/((170+284*W[i,0])*cp*dy*dy)
+        tempp=lam*(170+284*W[i,0])*Dw*hw(T,W,i,0)
+        temp+= r*(1-theta2)*2*(dx/k)*(hr(T,i,0)*T_r+hc*T_air-tempp*(W[i,0]-W_air))
+        print "NEW j:",r*(1-theta2)*2*(dx/k)*(hr(T,i,0)*T_r+hc*T_air-tempp*(W[i,0]-W_air))
 
     b[actual] = temp
 
@@ -198,8 +229,13 @@ def correction(T_new,V,W,Nx,Ny):
     for i in range(0,Nx+1):
         for j in range(0,Ny+1):
             actual = i*(Ny+1)+j
-            if(T_new[actual] < 0): print "TEMPERATURA NEGATIVA: ",i,j
-            P[i,j] = f(T_new[actual])*1000
+            if(T_new[actual] < 0): 
+                print "TEMPERATURA NEGATIVA: ",i,j
+                exit()
+                #P[i,j] = 0
+            else:
+                if(T_new[actual] >300): print "WOW: ", actual, i,j, T_new[actual]
+                P[i,j] = f(T_new[actual])*1000
             V_s[i,j]=18.*10**(-3)*P[i,j]/(R*(T_new[actual]+273.5)*(170+281*W[i,j]))*0.7*3.8
     #****************************************
     # correction in vapour and water content
@@ -226,11 +262,11 @@ def hv(T_new,i,j):
 
 def V2671(T_new,V_temp,i,j):
     Vair = 0
-    return V_temp[1,j]+2*dy*hv(T_new,0,j)*(V_temp[0,j]-Vair)
+    return V_temp[1,j]-2*dy*hv(T_new,0,j)*(V_temp[0,j]-Vair)
 
 def V2672(T_new,V_temp,i,j):
     Vair = 0
-    return V_temp[i,1]+2*dx*hv(T_new,i,0)*(V_temp[i,0]-Vair)
+    return V_temp[i,1]-2*dx*hv(T_new,i,0)*(V_temp[i,0]-Vair)
 
 def V2673(V_temp,i,j):
     return V_temp[Nx-1,j]
@@ -332,18 +368,18 @@ def Correction2(T_new,V_new,W_temp,V_s,Nx, Ny,P,W):
 ##########################################
 def W2692(T_new,W,i,j):
     Wair = 0
-    return W[1,j]+2*dy*hw(T_new,W,0,j)*(W[0,j]-Wair)
+    return W[1,j]-2*dy*hw(T_new,W,0,j)*(W[0,j]-Wair)
 
 def W2691(T_new,W,i,j):
     Wair = 0
-    return W[i,1]+2*dx*hw(T_new,W,i,0)*(W[i,0]-Wair)
+    return W[i,1]-2*dx*hw(T_new,W,i,0)*(W[i,0]-Wair)
 
 
 def W2693(W,i,j):
-    return W[Ny-1,j]
+    return W[Nx-1,j]
 
 def W2694(W,i,j):
-    return W[i,Nx-1]
+    return W[i,Ny-1]
 
 
 def hw(T_new,W,i,j):

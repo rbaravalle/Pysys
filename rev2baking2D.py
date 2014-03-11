@@ -29,7 +29,7 @@ W = np.zeros((Nx+1,Ny+1)).astype(np.float32)
 for i in range(0,Nx+1):
     for j in range(0,Ny+1):
         T[i,j]=25
-        V[i,j]=0
+        V[i,j]=0.0
         W[i,j]=0.4061
         #T1[0,i]=T[i]
         #V1[0,i]=V[i]
@@ -40,7 +40,10 @@ def updatefig():
 
     T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
 
-    V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny) #,P) ;
+    #b = T_new.reshape((Nx+1,Ny+1))
+    print "T:",T_new[0:Ny*2+10]
+
+    V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny)
     T_new = T_new.reshape((Nx+1,Ny+1))
 
     V_new=Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2)
@@ -57,13 +60,15 @@ def updatefig():
     W=W_new
 
 
-    print "T:",T[Nx/2]
+    print "T:",T[1]
     print "V:",V[Nx/2]
     print "W:",W[Nx/2]
 
     imT.set_array(T)
-    imV.set_array(V)
-    imW.set_array(W)
+    #T.astype(np.int)*60)
+    #fig.colorbar( imT )
+    #imV.set_array(V)
+    #imW.set_array(W)
     manager.canvas.draw()
 
 
@@ -72,22 +77,28 @@ def updatefig():
 
 fig = plt.figure(1)
 
-imgT = subplot(131)
+imgT = subplot(111)
 imgT.set_title("Temperature")
-imT = imgT.imshow( floor(T), cmap=cm.hot)
 
-imgV = subplot(132)
-imV = imgV.imshow( V, cmap=cm.hot)
-imgV.set_title("Vapour content")
+temp = np.zeros((Nx+1,Ny+1))
+temp = map(lambda i:i+40*np.random.random(), temp)
+temp = np.array(temp).astype(np.int)
+print temp
 
-imgW = subplot(133)
-imgW.set_title("Water content")
-imW = imgW.imshow( floor(W), cmap=cm.hot)
+imT = imgT.imshow( temp, cmap=cm.hot)
+
+#imgV = subplot(132)
+#imV = imgV.imshow( V, cmap=cm.hot)
+#imgV.set_title("Vapour content")
+
+#imgW = subplot(133)
+#imgW.set_title("Water content")
+#imW = imgW.imshow( W, cmap=cm.hot)
 
 manager = get_current_fig_manager()
 
 #m=1
-#fig.colorbar( imW ) # Show the colorbar along the side
+fig.colorbar( imT ) # Show the colorbar along the side
 #fig.colorbar( im ) # Show the colorbar along the side
 #fig.colorbar( im ) # Show the colorbar along the side
 
