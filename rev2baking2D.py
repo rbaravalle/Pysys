@@ -28,7 +28,7 @@ W = np.zeros((Nx+1,Ny+1)).astype(np.float32)
 # initial conditions
 for i in range(0,Nx+1):
     for j in range(0,Ny+1):
-        T[i,j]=25
+        T[i,j]=25#+10*np.random.random()
         V[i,j]=0.0
         W[i,j]=0.4061
         #T1[0,i]=T[i]
@@ -41,10 +41,11 @@ def updatefig():
     T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
 
     #b = T_new.reshape((Nx+1,Ny+1))
-    print "T:",T_new[0:Ny*2+10]
+
 
     V_temp,W_temp,V_s,P=correction(T_new,V,W,Nx,Ny)
     T_new = T_new.reshape((Nx+1,Ny+1))
+    print "T:",T_new[Nx/2]
 
     V_new=Vnew(T_new,V_temp,W_temp,dx,dy,dt,Nx,Ny,theta1, theta2)
     V_new = V_new.reshape((Nx+1,Ny+1))
@@ -81,7 +82,7 @@ imgT = subplot(111)
 imgT.set_title("Temperature")
 
 temp = np.zeros((Nx+1,Ny+1))
-temp = map(lambda i:i+40*np.random.random(), temp)
+temp = map(lambda i:i+32*np.random.random(), temp)
 temp = np.array(temp).astype(np.int)
 print temp
 

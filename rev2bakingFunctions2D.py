@@ -8,11 +8,11 @@ from scipy import interpolate
 
 Nx=32
 Ny=32
-theta1=0.1
-theta2=0.2
+theta1=0
+theta2=0
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
-dt=30
+dt=10
 Time=5400
 M=Time/np.float32(dt)
 
@@ -176,7 +176,7 @@ def tf(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2,i,j,a,b):
         temp+= r*(1-theta2)*2*(dx/k)*(hr(T,i,0)*T_r+hc*T_air-tempp*(W[i,0]-W_air))
         print "NEW j:",r*(1-theta2)*2*(dx/k)*(hr(T,i,0)*T_r+hc*T_air-tempp*(W[i,0]-W_air))
 
-    b[actual] = temp
+    b[actual] = temp+4
 
     return a,b
 
