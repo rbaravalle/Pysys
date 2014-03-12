@@ -6,13 +6,13 @@ from math import atan
 from scipy import interpolate
 
 
-Nx=32
-Ny=32
+Nx=50
+Ny=50
 theta1=0
 theta2=0
 dx=0.01/np.float32(Nx) 
 dy=0.01/np.float32(Ny)
-dt=10
+dt=30
 Time=5400
 M=Time/np.float32(dt)
 
@@ -33,6 +33,7 @@ b1= (12/np.float32(5.6))
 a2=1+a1*a1
 b2=1+b1*b1
 F_sp=(2./(np.pi*a1*b1))*(np.log(np.sqrt(a2*b2/(1+a1*a1+b1*b1)))+a1*np.sqrt(b2)*atan(a1/np.sqrt(b2)) +b1*np.sqrt(a2)*atan(b1/np.sqrt(a2))-a1*atan(a1)-b1*atan(b1))
+
 
 def hr(T,x,y):
     return sig*((T_r+273.5)**(2)+(T[x,y]+273.5)**(2))*((T_r+273.5)+(T[x,y]+273.5))/(1/esp_p+1/esp_r-2+1/F_sp)

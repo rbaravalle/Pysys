@@ -15,24 +15,24 @@ from random import randint
 from multifractal import *
 
 def fdist(a): # distance depends on size
-    if(a > 40): return 9*a
-    if(a > 30): return 9*a
-    if(a > 20): return 9*a
-    if(a > 10): return 9*a
+    if(a > 40): return 5*a
+    if(a > 30): return 5*a
+    if(a > 20): return 5*a
+    if(a > 10): return 5*a
     return 5*a
 
 def ffrac(r):
-    if(r > 40): return 0.8
-    if(r > 30): return 0.8-random.random()*0.05
-    if(r > 20): return 0.8-random.random()*0.05
-    if(r > 10): return 0.8-random.random()*0.05
-    return 0.8
+    if(r > 40): return 0.75
+    if(r > 30): return 0.75-random.random()*0.05
+    if(r > 20): return 0.75-random.random()*0.05
+    if(r > 10): return 0.75-random.random()*0.05
+    return 0.75
 
 def drawShape(draw,x,y,r,c):
     if(c == 0): return
     r = int(r)
     #print str()
-    rr = int(r+10)
+    rr = 255#int(r+10)
     draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=rr)
     return
     r2 = r
@@ -49,8 +49,8 @@ def drawShape(draw,x,y,r,c):
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 250
-        self.height = 250
+        self.width = 51
+        self.height = 51
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -84,7 +84,7 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 40
+        self.r = 5
 
         self.xparent = self.x
         self.yparent = self.y

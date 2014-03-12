@@ -18,12 +18,16 @@ total = 10*10      # number of pixels for averaging
 P = 2            # window
 cant = 10+1           # number of fractal dimensions (-1 x2)
 
-filename = 'images/rimage1047.png'
+#filename = 'images/rimage1047.png'
+#filename = "white.png"
 test = 'test.jpg'
 
 
 if len(sys.argv) >= 2:
-    arg1= np.uint8(sys.argv[1])
+    arg1= sys.argv[1]
+    print arg1
+    filename = sys.argv[2]
+    print filename
 else:
     print "Este programa necesita un parametro";
     exit()
@@ -44,7 +48,7 @@ def mww(x1,y1,x2,y2,intImg):
 
 def sat(img,Nx,Ny,which):
     # summed area table, useful for speed up the computation by adding image pixels 
-    intImg = [ [ 0 for i in range(Nx) ] for j in range(Ny) ]
+    intImg = np.zeros((Nx,Ny))#[ [ 0 for i in range(Nx) ] for j in range(Ny) ]
     if(which == 'img'):
         intImg[0][0] = img.getpixel((0,0))
         
@@ -101,7 +105,7 @@ Nx, Ny = I.size
 gray = I.convert('L') # rgb 2 gray
 #gray = np.asarray(gray) > arg1
 #print gray
-gray = white(gray,Nx,Ny,40,1.0) # local thresholding algorithm
+gray = white(gray,Nx,Ny,40,np.float32(arg1)) # local thresholding algorithm
 plt.imshow(gray, cmap=matplotlib.cm.gray)
 plt.show()
 #plt.show()

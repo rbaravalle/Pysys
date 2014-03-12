@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('GTKAgg') # Change this as desired.
 import gobject
 from pylab import *
+import lsystem
 
 # Nx is number of spacial nodes (in x)
 # Ny is number of spacial nodes (in y)
@@ -26,17 +27,26 @@ W = np.zeros((Nx+1,Ny+1)).astype(np.float32)
 
 
 # initial conditions
+#cx = 30
+#cy = 25
 for i in range(0,Nx+1):
     for j in range(0,Ny+1):
-        T[i,j]=25#+10*np.random.random()
-        V[i,j]=0.0
-        W[i,j]=0.4061
+        T[i,j]=25#+0.2*np.random.random()
+        V[i,j]=0.0#+0.2*np.random.random()
+        W[i,j] = 0.4061+0.1*np.random.random()
+        #if(np.abs(i-cx)+(j-cy)**2 < 4):
+        #    W[i,j] = 0
+        #else:
+        #    W[i,j]=0.4061+0.1*np.random.random()
         #T1[0,i]=T[i]
         #V1[0,i]=V[i]
         #W1[0,i]=W[i]
+lsys = 1-lsystem.lin()/255
+W*=lsys
 
 def updatefig():
-    global T,V,W
+    global T,V,W,m
+    m+=1
 
     T_new=Tnew(T,V,W,Nx,Ny,dt,dx,dy,theta1,theta2)
 
@@ -64,25 +74,32 @@ def updatefig():
     print "T:",T[1]
     print "V:",V[Nx/2]
     print "W:",W[Nx/2]
+    print "------------ "
+    print "iteracion: ", m
+    print "iteracion: ", m
+    print "------------ "
 
-    imT.set_array(T)
+    imT.set_array(W)
     #T.astype(np.int)*60)
     #fig.colorbar( imT )
     #imV.set_array(V)
     #imW.set_array(W)
     manager.canvas.draw()
 
-
+    if(dt*m / 60 > 40):
+        print "Coccion terminada!"
+        return False
     return True
 
 
+m = 0
 fig = plt.figure(1)
 
 imgT = subplot(111)
 imgT.set_title("Temperature")
 
 temp = np.zeros((Nx+1,Ny+1))
-temp = map(lambda i:i+32*np.random.random(), temp)
+temp = map(lambda i:i+1.1*np.random.random(), temp)
 temp = np.array(temp).astype(np.int)
 print temp
 
