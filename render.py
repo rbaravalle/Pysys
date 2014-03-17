@@ -44,7 +44,7 @@ alpha2 = 0.0
 uTMK = 4.0
 uTMK2 = 5.0
 uShininess = 1.0
-uMaxSteps = 64
+uMaxSteps = 128
 
 def set_uniforms():
     global BaseProgram
@@ -86,10 +86,6 @@ def LoadTextures():
     #im = np.array([random.randint(0,255) for _ in range(dim*dim*dim)]).astype(np.uint8)
     dim = image.size[0]
     im = np.zeros(dim*dim*dim).astype(np.uint8)
-
-
-    print dim
-
     for i in range(dim):
         im[i*dim*dim:(i+1)*dim*dim] = np.uint8(255)-np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
 
@@ -216,19 +212,19 @@ def keyPressed(*args):
         sys.exit()
     if args[0] == "a":
         angle = (angle+0.02)%np.pi
-        r = 3
+        r = 5
         posCam = [r*np.cos(angle),r*np.sin(angle),0.0]
     if args[0] == "s":
         angle = (angle-0.02)%np.pi
-        r = 3
+        r = 5
         posCam = [r*np.cos(angle),r*np.sin(angle),0.0]
     if args[0] == "d":
         angle = (angle-0.02)%np.pi
-        r = 3
+        r = 5
         posCam = [0.0,r*np.cos(angle),r*np.sin(angle)]
     if args[0] == "f":
         angle = (angle+0.02)%np.pi
-        r = 3
+        r = 5
         posCam = [0.0,r*np.cos(angle),r*np.sin(angle)]
 
     if args[0] == "o":
