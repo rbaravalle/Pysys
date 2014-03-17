@@ -27,7 +27,7 @@ strVS = open('shaderv.glsl').read()
 # fragment shader
 strFS = open('shaderf.glsl').read()
 
-strTex = 'lbread3D.png'
+strTex = 'mengel3d2.png'
 
 global BaseProgram
 global pos
@@ -45,14 +45,15 @@ uTMK = 4.0
 uTMK2 = 5.0
 uShininess = 1.0
 uMaxSteps = 128
+zoom = 5
 
 def set_uniforms():
     global BaseProgram
     global uLightP
     global alpha, alpha2
 
-    alpha = (alpha+0.01)%np.pi
-    alpha2 = (alpha2+0.01)%np.pi
+    alpha = (alpha+0.001)%np.pi
+    alpha2 = (alpha2+0.001)%np.pi
     uLightP = np.array([4*np.cos(alpha)*np.sin(alpha2),4*np.sin(alpha)*np.sin(alpha2),4*np.cos(alpha2)]);
 
     uniforms1 = ["uTMK", "uTMK2", "uShininess","uShin2","uMaxSteps"]
@@ -87,7 +88,8 @@ def LoadTextures():
     dim = image.size[0]
     im = np.zeros(dim*dim*dim).astype(np.uint8)
     for i in range(dim):
-        im[i*dim*dim:(i+1)*dim*dim] = np.uint8(255)-np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
+        #im[i*dim*dim:(i+1)*dim*dim] = np.uint8(255)-np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
+        im[i*dim*dim:(i+1)*dim*dim] = np.array(image.crop((0,i*dim,dim,(i+1)*dim)).getdata())
 
     for i in range(dim):
         for j in range(dim):
@@ -98,7 +100,7 @@ def LoadTextures():
                 i3 = i-dim/2
                 j3 = j-dim/4
                 k3 = k-dim/2
-                if(i2*i2+j2*j2>10000 or i3*i3+j3*j3+k3+k3<2000):
+                if(i2*i2+j2*j2>10000): #or i3*i3+j3*j3+k3+k3<2000):
                     im[i+j*dim+k*dim*dim] = np.uint8(0)#-random.randint(0,100)
 
     glPixelStorei(GL_UNPACK_ALIGNMENT,1)
@@ -206,31 +208,34 @@ def DrawGLScene():
 def keyPressed(*args):
     global uOffset
     global angle
-    global posCam, uTMK,uTMK2, uShininess, uMaxSteps
+    global posCam, uTMK,uTMK2, uShininess, uMaxSteps, zoom
+
+    if args[0] == "z":
+        posCam = np.array(posCam)*(zoom+1)/zoom;
+        zoom= zoom+1;
+    if args[0] == "x":
+        posCam = np.array(posCam)*(zoom-1)/zoom
+        zoom= zoom-1;
+
     # If escape is pressed, kill everything.
     if args[0] == ESCAPE:
         sys.exit()
     if args[0] == "a":
         angle = (angle+0.02)%np.pi
-        r = 5
-        posCam = [r*np.cos(angle),r*np.sin(angle),0.0]
+        posCam = [zoom*np.cos(angle),zoom*np.sin(angle),0.0]
     if args[0] == "s":
         angle = (angle-0.02)%np.pi
-        r = 5
-        posCam = [r*np.cos(angle),r*np.sin(angle),0.0]
+        posCam = [zoom*np.cos(angle),zoom*np.sin(angle),0.0]
     if args[0] == "d":
         angle = (angle-0.02)%np.pi
-        r = 5
-        posCam = [0.0,r*np.cos(angle),r*np.sin(angle)]
+        posCam = [0.0,zoom*np.cos(angle),zoom*np.sin(angle)]
     if args[0] == "f":
         angle = (angle+0.02)%np.pi
-        r = 5
-        posCam = [0.0,r*np.cos(angle),r*np.sin(angle)]
 
     if args[0] == "o":
-        uTMK = uTMK-1;
+        uTMK = uTMK-0.1;
     if args[0] == "p":
-        uTMK = uTMK+1;
+        uTMK = uTMK+0.1;
 
 
 
@@ -248,14 +253,14 @@ def keyPressed(*args):
         uOffset[2] = uOffset[2]+0.01;
 
     if args[0] == "k":
-        uTMK2 = uTMK2-1;
+        uTMK2 = uTMK2-0.1;
     if args[0] == "l":
-        uTMK2 = uTMK2+1;
+        uTMK2 = uTMK2+0.1;
 
     if args[0] == "u":
-        uShininess = uShininess-1;
+        uShininess = uShininess-0.1;
     if args[0] == "i":
-        uShininess = uShininess+1;
+        uShininess = uShininess+0.1;
 
     if args[0] == "c":
         uMaxSteps = uMaxSteps-1;
@@ -263,7 +268,9 @@ def keyPressed(*args):
         uMaxSteps = uMaxSteps+1;
 
 
-    print "UTMK: ", uTMK, "UTMK2: ", uTMK2, "Shininess: ", uShininess, "uMaxSteps: ", uMaxSteps
+
+
+    print "UTMK: ", uTMK, "UTMK2: ", uTMK2, "Shininess: ", uShininess, "uMaxSteps: ", uMaxSteps,"\nZoom: ",zoom
 
     #print posCam
     

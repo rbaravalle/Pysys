@@ -115,7 +115,7 @@ vec4 raymarchNoLight(vec3 ro, vec3 rd) {
 vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   vec3 step = rd*gStepSize;
   vec3 pos = ro;
-  vec3 uColor2 = vec3(213.0/255.0,180.0/255.0,112.0/255.0);
+  vec3 uColor2 = vec3(225.0/255.0,225.0/255.0,225.0/255.0);
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
@@ -130,7 +130,7 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
       vec3 ld = normalize( toLocal(uLightP)-pos );
       float ltm = getTransmittance(pos,ld);
       
-      col += (1.0-dtm) * uColor*uLightC * tm * ltm;
+      col += (1.0-dtm) * uColor2*uLightC * tm * ltm;
     }
     
     pos += step;
