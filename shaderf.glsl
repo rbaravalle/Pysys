@@ -191,5 +191,5 @@ void main()
   
   gStepSize = ROOTTHREE / uMaxSteps;
   
-  gl_FragColor =   vec4(0.3,0.3,0.3,0.0)+raymarchLight(ro, rd,uTMK2);
+  gl_FragColor =   vec4(0.2,0.2,0.2,1.0)+raymarchLight(ro, rd,uTMK2);
 }
