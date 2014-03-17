@@ -27,7 +27,7 @@ strVS = open('shaderv.glsl').read()
 # fragment shader
 strFS = open('shaderf.glsl').read()
 
-strTex = 'mengel3d2.png'
+strTex = 'mengel3d.png'
 
 global BaseProgram
 global pos
