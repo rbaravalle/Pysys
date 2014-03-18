@@ -1,0 +1,50 @@
+vertex_program bread_vertex glsl
+{
+        source shaderv.glsl
+}
+
+fragment_program bread_fragment glsl
+{
+        source shaderf.glsl
+}
+
+material Bread
+{
+	technique
+	{
+		pass
+		{
+
+                        scene_blend alpha_blend
+
+                        vertex_program_ref bread_vertex 
+                        {
+                                param_named uOffset float3 0 0 0
+                        }
+
+                        fragment_program_ref bread_fragment
+                        {
+                                param_named uTex       int   0
+
+                                param_named uOffset float3 0 0 0
+
+                                param_named uMaxSteps  float 128
+                                param_named uCamPos    float3 
+                                param_named uLightP    float3 0.0 1.0 0.0
+                                param_named uLightC    float3 1.0 1.0 1.0
+                                param_named uColor     float3 1.0 1.0 1.0 // volume
+                                param_named uTexDim    float3 256 256 256 // texture dims
+
+                                param_named uTMK       float 4.0
+                                param_named uTMK2      float 5.0
+                                param_named uShininess float 1.0
+                        }
+
+                        texture_unit {
+                                texture volumeTex 3d 0
+                        }
+		}
+	}
+}
+
+
