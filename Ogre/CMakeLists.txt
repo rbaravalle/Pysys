@@ -6,8 +6,8 @@ add_subdirectory(framework)
 
 include_directories("include")
 include_directories("framework/include")
-include_directories("/usr/local/include/OGRE")
-include_directories("/usr/local/include/OGRE/Overlay")
+include_directories("/usr/include/OGRE")
+include_directories("/usr/include/OGRE/Overlay")
 include_directories("/usr/include/OIS")
 
 add_executable(OgreBread src/BreadApp.cpp src/main.cpp)
