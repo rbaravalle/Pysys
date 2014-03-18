@@ -94,11 +94,26 @@ void GameState::exit()
 
 void GameState::createVolumeTexture()
 {
+        std::ifstream input;
+        input.open("media/fields/3Dbread.field");
+        int texW, texH, texD;
+        input >> texW >> texH >> texD;
+        std::cout << "Width: " << texW;
+        std::cout << " Height: " << texH;
+        std::cout << " Depth: " << texD << std::endl;
+
+        int* field = new int[texW * texH * texD];
+
+        int i = 0;
+        while (!input.eof() && i < texW * texH * texD) {
+                input >> field[i++];
+        }
+
         breadTex = TextureManager::getSingleton().createManual(
                 "volumeTex", // name
                 ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
                 TEX_TYPE_3D,      // type
-                256, 256, 256,    // width height depth
+                texW, texH, texD,    // width height depth
                 0,                // number of mipmaps
                 PF_BYTE_BGRA,     // pixel format
                 TU_DEFAULT);      // usage; should be TU_DYNAMIC_WRITE_ONLY_DISCARDABLE for
@@ -118,34 +133,16 @@ void GameState::createVolumeTexture()
  
         // Fill in some pixel data. This will give a semi-transparent blue,
         // but this is of course dependent on the chosen pixel format.
-        for (size_t z = 0; z < 256; z++)
+        for (size_t z = 0; z < texD; z++)
         {
-                for(size_t y = 0; y < 256; y++)
+                for(size_t y = 0; y < texH; y++)
                 {
 
-                        for(size_t x = 0; x < 256; x++)
+                        for(size_t x = 0; x < texW; x++)
                         {
                                 *pDest++ = x; // B
                                 *pDest++ = y; // G
-                                
-                                float X = x / 255.0;
-                                float Y = y / 255.0;
-                                float Z = z / 255.0;
-
-                                X = (0.5 - fabsf(0.5 - X)) * 2;
-                                Y = (0.5 - fabsf(0.5 - Y)) * 2;
-                                Z = (0.5 - fabsf(0.5 - Z)) * 2;
-                                
-                                X = X > 0.3 ? X : 0;
-                                Y = Y > 0.3 ? Y : 0;
-                                Z = Z > 0.3 ? Z : 0;
-                                uint8 val = 255.0 * X * Y * Z;
-
-                                // *pDest++ =  val; // R
-                                *pDest++ =  5 * abs(25-x%50) + 
-                                            5 * abs(25-y%50) + 
-                                            5 * abs(25-z%50); // R
-
+                                *pDest++ = 255 - field[x + y * texW + z * texW * texH]; // R
                                 *pDest++ = 127; // A
                         }
                         pDest += pixelBox.getRowSkip() * colBytes;
