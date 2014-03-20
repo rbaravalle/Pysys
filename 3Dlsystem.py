@@ -26,14 +26,14 @@ def ffrac(r):
     if(r > 30): return 0.8-random.random()*0.05
     if(r > 20): return 0.8-random.random()*0.05
     if(r > 10): return 0.8-random.random()*0.05
-    return 0.6
+    return 0.74
 
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 150
-        self.height = 150
-        self.maxZ = 150
+        self.width = 128
+        self.height = 128
+        self.maxZ = 128
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -96,7 +96,7 @@ class Lindenmayer(object):
                          k2 = k-z
                          if(i2*i2+j2*j2+k2*k2 < r*r):
                              #print float(i), ",", float(j),",", float(k)
-                             field[i][j][k] = np.uint8(255)
+                             field[i][j][k] = np.uint8(0)
 
         #print "ellipse!"
         #    draw.ellipse((x-r+randint(-r/2,r/2), y-r+randint(-r/2,r/2), x+r, y+r), fill=255)
@@ -307,7 +307,7 @@ class Lindenmayer(object):
         import Image
         #print self.width,self.height, self.maxZ
         I = Image.new('L',(self.maxZ,self.width*self.height),0.0)
-        field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) #+ np.uint8(255)
+        field = np.zeros((self.maxZ, self.width, self.height)).astype(np.uint8) + np.uint8(255)
         #draw = ImageDraw.Draw(I)
 
         # Process the result stream symbol by symbol.

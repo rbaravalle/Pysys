@@ -42,10 +42,11 @@ uLightP = np.array([0.0,0.0,0.0])
 alpha = 0.0
 alpha2 = 0.0
 uTMK = 4.0
-uTMK2 = 5.0
+uTMK2 = 25.0
 uShininess = 1.0
 uMaxSteps = 128
 zoom = 5
+uPhi = 1
 
 def set_uniforms():
     global BaseProgram
@@ -56,11 +57,11 @@ def set_uniforms():
     alpha2 = (alpha2+0.001)%np.pi
     uLightP = np.array([4*np.cos(alpha)*np.sin(alpha2),4*np.sin(alpha)*np.sin(alpha2),4*np.cos(alpha2)]);
 
-    uniforms1 = ["uTMK", "uTMK2", "uShininess","uShin2","uMaxSteps"]
+    uniforms1 = ["uTMK", "uTMK2", "uShininess","uShin2","uMaxSteps","uPhi"]
     uniforms3 = [ "uCamPos", "uLightP","uLightC","uTexDim","uColor", "uOffset"]
     textures = ["uTex"]
-    values1 = [uTMK,uTMK2,uShininess,8.0,uMaxSteps]
-    values3 = [posCam,uLightP,[1.0,1.0,1.0],[dim,dim,dim],[0.8,0.7,0.65],uOffset]
+    values1 = [uTMK,uTMK2,uShininess,8.0,uMaxSteps,uPhi]
+    values3 = [posCam,uLightP,[1.0,1.0,1.0],[dim,dim,dim],[152.0/255.0,137.0/255.0,108.0/255.0],uOffset]
 
     temp = glGetUniformLocation(BaseProgram,"uTex")
 
