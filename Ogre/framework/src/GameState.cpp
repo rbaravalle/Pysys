@@ -1,12 +1,11 @@
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 #include "GameState.hpp"
+#include "ReloadMaterial.hpp"
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 using namespace Ogre;
-
-//|||||||||||||||||||||||||||||||||||||||||||||||
 
 GameState::GameState()
 {
@@ -23,8 +22,10 @@ GameState::GameState()
         utmk = 4.0;
         utmk2 = 5.0;
         shininess = 1.0;
-        steps = 128.0;
-
+        steps = 64.0;
+        ucolor = Vector3(1.0,1.0,1.0);
+        ambient = 0;
+        backIllum = 0;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -82,15 +83,57 @@ void GameState::resume()
 
 void GameState::exit()
 {
-        OgreFramework::getSingletonPtr()->m_pLog->logMessage("Leaving GameState...");
+        shutdown();
+        return;
 
-        m_pSceneMgr->destroyCamera(m_pCamera);
-        m_pSceneMgr->destroyQuery(m_pRSQ);
-        if(m_pSceneMgr)
-                OgreFramework::getSingletonPtr()->m_pRoot->destroySceneManager(m_pSceneMgr);
+        // OgreFramework::getSingletonPtr()->m_pLog->logMessage("Leaving GameState...");
+
+        // m_pSceneMgr->destroyCamera(m_pCamera);
+        // m_pSceneMgr->destroyQuery(m_pRSQ);
+        // if(m_pSceneMgr)
+        //         OgreFramework::getSingletonPtr()->m_pRoot->destroySceneManager(m_pSceneMgr)
+                        ;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
+
+static size_t getParentIndex(int x, int y, int z,
+                             size_t fieldW, size_t fieldH, size_t fieldD) 
+{
+        size_t X = std::min(std::max(x*2, 0), (int)fieldW);
+        size_t Y = std::min(std::max(y*2, 0), (int)fieldH);
+        size_t Z = std::min(std::max(z*2, 0), (int)fieldD);
+
+        return X + Y * fieldW + Z * fieldW * fieldH;
+}
+                                
+
+static int sampleParentField(int* field, 
+                             size_t fieldW, size_t fieldH, size_t fieldD,
+                             int x, int y, int z) 
+{
+        const int width = 3;
+        const int span = 1;
+        float multipliers[width] = {0.2, 0.6, 0.2};
+
+        float* mult = multipliers + span;
+        int res = 0;
+        
+
+        for (int dx = -span; dx <= span; dx++) {
+                for (int dy = -span; dy <= span; dy++) {
+                      for (int dz = -span; dz <= span; dz++) {
+                                size_t idx = getParentIndex(x+dx,y+dy,z+dz,
+                                                            fieldW,fieldH,fieldD);
+                                res += field[idx] * mult[dx] * mult[dy] * mult[dz];
+                                
+                        }
+                }
+        }
+
+        return res;
+
+}
 
 void GameState::createVolumeTexture()
 {
@@ -98,9 +141,9 @@ void GameState::createVolumeTexture()
         input.open("media/fields/3Dbread.field");
         int texW, texH, texD;
         input >> texW >> texH >> texD;
-        std::cout << "Width: " << texW;
-        std::cout << " Height: " << texH;
-        std::cout << " Depth: " << texD << std::endl;
+
+        // std::cout << "texD_p2: "  << texD_p2 << std::endl;
+        // std::cout << "levels: "  << levels << std::endl;
 
         int* field = new int[texW * texH * texD];
 
@@ -109,17 +152,21 @@ void GameState::createVolumeTexture()
                 input >> field[i++];
         }
 
+        TextureManager::getSingleton().setDefaultNumMipmaps(MIP_UNLIMITED);
+
         breadTex = TextureManager::getSingleton().createManual(
                 "volumeTex", // name
                 ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
                 TEX_TYPE_3D,      // type
                 texW, texH, texD,    // width height depth
-                0,                // number of mipmaps
-                PF_BYTE_BGRA,     // pixel format
+                MIP_UNLIMITED,                // number of mipmaps
+                PF_L8,     // pixel format -> 8 bits luminance
                 TU_DEFAULT);      // usage; should be TU_DYNAMIC_WRITE_ONLY_DISCARDABLE for
         // textures updated very often (e.g. each frame)
 
+        breadTex->createInternalResources();
 
+        ////////////// Set initial texture level (0)
         // Get the pixel buffer
         HardwarePixelBufferSharedPtr pixelBuffer = breadTex->getBuffer();
 
@@ -137,13 +184,10 @@ void GameState::createVolumeTexture()
         {
                 for(size_t y = 0; y < texH; y++)
                 {
-
                         for(size_t x = 0; x < texW; x++)
                         {
-                                *pDest++ = x; // B
-                                *pDest++ = y; // G
-                                *pDest++ = 255 - field[x + y * texW + z * texW * texH]; // R
-                                *pDest++ = 127; // A
+                                int idx = x + y * texW + z * texW * texH;
+                                *pDest++ = 255 - field[idx]; 
                         }
                         pDest += pixelBox.getRowSkip() * colBytes;
                 }
@@ -152,6 +196,83 @@ void GameState::createVolumeTexture()
  
         // Unlock the pixel buffer
         pixelBuffer->unlock();
+
+
+        int levels = breadTex->getNumMipmaps();
+        std::cout << "breadTex mip levels: " << levels << std::endl;
+        int level = 1;
+
+        int** levelFields = new int*[levels];
+
+        levelFields[0] = field;
+
+        int levelTexW = texW;
+        int levelTexH = texH;
+        int levelTexD = texD;
+
+        /// This assumes NPOT textures are possible
+
+        for (;level < levels; ++level) {
+
+                int lastTexW = levelTexW;
+                int lastTexH = levelTexH;
+                int lastTexD = levelTexD;
+
+                levelTexW = std::max(1.0, floor(texW / pow(2,level)));
+                levelTexH = std::max(1.0, floor(texH / pow(2,level)));
+                levelTexD = std::max(1.0, floor(texD / pow(2,level)));
+
+                int* levelField = new int[levelTexW * levelTexH * levelTexD];
+
+                levelFields[level] = levelField;
+
+                int* parentField = levelFields[level-1];
+
+                // Get the pixel buffer
+                HardwarePixelBufferSharedPtr pixelBuffer = breadTex->getBuffer(0,level);
+
+                // Lock the pixel buffer and get a pixel box 
+                pixelBuffer->lock(HardwareBuffer::HBL_NORMAL); 
+
+                const PixelBox& pixelBox = pixelBuffer->getCurrentLock();
+ 
+                uint8* pDest = static_cast<uint8*>(pixelBox.data);
+                int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
+ 
+                // Fill in some pixel data. This will give a semi-transparent blue,
+                // but this is of course dependent on the chosen pixel format.
+                for (size_t z = 0; z < levelTexD; z++)
+                {
+                        for(size_t y = 0; y < levelTexH; y++)
+                        {
+                                for(size_t x = 0; x < levelTexW; x++)
+                                {
+
+                                        int idx = x+y*levelTexW+z*levelTexW*levelTexH;
+
+                                        levelField[idx] = 
+                                                sampleParentField(parentField,
+                                                                  lastTexW,
+                                                                  lastTexH,
+                                                                  lastTexD,
+                                                                  x,y,z);
+
+                                        *pDest++ = 255 - levelField[idx]; 
+                                }
+                                pDest += pixelBox.getRowSkip() * colBytes;
+                        }
+                        pDest += pixelBox.getSliceSkip() * colBytes;
+                }
+ 
+                // Unlock the pixel buffer
+                pixelBuffer->unlock();
+        }
+
+        breadTex->load();
+
+        // for (int i = 0 ; i < levels; ++i) 
+        //         delete[] levelFields[i];
+
 
 }
 
@@ -162,7 +283,7 @@ void GameState::createScene()
         createVolumeTexture();
 
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->m_pViewport;
-        vp->setBackgroundColour (ColourValue(0.1,0.5,0.5));
+        vp->setBackgroundColour (ColourValue(0.1,0.2,0.1));
 
         m_pSceneMgr->createLight("Light")->setPosition(75,75,75);
 
@@ -201,7 +322,8 @@ bool GameState::keyPressed(const OIS::KeyEvent &keyEventRef)
 
         if(OgreFramework::getSingletonPtr()->m_pKeyboard->isKeyDown(OIS::KC_ESCAPE))
         {
-                pushAppState(findByName("PauseState"));
+                // pushAppState(findByName("PauseState"));
+                exit();
                 return true;
         }
 
@@ -209,7 +331,7 @@ bool GameState::keyPressed(const OIS::KeyEvent &keyEventRef)
         {
                 if(m_pDetailsPanel->getTrayLocation() == OgreBites::TL_NONE)
                 {
-                        OgreFramework::getSingletonPtr()->m_pTrayMgr->moveWidgetToTray(m_pDetailsPanel, OgreBites::TL_TOPLEFT, 0);
+                        OgreFramework::getSingletonPtr()->m_pTrayMgr->moveWidgetToTray(m_pDetailsPanel, OgreBites::TL_LEFT, 0);
                         m_pDetailsPanel->show();
                 }
                 else
@@ -431,6 +553,12 @@ void GameState::updateMaterial()
         try { fparams->setNamedConstant("uMaxSteps", steps); } 
         catch (Ogre::Exception) {}
 
+        try { fparams->setNamedConstant("uAmbient", ambient); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uBackIllum", backIllum); } 
+        catch (Ogre::Exception) {}
+
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -456,7 +584,7 @@ void GameState::buildGUI()
         items.push_back("cam.oZ");
         items.push_back("Mode");
 
-        m_pDetailsPanel = trayMgr->createParamsPanel(OgreBites::TL_TOPLEFT, "DetailsPanel", 200, items);
+        m_pDetailsPanel = trayMgr->createParamsPanel(OgreBites::TL_LEFT, "DetailsPanel", 200, items);
         m_pDetailsPanel->show();
 
         // Ogre::String infoText = "Controls\n[TAB] - Switch input mode\n\n[W] - Forward / Mode up\n[S] - Backwards/ Mode down\n[A] - Left\n";
@@ -473,25 +601,56 @@ void GameState::buildGUI()
                                       "Display Mode", 200, 3, displayModes);
 
         OgreBites::Slider* utmkSlider = 
-                trayMgr->createLongSlider(OgreBites::TL_LEFT, "utmk", "utmk", 
+                trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "utmk", "utmk", 
                                           200,80,44,0,10,101);
 
         OgreBites::Slider* utmk2Slider = 
-        trayMgr->createLongSlider(OgreBites::TL_LEFT, "utmk2", "utmk2", 
+        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "utmk2", "utmk2", 
                                   200,80,44,0,10,101);
 
         OgreBites::Slider* shininessSlider = 
-        trayMgr->createLongSlider(OgreBites::TL_LEFT, "shininess", "shininess",  
+        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shininess", "shininess",  
                                   200,80,44,0,10,101);
 
         OgreBites::Slider* stepsSlider = 
-        trayMgr->createLongSlider(OgreBites::TL_LEFT, "steps", "steps",  
+        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", "steps",  
                                   200,80,44,20,200,21);
+
+        OgreBites::Slider* ambientSlider = 
+        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", "ambient",  
+                                  200,80,44,0,3,31);
+
+        OgreBites::Slider* backIllumSlider = 
+                trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
+                                          "back illumination",
+                                          200,80,44,0,3,31);
+
+
+        // OgreBites::Button* reloadMaterialButton = 
+        //         trayMgr->createButton(OgreBites::TL_RIGHT, 
+        //                               "ReloadMaterial", 
+        //                               "Reload material", 60);
+
 
         utmkSlider->setValue(utmk, false);
         utmk2Slider->setValue(utmk2, false);
         shininessSlider->setValue(shininess, false);
         stepsSlider->setValue(steps, false);
+}
+
+//|||||||||||||||||||||||||||||||||||||||||||||||
+
+void GameState::buttonHit(OgreBites::Button* button)
+{
+        if (button->getName() == "ReloadMaterial") {
+
+                ReloadMaterial("Bread", 
+                               "Bread",
+                               "Bread.material",
+                               true);
+
+        }
+
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -518,6 +677,16 @@ void GameState::sliderMoved(OgreBites::Slider * slider)
         if (slider->getName() == "steps") 
         {
                 steps = value;
+        }
+
+        if (slider->getName() == "ambient") 
+        {
+                ambient = value;
+        }
+
+        if (slider->getName() == "backIllum") 
+        {
+                backIllum = value;
         }
 
 }

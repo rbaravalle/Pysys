@@ -6,7 +6,7 @@
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 #include "AppState.hpp"
-
+#include "ReloadMaterial.hpp"
 #include "DotSceneLoader.hpp"
 
 #include <OgreSubEntity.h>
@@ -49,6 +49,7 @@ public:
         void onLeftPressed(const OIS::MouseEvent &evt);
         void itemSelected(OgreBites::SelectMenu* menu);
 	void sliderMoved(OgreBites::Slider * slider);
+	void buttonHit(OgreBites::Button* button);
 
         void update(double timeSinceLastFrame);
 
@@ -66,6 +67,9 @@ private:
         float utmk2;
         float shininess;
         float steps;
+        float ambient;
+        float backIllum;
+        Ogre::Vector3 ucolor;
 
         // Ogre::SceneNode*                        m_pOgreHeadNode;
         // Ogre::Entity*                           m_pOgreHeadEntity;

@@ -127,15 +127,15 @@ bool OgreFramework::keyPressed(const OIS::KeyEvent &keyEventRef)
 
     if(m_pKeyboard->isKeyDown(OIS::KC_O))
     {
-        if(m_pTrayMgr->isLogoVisible())
+        if(m_pTrayMgr->isLogoVisible() || m_pTrayMgr->areFrameStatsVisible())
         {
             m_pTrayMgr->hideFrameStats();
-            m_pTrayMgr->hideLogo();
+            // m_pTrayMgr->hideLogo();
         }
         else
         {
             m_pTrayMgr->showFrameStats(OgreBites::TL_BOTTOMLEFT);
-            m_pTrayMgr->showLogo(OgreBites::TL_BOTTOMRIGHT);
+            // m_pTrayMgr->showLogo(OgreBites::TL_BOTTOMRIGHT);
         }
     }
 

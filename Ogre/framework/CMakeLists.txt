@@ -15,15 +15,9 @@ add_library(OgreFramework SHARED
   src/GameState.cpp
   src/MenuState.cpp
   src/PauseState.cpp
+  src/ReloadMaterial.cpp
 )
+
 target_link_libraries(OgreFramework OgreMain OgreTerrain OgreOverlay OIS)
-
-add_executable(Demo
-  src/DemoApp.cpp
-  src/main.cpp
-)
-target_link_libraries(Demo OgreFramework)
-
-install (TARGETS Demo DESTINATION ./)
 install (TARGETS OgreFramework DESTINATION ./)
 

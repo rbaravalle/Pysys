@@ -33,6 +33,7 @@ public:
 class AppState : public OIS::KeyListener, public OIS::MouseListener, public OgreBites::SdkTrayListener
 {
 public:
+
 	static void create(AppStateListener* parent, const Ogre::String name){};
 
 	void destroy(){delete this;}

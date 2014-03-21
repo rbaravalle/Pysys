@@ -31,9 +31,9 @@ def ffrac(r):
 class Lindenmayer(object):
     def __init__(self, stream):
         # Set the default image dimensions ...
-        self.width = 150
-        self.height = 150
-        self.maxZ = 150
+        self.width = 256
+        self.height = 256
+        self.maxZ = 256
         
         # ... and the number of iterations.
         self.iterations = 5
@@ -425,6 +425,12 @@ class Lindenmayer(object):
 
         # now save the image
         rowsPerSlice = self.width
+
+        print maxX, maxY, self.maxZ
+        for z in range(self.maxZ):
+            for y in range(maxY):
+                for x in range(maxX):
+                    print field[x,y,z]
 
         for i in range(self.maxZ):
             I2 = Image.frombuffer('L',(self.width,self.height), np.array(field[:,:,i]).astype(np.uint8),'raw','L',0,1)

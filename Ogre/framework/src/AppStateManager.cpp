@@ -88,8 +88,14 @@ void AppStateManager::start(AppState* state)
 
 			m_ActiveStateStack.back()->update(timeSinceLastFrame);
 
-			OgreFramework::getSingletonPtr()->updateOgre(timeSinceLastFrame);
-			OgreFramework::getSingletonPtr()->m_pRoot->renderOneFrame();
+
+                        OgreFramework::getSingletonPtr()->updateOgre(timeSinceLastFrame);
+                        try {
+                                OgreFramework::getSingletonPtr()->m_pRoot->renderOneFrame();
+                        } catch (Ogre::Exception e) {
+                                std::cout << "Render one frame failed!\n" ;
+                                exit(1);
+                        }
 
 			timeSinceLastFrame = OgreFramework::getSingletonPtr()->m_pTimer->getMillisecondsCPU() - startTime;
 		}
