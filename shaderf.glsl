@@ -48,6 +48,7 @@ uniform vec3 uTexDim;     // dimensions of texture
 uniform float uTMK;
 uniform float uTMK2;
 uniform float uShininess;
+uniform float uPhi;
 
 float gStepSize;
 float gStepFactor;
@@ -68,7 +69,7 @@ float getTransmittance(vec3 ro, vec3 rd) {
   
   float tm = 1.0;
   
-  for (int i=0; i<int(uMaxSteps); ++i) {
+  for (int i=0; i<int(uMaxSteps)/4.0; ++i) {
     tm *= exp( -uTMK*gStepSize*sampleVolTex(pos).x );
     
     pos += step;
@@ -115,7 +116,7 @@ vec4 raymarchNoLight(vec3 ro, vec3 rd) {
 vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   vec3 step = rd*gStepSize;
   vec3 pos = ro;
-  vec3 uColor2 = vec3(225.0/255.0,225.0/255.0,225.0/255.0);
+  vec3 uColor2 = vec3(152.0/255.0,137.0/255.0,108.0/255.0);
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
@@ -129,8 +130,24 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
     for (int k=0; k<LIGHT_NUM; ++k) {
       vec3 ld = normalize( toLocal(uLightP)-pos );
       float ltm = getTransmittance(pos,ld);
+
+      float mean;
+      float d = length(pos-ro);
+      float r = d*tan(uPhi/2.0);
+      //if(uCrust>3.0) {
+          float ltm2 = getTransmittance(pos,normalize(ld+vec3(r,0.0,0.0)));
+          float ltm3 = getTransmittance(pos,normalize(ld+vec3(-r,0.0,0.0)));
+          float ltm4 = getTransmittance(pos,normalize(ld+vec3(0.0,-r,0.0)));
+          float ltm5 = getTransmittance(pos,normalize(ld+vec3(0.0,r,0.0)));
+          float ltm6 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0,-r)));
+          float ltm7 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0,r)));
+          mean = ltm+(ltm2+ltm3+ltm4+ltm5+ltm6+ltm7)/6.0;
+      /*}
+      else mean = ltm;*/
+
       
-      col += (1.0-dtm) * uColor2*uLightC * tm * ltm;
+      col += (1.0-dtm) * uColor2*uLightC[k] * tm * mean;
+      
     }
     
     pos += step;
@@ -191,5 +208,5 @@ void main()
   
   gStepSize = ROOTTHREE / uMaxSteps;
   
-  gl_FragColor =   vec4(0.2,0.2,0.2,1.0)+raymarchLight(ro, rd,uTMK2);
+  gl_FragColor =   vec4(0.2,0.2,0.2,0.0)+raymarchLight(ro, rd,uTMK2);
 }

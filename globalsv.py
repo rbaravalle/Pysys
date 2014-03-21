@@ -4,8 +4,8 @@ from random import randint, random
 from math import floor, sqrt
 
 # global vars
-maxcoord = 256
-maxcoordZ = 256
+maxcoord = 128
+maxcoordZ = 128
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
@@ -20,7 +20,7 @@ CT = 0
 distG = 0.8
 cantG = 20 # amount of generators
 sembrado = 0 # random or uniform
-VF = 0.99
+VF = 2.59
 MCA = 10000
 stCA = 12000
 randomness = 0.03
@@ -41,7 +41,7 @@ generadores = np.array([[0,0,0]])
 TIEMPO = 120000
 sep = 1 # separation among particles
 diffBubbles = 18
-amountSons = 5
+amountSons = 2
 
 def compute_lifetimes() :
     M = stCA*stCA

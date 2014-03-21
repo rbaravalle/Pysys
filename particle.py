@@ -9,7 +9,8 @@ particles = []
 sparticles = [] # binary array with particle states (live or dead)
 
 def toSpace(x):
-    return x*(np.float32(diffX)/maxcoord)+x0
+    h = x*(np.float32(diffX)/maxcoord)+x0
+    return h
 
 
 def toSpaceZ(x):

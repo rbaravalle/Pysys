@@ -8,21 +8,26 @@ from particle import Particle, init_particles, particles, sparticles
 from maths import *
 from runge_kutta import *
 from globalsv import *
+from time import time
 
 
 # una iteracion del algoritmo
-def mover() :
+def mover(t) :
     largoCont = 0
+    timm = time()
+    suma = 0
     for i in range(0,len(particles)):
         pi = particles[i]
         if(pi.alive()):
             if(pi.size > 6*MCA):
+                print "muerte!"
                 pi.morir()
-                m.push(i);
+                #m.push(i);
             if(pi.repr == 0 and pi.size > np.floor(MCA/2)):
                 pi.repr = 1
                 k = len(particles)
                 for w in range(amountSons):
+                    print amountSons
                     d = random()*np.pi*2
                     d = random()*np.pi*2
                     e = random()*np.pi*2
@@ -39,15 +44,20 @@ def mover() :
 
                     particles.append(Particle(k, MCA,u,v,s,randomness));
                     k +=1
-                    sparticles.append(true); # la particula esta viva
+                    sparticles.append(True); # la particula esta viva
 
+            suma += pi.fn()
             for w in range(pi.fn()):
                 pi.grow(randomness)
             largoCont = largoCont + len(pi.contorno)
 
+    print "Iteracion :",t
+    print "TIME : ", time()-timm
+    print "LLAMADAS: ", suma
+
+
     return largoCont
   
-
 
 
 def dibujarParticulas() :
@@ -65,10 +75,11 @@ def dibujarParticulas() :
 def alg() :  
 
     for t in range(0,TIEMPO-1):
-        largoCont = mover()
+        largoCont = mover(t)
         t = t+1
-        if(t % 40 == 0) : print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 40 == 0): dibujarParticulas()   
+        #if(t % 40 == 0) : 
+        print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
+        if(t % 10 == 0): dibujarParticulas()   
         if(largoCont == 0):
             break
 

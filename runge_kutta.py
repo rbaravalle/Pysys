@@ -10,7 +10,7 @@ def f1(v):
     a = np.float32(0.2)
     b = np.float32(0.2)
     c = np.float32(5.7)
-    return [-y-z,x+a*y,b+z*(x-c)]
+    return np.array([-y-z,x+a*y,b+z*(x-c)])
 
 def f2(v):
     x=v[0]
@@ -19,27 +19,18 @@ def f2(v):
     a = np.float32(10)
     b = np.float32(28)
     c = np.float32(8)/3
-    return [a*(y-x),x*(b-z)-y,x*y-c*z]
+    return np.array([a*(y-x),x*(b-z)-y,x*y-c*z])
 
-funcs = [ f1,f2 ]
-
-# multiply vector with an scalar
-def multV(x,e) :
-    return [x[0]*e,x[1]*e,x[2]*e]
-
-
-# vector sum
-def sumarV(x,y) :
-    return [x[0]+y[0],x[1]+y[1],x[2]+y[2]]
+funcs = np.array([ f1,f2 ])
 
 
 def runge_kutta(x,factual,dT) :
     res = []
-    k1 = multV(funcs[factual](x),dT)
-    k2 = multV(funcs[factual](sumarV(x,multV(k1,np.float32(1)/2))),dT)
-    k3 = multV(funcs[factual](sumarV(x,multV(k2,np.float32(1)/2))),dT)
-    k4 = multV(funcs[factual](sumarV(x,k3)),dT)
-    res = sumarV(k1,sumarV(multV(k2,np.float32(2)), sumarV(multV(k3,np.float32(2)), k4)))
-    return sumarV(x, multV(res,np.float32(1)/6))
+    k1 = funcs[factual](x)*dT
+    k2 = funcs[factual](x+k1*0.5)*dT
+    k3 = funcs[factual](x+k2*0.5)*dT
+    k4 = funcs[factual](x+k3)*dT
+    res = k1+ k2*2.0 + k3*2.0 + k4
+    return x + res*np.float32(1)/6
 
 
