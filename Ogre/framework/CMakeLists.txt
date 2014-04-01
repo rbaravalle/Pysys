@@ -18,6 +18,7 @@ add_library(OgreFramework SHARED
   src/ReloadMaterial.cpp
 )
 
+
 target_link_libraries(OgreFramework OgreMain OgreTerrain OgreOverlay OIS)
 install (TARGETS OgreFramework DESTINATION ./)
 

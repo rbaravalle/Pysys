@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.6)
 
 project (OgreSys)
 
+SET(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/output)
+SET(CMAKE_CXX_FLAGS -O3)
+
 add_subdirectory(framework)
 
 include_directories("include")
@@ -14,7 +17,6 @@ add_executable(OgreBread src/BreadApp.cpp src/main.cpp)
 
 target_link_libraries(OgreBread OgreFramework OgreMain)
 
-SET(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/output)
 
 install (TARGETS OgreBread DESTINATION ./)
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/framework/media  DESTINATION ./)

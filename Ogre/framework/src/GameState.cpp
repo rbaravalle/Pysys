@@ -19,13 +19,15 @@ GameState::GameState()
 
         m_pDetailsPanel             = 0;
 
-        utmk = 4.0;
-        utmk2 = 5.0;
+        tmk = 4.0;
+        tmk2 = 5.0;
+        mintm = 0.5;
         shininess = 1.0;
         steps = 64.0;
         ucolor = Vector3(1.0,1.0,1.0);
         ambient = 0;
         backIllum = 0;
+        shadecoeff = 1.0;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -138,7 +140,11 @@ static int sampleParentField(int* field,
 void GameState::createVolumeTexture()
 {
         std::ifstream input;
-        input.open("media/fields/3Dbread.field");
+        input.open("media/fields/mengel3d.field");
+        if (!input.good()) {
+                std::cout << "Unable to open field file!\n";
+                exit();
+        }
         int texW, texH, texD;
         input >> texW >> texH >> texD;
 
@@ -146,6 +152,8 @@ void GameState::createVolumeTexture()
         // std::cout << "levels: "  << levels << std::endl;
 
         int* field = new int[texW * texH * texD];
+        
+        // texW = texH = texD = 256;
 
         int i = 0;
         while (!input.eof() && i < texW * texH * texD) {
@@ -159,7 +167,7 @@ void GameState::createVolumeTexture()
                 ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
                 TEX_TYPE_3D,      // type
                 texW, texH, texD,    // width height depth
-                MIP_UNLIMITED,                // number of mipmaps
+                0,                // number of mipmaps
                 PF_L8,     // pixel format -> 8 bits luminance
                 TU_DEFAULT);      // usage; should be TU_DYNAMIC_WRITE_ONLY_DISCARDABLE for
         // textures updated very often (e.g. each frame)
@@ -187,7 +195,8 @@ void GameState::createVolumeTexture()
                         for(size_t x = 0; x < texW; x++)
                         {
                                 int idx = x + y * texW + z * texW * texH;
-                                *pDest++ = 255 - field[idx]; 
+                                idx = idx % (250*250*250);
+                                *pDest++ = field[idx]; 
                         }
                         pDest += pixelBox.getRowSkip() * colBytes;
                 }
@@ -257,7 +266,7 @@ void GameState::createVolumeTexture()
                                                                   lastTexD,
                                                                   x,y,z);
 
-                                        *pDest++ = 255 - levelField[idx]; 
+                                        *pDest++ =  levelField[idx]; 
                                 }
                                 pDest += pixelBox.getRowSkip() * colBytes;
                         }
@@ -318,6 +327,11 @@ bool GameState::keyPressed(const OIS::KeyEvent &keyEventRef)
                         if(pMenu->getSelectionIndex() - 1 >= 0)
                                 pMenu->selectItem(pMenu->getSelectionIndex() - 1);
                 }
+
+                if(OgreFramework::getSingletonPtr()->m_pKeyboard->isKeyDown(OIS::KC_R))
+                {
+                        steps = 20;
+                }
         }
 
         if(OgreFramework::getSingletonPtr()->m_pKeyboard->isKeyDown(OIS::KC_ESCAPE))
@@ -331,7 +345,7 @@ bool GameState::keyPressed(const OIS::KeyEvent &keyEventRef)
         {
                 if(m_pDetailsPanel->getTrayLocation() == OgreBites::TL_NONE)
                 {
-                        OgreFramework::getSingletonPtr()->m_pTrayMgr->moveWidgetToTray(m_pDetailsPanel, OgreBites::TL_LEFT, 0);
+                        OgreFramework::getSingletonPtr()->m_pTrayMgr->moveWidgetToTray(m_pDetailsPanel, OgreBites::TL_BOTTOMRIGHT, 0);
                         m_pDetailsPanel->show();
                 }
                 else
@@ -520,6 +534,7 @@ void GameState::update(double timeSinceLastFrame)
         moveCamera();
 
         updateMaterial();
+        updateSliders();
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -541,10 +556,16 @@ void GameState::updateMaterial()
         Ogre::Vector3 campos = m_pCamera->getPosition();
         try { fparams->setNamedConstant("uCamPos", campos); } catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uTMK", utmk); } 
+        try { fparams->setNamedConstant("uTMK", tmk); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uTMK2", utmk2); } 
+        try { fparams->setNamedConstant("uTMK2", tmk2); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uMinTm", mintm); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uShadeCoeff", shadecoeff); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uShininess", shininess); } 
@@ -561,6 +582,17 @@ void GameState::updateMaterial()
 
 }
 
+void GameState::updateSliders()
+{
+        tmkSlider->setValue(tmk, false);
+        tmk2Slider->setValue(tmk2, false);
+        mintmSlider->setValue(mintm, false);
+        shadecoeffSlider->setValue(shadecoeff, false);
+        shininessSlider->setValue(shininess, false);
+        stepsSlider->setValue(steps, false);
+        ambientSlider->setValue(ambient, false);
+        backIllumSlider->setValue(backIllum, false);
+}
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 void GameState::buildGUI()
@@ -584,8 +616,9 @@ void GameState::buildGUI()
         items.push_back("cam.oZ");
         items.push_back("Mode");
 
-        m_pDetailsPanel = trayMgr->createParamsPanel(OgreBites::TL_LEFT, "DetailsPanel", 200, items);
-        m_pDetailsPanel->show();
+        m_pDetailsPanel = trayMgr->createParamsPanel(OgreBites::TL_NONE, 
+                                                     "DetailsPanel", 200, items);
+        m_pDetailsPanel->hide();
 
         // Ogre::String infoText = "Controls\n[TAB] - Switch input mode\n\n[W] - Forward / Mode up\n[S] - Backwards/ Mode down\n[A] - Left\n";
         // infoText.append("[D] - Right\n\nPress [SHIFT] to move faster\n\n[O] - Toggle FPS / logo\n");
@@ -600,42 +633,36 @@ void GameState::buildGUI()
                                       "DisplayModeSelMenu", 
                                       "Display Mode", 200, 3, displayModes);
 
-        OgreBites::Slider* utmkSlider = 
-                trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "utmk", "utmk", 
-                                          200,80,44,0,10,101);
+        tmkSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk", 
+                                              "tmk", 200,80,44,0,25,101);
 
-        OgreBites::Slider* utmk2Slider = 
-        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "utmk2", "utmk2", 
-                                  200,80,44,0,10,101);
+        tmk2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk2", 
+                                               "tmk2", 200,80,44,0,25,101);
 
-        OgreBites::Slider* shininessSlider = 
-        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shininess", "shininess",  
-                                  200,80,44,0,10,101);
+        mintmSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "minTm", 
+                                                "minTm", 200,80,44,0,1,101);
 
-        OgreBites::Slider* stepsSlider = 
-        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", "steps",  
-                                  200,80,44,20,200,21);
+        shininessSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shininess", 
+                                                    "shininess",  200,80,44,0,10,101);
 
-        OgreBites::Slider* ambientSlider = 
-        trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", "ambient",  
-                                  200,80,44,0,3,31);
+        stepsSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", 
+                                                "steps",  200,80,44,20,200,21);
 
-        OgreBites::Slider* backIllumSlider = 
-                trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
-                                          "back illumination",
-                                          200,80,44,0,3,31);
+        ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
+                                                  "ambient",  200,80,44,-3,3,61);
 
+        backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
+                                          "back illumination", 200,80,44,0,3,31);
+
+        shadecoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shadeCoeff", 
+                                                     "shadeCoeff", 200,80,44,0.1,5,50);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
         //                               "ReloadMaterial", 
         //                               "Reload material", 60);
 
-
-        utmkSlider->setValue(utmk, false);
-        utmk2Slider->setValue(utmk2, false);
-        shininessSlider->setValue(shininess, false);
-        stepsSlider->setValue(steps, false);
+        updateSliders();
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -659,14 +686,24 @@ void GameState::sliderMoved(OgreBites::Slider * slider)
 {
         float value = slider->getValue();
 
-        if (slider->getName() == "utmk") 
+        if (slider->getName() == "tmk") 
         {
-                utmk = value;
+                tmk = value;
         }
 
-        if (slider->getName() == "utmk2") 
+        if (slider->getName() == "tmk2") 
         {
-                utmk2 = value;
+                tmk2 = value;
+        }
+
+        if (slider->getName() == "minTm") 
+        {
+                mintm = value;
+        }
+
+        if (slider->getName() == "shadeCoeff") 
+        {
+                shadecoeff = value;
         }
 
         if (slider->getName() == "shininess") 

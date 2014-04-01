@@ -1,6 +1,8 @@
-#ifdef GL_ES
+/* #ifdef GL_ES */
+/* precision highp float; */
+/* #endif */
+
 precision highp float;
-#endif
 
 //---------------------------------------------------------
 // MACROS
@@ -50,6 +52,10 @@ uniform float uTMK2;
 uniform float uShininess;
 uniform float uAmbient;
 uniform float uBackIllum;
+uniform float uMinTm;
+uniform float uShadeCoeff;
+
+float uPhi = 1.0;
 
 float gStepSize;
 float gStepFactor;
@@ -59,13 +65,23 @@ vec3 toLocal(vec3 p) {
   return p + vec3(0.5);
 }
 
+vec4 sampleVolTexLod(vec3 pos) 
+{
+        vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset);
+
+        float c = textureLod(uTex, point, 1).x;
+
+        return vec4(c,c,c,c);
+
+}
+
 vec4 sampleVolTex(vec3 pos) {
 
         vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset);
 
         float c = texture(uTex, point).x;
 
-        /* return vec4(c,c,c,c); */
+        return vec4(c,c,c,c);
 
         float l = textureOffset(uTex, point, ivec3(-1, 0, 0)).x;
         float r = textureOffset(uTex, point, ivec3( 1, 0, 0)).x;
@@ -92,7 +108,7 @@ vec4 sampleVolTex(vec3 pos) {
 
 // calc transmittance
 float getTransmittance(vec3 ro, vec3 rd) {
-  vec3 step = rd*gStepSize;
+  vec3 step = rd * gStepSize;
   vec3 pos = ro;
   
   float tm = 1.0;
@@ -102,7 +118,7 @@ float getTransmittance(vec3 ro, vec3 rd) {
     
     pos += step;
     
-    if (tm < TM_MIN ||
+    if (tm < uMinTm ||
       pos.x > 1.0 || pos.x < 0.0 ||
       pos.y > 1.0 || pos.y < 0.0 ||
       pos.z > 1.0 || pos.z < 0.0)
@@ -129,7 +145,7 @@ vec4 raymarchNoLight(vec3 ro, vec3 rd) {
     
     pos += step;
     
-    if (tm < TM_MIN ||
+    if (tm < uMinTm ||
       pos.x > 1.0 || pos.x < 0.0 ||
       pos.y > 1.0 || pos.y < 0.0 ||
       pos.z > 1.0 || pos.z < 0.0)
@@ -155,9 +171,19 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
     // delta transmittance
 
     vec4 volSample = sampleVolTex(pos);
-    float dtm = exp( -tr*gStepSize * volSample.w);
 
-    //float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos) );
+    if (volSample.w < 0.1 && uBackIllum <= 0.0) {
+            pos += step;
+            if (tm < uMinTm ||
+                pos.x > 1.0 || pos.x < 0.0 ||
+                pos.y > 1.0 || pos.y < 0.0 ||
+                pos.z > 1.0 || pos.z < 0.0)
+                    break;
+            continue;
+    }
+
+
+    float dtm = exp( -tr*gStepSize * volSample.w);
 
     tm *= dtm;
 
@@ -165,27 +191,63 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
 
     col += (1.0-dtm) * uColor * uAmbient * 0.1;
 
-    col += dtm * uColor * uBackIllum * 0.1;
+    col += uColor * dtm * uBackIllum * 0.02;
 
     // get contribution per light
-    for (int k=0; k<LIGHT_NUM; ++k) {
-      vec3 ld = normalize( toLocal(uLightP)-pos );
-      float ltm = getTransmittance(pos,ld);
-
-      /* vec3 normal = volSample.xyz; */
-      /* if (length(normal) > 0) { */
-      /*         normal = normalize(normal); */
-      /*         vec3 ref = normalize(reflect(rd,normal)); */
-      /*         float shine = max(0.0, dot(ref,ld)); */
-      /*         ltm *= 1.0 + pow(shine * uShininess * 0.1, 4); */
-      /* } */
-
-      col += (1.0-dtm) * uColor*uLightC * tm * ltm;
+    if (volSample.w < 0.1) {
+            pos += step;
+            if (tm < uMinTm || 
+                pos.x > 1.0 || pos.x < 0.0 ||
+                pos.y > 1.0 || pos.y < 0.0 ||
+                pos.z > 1.0 || pos.z < 0.0)
+                    break;
+            continue;
     }
-    
+
+    for (int k=0; k<LIGHT_NUM; ++k) {
+            vec3 ld = normalize( toLocal(uLightP)-pos );
+            float ltm = getTransmittance(pos,ld);
+
+            if (uShininess > 0 && false) {
+                    float mean;
+                    float d = length(pos-ro);
+                    float r = d*tan(uPhi/2.0);
+                    float ltm2 = getTransmittance(pos,normalize(ld+vec3(  r,0.0,0.0)));
+                    float ltm3 = getTransmittance(pos,normalize(ld+vec3( -r,0.0,0.0)));
+                    float ltm4 = getTransmittance(pos,normalize(ld+vec3(0.0,  r,0.0)));
+                    float ltm5 = getTransmittance(pos,normalize(ld+vec3(0.0, -r,0.0)));
+                    float ltm6 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0,  r)));
+                    float ltm7 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0, -r)));
+                    mean = 0.5 * ltm + 0.5 * 0.1666 * (ltm2+ltm3+ltm4+ltm5+ltm6+ltm7);
+                    col += (1.0-dtm) * uColor * uLightC * tm * mean;
+            } else {
+                    float mean;
+                    float d = length(pos-ro);
+                    float r = d*tan(uPhi/2.0);
+
+                    if (k%6 < 3)
+                            r *= -1;
+
+                    vec3 newDir = vec3(0.0,0.0,0.0);
+                    if (k%3 == 0)
+                            newDir.x = r;
+                    else if (k%3 == 1)
+                            newDir.y = r;
+                    else 
+                            newDir.z = r;
+
+                    float ltm2 = getTransmittance(pos,normalize(ld+newDir));
+                    mean = 0.5 * ltm + 0.5 * ltm2;
+                    col += (1.0-dtm) * uColor * uLightC * tm * mean;
+                    
+            }
+            /* col += uColor * uLightC * pow((1.0-dtm)  * tm * ltm,0.85); */
+
+    }
+
     pos += step;
     
-    if (tm < TM_MIN ||
+    if (tm < uMinTm ||
       pos.x > 1.0 || pos.x < 0.0 ||
       pos.y > 1.0 || pos.y < 0.0 ||
       pos.z > 1.0 || pos.z < 0.0)
@@ -198,7 +260,13 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   /*         return vec4(0,0,0,0); */
   
   /* if(alpha > 0.7) alpha = 0.7; */
-  return vec4(col/alpha, alpha*2);
+  
+  vec3 shade = col/alpha;
+  shade.x = pow(shade.x, uShadeCoeff) * uShadeCoeff;
+  shade.y = pow(shade.y, uShadeCoeff) * uShadeCoeff;
+  shade.z = pow(shade.z, uShadeCoeff) * uShadeCoeff;
+
+  return vec4(shade, pow(alpha * 2,2));
   
 }
 
@@ -226,7 +294,7 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
     
     pos += step;
     
-    if (tm < TM_MIN ||
+    if (tm < uMinTm ||
       pos.x > 1.0 || pos.x < 0.0 ||
       pos.y > 1.0 || pos.y < 0.0 ||
       pos.z > 1.0 || pos.z < 0.0)

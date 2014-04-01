@@ -57,18 +57,21 @@ private:
 
         void createVolumeTexture();
         void updateMaterial();
+        void updateSliders();
 
         Ogre::SceneNode*                        breadNode;
         Ogre::Entity*                           breadEntity;
         Ogre::MaterialPtr                       breadMat; 
         Ogre::TexturePtr                        breadTex;
 
-        float utmk;
-        float utmk2;
+        float tmk;
+        float tmk2;
         float shininess;
         float steps;
         float ambient;
         float backIllum;
+        float mintm;
+        float shadecoeff;
         Ogre::Vector3 ucolor;
 
         // Ogre::SceneNode*                        m_pOgreHeadNode;
@@ -90,6 +93,17 @@ private:
         Ogre::Entity*                           m_pCurrentEntity;
         bool                                    m_bLMouseDown, m_bRMouseDown;
         bool                                    m_bSettingsMode;
+
+
+        OgreBites::Slider* tmkSlider;
+        OgreBites::Slider* tmk2Slider;
+        OgreBites::Slider* mintmSlider;
+        OgreBites::Slider* shininessSlider;
+        OgreBites::Slider* stepsSlider;
+        OgreBites::Slider* ambientSlider;
+        OgreBites::Slider* backIllumSlider;
+        OgreBites::Slider* shadecoeffSlider;
+
 };
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
