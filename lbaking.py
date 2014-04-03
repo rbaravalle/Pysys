@@ -26,7 +26,7 @@ def fdist(a): # distance depends on size
     #if(a > 30): return 20*a
     #if(a > 20): return 20*a
     #if(a > 10): return 20*a
-    return 50#*a
+    return 8#*a
 
 #def ffrac(r):
     #if(r > 40): return 0.75
@@ -88,13 +88,13 @@ class Lindenmayer(object):
         # Finally store the stream ...
         self.stream = stream
 
-        self.arr = bak.calc()
+        self.arr = np.zeros((N,N))#bak.calc()
         print "Baking Bread..."
 
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = N/16
+        self.r = 8
 
         self.xparent = self.x
         self.yparent = self.y
@@ -109,22 +109,25 @@ class Lindenmayer(object):
         y1 = min(max(y-delta,0),N)
 
 
-        suma = 1
+        suma = 1.0
         x0 = max(x1-delta,0)
         y0 = max(y1-delta,0)
         x2 = min(x1+delta,N)
         y2 = min(y1+delta,N)
         for i in range(x0,x2):
             for j in range(y0,y2):
-                d = (x1-i)*(x1-i) + (y1-j)*(y1-j) # distance
+                d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
                 suma += bubbles[i,j]*d
 
-        factor = 100 # (?)
-        print suma
+        factor = 50 # (?)
+        print "Suma:", suma
 
         print factor*(1/suma)
 
-        return factor*(1/suma)
+        if(suma > 1.0):
+            return factor*(1/suma)
+        else:
+            return 1
 
     def rotate(self):
         #self.x += self.r
