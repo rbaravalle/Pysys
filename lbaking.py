@@ -26,7 +26,7 @@ def fdist(a): # distance depends on size
     #if(a > 30): return 20*a
     #if(a > 20): return 20*a
     #if(a > 10): return 20*a
-    return 8#*a
+    return 9#*a
 
 #def ffrac(r):
     #if(r > 40): return 0.75
@@ -117,9 +117,10 @@ class Lindenmayer(object):
         for i in range(x0,x2):
             for j in range(y0,y2):
                 d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
-                suma += bubbles[i,j]*d
+                if(d==0): suma+=bubbles[i,j]
+                else: suma += bubbles[i,j]/d
 
-        factor = 50 # (?)
+        factor = 5 # (?)
         print "Suma:", suma
 
         print factor*(1/suma)
