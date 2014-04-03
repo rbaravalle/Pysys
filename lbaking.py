@@ -16,19 +16,24 @@ from multifractal import *
 from lparams import *
 import baking1D as bak
 
-def fdist(a): # distance depends on size
-    if(a > 40): return 5*a
-    if(a > 30): return 5*a
-    if(a > 20): return 5*a
-    if(a > 10): return 5*a
-    return 5*a
+bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
+delta = N/8 # radius to check for intersections with other bubbles
 
-def ffrac(r):
-    if(r > 40): return 0.75
-    if(r > 30): return 0.75-random.random()*0.05
-    if(r > 20): return 0.75-random.random()*0.05
-    if(r > 10): return 0.75-random.random()*0.05
-    return 0.75
+
+
+def fdist(a): # distance depends on size
+    #if(a > 40): return 20*a
+    #if(a > 30): return 20*a
+    #if(a > 20): return 20*a
+    #if(a > 10): return 20*a
+    return 50#*a
+
+#def ffrac(r):
+    #if(r > 40): return 0.75
+    #if(r > 30): return 0.75-random.random()*0.05
+    #if(r > 20): return 0.75-random.random()*0.05
+    #if(r > 10): return 0.75-random.random()*0.05
+    #return 0.75
 
 def drawShape(draw,x,y,r,c):
     if(c == 0): return
@@ -89,13 +94,37 @@ class Lindenmayer(object):
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 1
+        self.r = N/16
 
         self.xparent = self.x
         self.yparent = self.y
         
         # ... and initialize the parser.
         self.initialize()
+
+    # calculates new radius based on a poisson distribution (?)
+    def poisson(self,x,y):
+        global bubbles, delta
+        x1 = min(max(x-delta,0),N)
+        y1 = min(max(y-delta,0),N)
+
+
+        suma = 1
+        x0 = max(x1-delta,0)
+        y0 = max(y1-delta,0)
+        x2 = min(x1+delta,N)
+        y2 = min(y1+delta,N)
+        for i in range(x0,x2):
+            for j in range(y0,y2):
+                d = (x1-i)*(x1-i) + (y1-j)*(y1-j) # distance
+                suma += bubbles[i,j]*d
+
+        factor = 100 # (?)
+        print suma
+
+        print factor*(1/suma)
+
+        return factor*(1/suma)
 
     def rotate(self):
         #self.x += self.r
@@ -281,6 +310,18 @@ class Lindenmayer(object):
             result += ''.join(map(str, self.rules.get(key, axiom[i])))
         return result
 
+    def delta(self,x,y):
+        temp = (np.max(self.arr)-self.arr[x,y])
+        #if(temp == 0):
+        #return 40
+        return 30*(temp)
+
+    def rad(self):
+        #x1 = min(self.width,max(self.x-1,0))
+        #y1 = min(self.height,max(self.y-1,0))
+        #return self.r+self.delta(x1,y1)
+        return self.poisson(self.x,self.y)
+
     def draw2(self,stream):
         maxX = self.width
         maxY = self.height
@@ -314,35 +355,43 @@ class Lindenmayer(object):
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,self.r+40*self.arr[x1,y1],2)
+                drawShape(draw,self.x,self.y,r,2)
+                bubbles[x1,y1] = r # set actual bubble
 
             if c == 'G':
                 # draw
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,self.r+40*self.arr[x1,y1],2)
+                drawShape(draw,self.x,self.y,r,2)
+                bubbles[x1,y1] = r # set actual bubble
             if c == 'H':
                 # draw
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,self.r+40*self.arr[x1,y1],2)
+                drawShape(draw,self.x,self.y,r,2)
+                bubbles[x1,y1] = r # set actual bubble
                 #self.forward()
             if c == 'I':
                 # draw
                 #raphael.forward(self.lineLength)
     
                 #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+                r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,self.r+4*self.arr[x1,y1],2)
+                drawShape(draw,self.x,self.y,r,2)
+                bubbles[x1,y1] = r # set actual bubble
                 #self.forward()
             if c == 'X':
                 # Move forward
