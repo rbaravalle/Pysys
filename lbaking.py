@@ -17,7 +17,7 @@ from lparams import *
 import baking1D as bak
 
 bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
-delta = N/8 # radius to check for intersections with other bubbles
+delta = N/16 # radius to check for intersections with other bubbles
 
 
 
@@ -26,7 +26,7 @@ def fdist(a): # distance depends on size
     #if(a > 30): return 20*a
     #if(a > 20): return 20*a
     #if(a > 10): return 20*a
-    return 9#*a
+    return 11*a
 
 #def ffrac(r):
     #if(r > 40): return 0.75
@@ -88,13 +88,13 @@ class Lindenmayer(object):
         # Finally store the stream ...
         self.stream = stream
 
-        self.arr = np.zeros((N,N))#bak.calc()
+        self.arr = bak.calc()
         print "Baking Bread..."
 
         # state
         self.x = int(self.width/2)#int(self.width/2)
         self.y = int(self.height/2)
-        self.r = 8
+        self.r = 16
 
         self.xparent = self.x
         self.yparent = self.y
@@ -103,32 +103,43 @@ class Lindenmayer(object):
         self.initialize()
 
     # calculates new radius based on a poisson distribution (?)
-    def poisson(self,x,y):
+    def poisson(self):
         global bubbles, delta
-        x1 = min(max(x-delta,0),N)
-        y1 = min(max(y-delta,0),N)
+        x1 = min(max(self.x-delta,0),N)
+        y1 = min(max(self.y-delta,0),N)
 
-
-        suma = 1.0
+        suma = 0.0
         x0 = max(x1-delta,0)
         y0 = max(y1-delta,0)
         x2 = min(x1+delta,N)
         y2 = min(y1+delta,N)
         for i in range(x0,x2):
             for j in range(y0,y2):
-                d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
-                if(d==0): suma+=bubbles[i,j]
-                else: suma += bubbles[i,j]/d
+                #d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
+                #if(d==0): suma+=bubbles[i,j]
+                #else:
+                suma += bubbles[i,j]#*delta*delta
+                #suma += np.pi*bubbles[i,j]*bubbles[i,j]
+                #if(bubbles[i,j]): print "RADIO:" , bubbles[i,j]
 
-        factor = 5 # (?)
-        print "Suma:", suma
+        factor = delta # (?)
+        #print "Suma:", suma, "Delta: ", delta
 
-        print factor*(1/suma)
+        #print factor*(1/suma)
 
-        if(suma > 1.0):
-            return factor*(1/suma)
-        else:
-            return 1
+        #1/ sum_D (cant*radios*D^2) 
+
+        #D = np.sqrt(np.power((self.x-self.height/2),2)+np.power((self.y-self.width/2),2))
+        G = 1+4*self.arr[min(self.width,max(self.x-1,0)),min(self.width,max(self.y-1,0))]#D/300 #gelatinization
+        print "G: ", G
+
+        if(suma > 0.0):
+            #print "NUEVO RADIO: ", np.floor(factor*(1/suma))/2, self.x, self.y
+            m = 1/suma
+            return np.random.randint(delta*m/2,delta*m+1)/G
+        else: # free
+            #print "NUEVO RADIO: ", delta/4-1, self.x, self.y
+            return np.random.randint(delta/2.6,delta/2-1)/G
 
     def rotate(self):
         #self.x += self.r
@@ -324,7 +335,7 @@ class Lindenmayer(object):
         #x1 = min(self.width,max(self.x-1,0))
         #y1 = min(self.height,max(self.y-1,0))
         #return self.r+self.delta(x1,y1)
-        return self.poisson(self.x,self.y)
+        return self.poisson()
 
     def draw2(self,stream):
         maxX = self.width
