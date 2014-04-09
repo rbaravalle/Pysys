@@ -71,7 +71,9 @@ private:
         float ambient;
         float backIllum;
         float mintm;
-        float shadecoeff;
+        float shadeCoeff;
+        float specCoeff;
+        float specMult;
         Ogre::Vector3 ucolor;
 
         // Ogre::SceneNode*                        m_pOgreHeadNode;
@@ -102,7 +104,9 @@ private:
         OgreBites::Slider* stepsSlider;
         OgreBites::Slider* ambientSlider;
         OgreBites::Slider* backIllumSlider;
-        OgreBites::Slider* shadecoeffSlider;
+        OgreBites::Slider* shadeCoeffSlider;
+        OgreBites::Slider* specCoeffSlider;
+        OgreBites::Slider* specMultSlider;
 
 };
 

@@ -1,3 +1,4 @@
+#version 330
 /* #ifdef GL_ES */
 /* precision highp float; */
 /* #endif */
@@ -54,20 +55,29 @@ uniform float uAmbient;
 uniform float uBackIllum;
 uniform float uMinTm;
 uniform float uShadeCoeff;
+uniform float uSpecCoeff;
+uniform float uSpecMult;
+
+uniform mat4 inv_world;
 
 float uPhi = 1.0;
 
 float gStepSize;
 float gStepFactor;
-// TODO: convert world to local volume space
 
+// TODO: convert world to local volume space
 vec3 toLocal(vec3 p) {
-  return p + vec3(0.5);
+
+  vec4 p1 = inv_world * vec4(p,1.0);
+  p = p1.xyz / p1.w;
+  return (p + vec3(1.0)) / 2.0;
+
 }
 
 vec4 sampleVolTexLod(vec3 pos) 
 {
-        vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset);
+        /* vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset); */
+        vec3 point = pos.xyz;
 
         float c = textureLod(uTex, point, 1).x;
 
@@ -78,6 +88,7 @@ vec4 sampleVolTexLod(vec3 pos)
 vec4 sampleVolTex(vec3 pos) {
 
         vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset);
+        /* vec3 point = pos; */
 
         float c = texture(uTex, point).x;
 
@@ -90,12 +101,12 @@ vec4 sampleVolTex(vec3 pos) {
         float f = textureOffset(uTex, point, ivec3( 0, 0, 1)).x;
         float b = textureOffset(uTex, point, ivec3( 0, 0,-1)).x;
 
-        l = l > 0.05 ? 1.0 : 0.0;
-        r = r > 0.05 ? 1.0 : 0.0;
-        u = u > 0.05 ? 1.0 : 0.0;
-        d = d > 0.05 ? 1.0 : 0.0;
-        f = f > 0.05 ? 1.0 : 0.0;
-        b = b > 0.05 ? 1.0 : 0.0;
+        /* l = l > 0.05 ? 1.0 : 0.0; */
+        /* r = r > 0.05 ? 1.0 : 0.0; */
+        /* u = u > 0.05 ? 1.0 : 0.0; */
+        /* d = d > 0.05 ? 1.0 : 0.0; */
+        /* f = f > 0.05 ? 1.0 : 0.0; */
+        /* b = b > 0.05 ? 1.0 : 0.0; */
 
         float val = c;
 
@@ -189,9 +200,15 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
 
     tm *= (1.000 + (-uShininess*0.001));
 
-    col += (1.0-dtm) * uColor * uAmbient * 0.1;
+    vec3 sampleCol = uColor;
+    /* float sampleCoeff = uShadeCoeff * (1.f/volSample.w); */
+    /* sampleCol.x = pow(sampleCol.x, sampleCoeff) * sampleCoeff; */
+    /* sampleCol.y = pow(sampleCol.y, sampleCoeff) * sampleCoeff; */
+    /* sampleCol.z = pow(sampleCol.z, sampleCoeff) * sampleCoeff; */
 
-    col += uColor * dtm * uBackIllum * 0.02;
+    col += (1.0-dtm) * sampleCol * uAmbient * 0.1;
+
+    col += sampleCol * dtm * uBackIllum * 0.02;
 
     // get contribution per light
     if (volSample.w < 0.1) {
@@ -237,8 +254,14 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
                             newDir.z = r;
 
                     float ltm2 = getTransmittance(pos,normalize(ld+newDir));
-                    mean = 0.5 * ltm + 0.5 * ltm2;
-                    col += (1.0-dtm) * uColor * uLightC * tm * mean;
+                    mean = 0.6 * ltm + 0.4 * ltm2;
+
+                    float sampleCoeff = uShadeCoeff * mean;
+                    sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess * sampleCoeff;
+                    sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess * sampleCoeff;
+                    sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess * sampleCoeff;
+
+                    col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
                     
             }
             /* col += uColor * uLightC * pow((1.0-dtm)  * tm * ltm,0.85); */
@@ -262,48 +285,99 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   /* if(alpha > 0.7) alpha = 0.7; */
   
   vec3 shade = col/alpha;
-  shade.x = pow(shade.x, uShadeCoeff) * uShadeCoeff;
-  shade.y = pow(shade.y, uShadeCoeff) * uShadeCoeff;
-  shade.z = pow(shade.z, uShadeCoeff) * uShadeCoeff;
+  /* shade.x = pow(shade.x, uShadeCoeff) * uShadeCoeff; */
+  /* shade.y = pow(shade.y, uShadeCoeff) * uShadeCoeff; */
+  /* shade.z = pow(shade.z, uShadeCoeff) * uShadeCoeff; */
 
   return vec4(shade, pow(alpha * 2,2));
   
 }
 
 
-/*vec4 raymarchLight(vec3 ro, vec3 rd) {
+float raymarchSpec(vec3 ro, vec3 rd) {
   vec3 step = rd*gStepSize;
   vec3 pos = ro;
-  
-  
+  vec3 uColor2 = uColor;
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
-  for (int i=0; i<uMaxSteps; ++i) {
+  vec4 volSample;
+  
+  // find intersection
+  for (int i=0; i< uMaxSteps; ++i) {
     // delta transmittance 
-    float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos).w );
-    //tm *= dtm;
-    tm *= dtm*(1.000+uShininess*0.001);
-    // get contribution per light
-    for (int k=0; k<LIGHT_NUM; ++k) {
-      vec3 ld = normalize( toLocal(uLightP)-pos );
-      float ltm = getTransmittance(pos,ld);
-      
-      col += (1.0-dtm) * uColor*uLightC * tm * ltm;
-    }
-    
+    volSample = sampleVolTex(pos);
+
+    if(volSample.w > 0.0) break;
+
     pos += step;
-    
-    if (tm < uMinTm ||
-      pos.x > 1.0 || pos.x < 0.0 ||
+
+    // no surface
+    if( pos.x > 1.0 || pos.x < 0.0 ||
       pos.y > 1.0 || pos.y < 0.0 ||
       pos.z > 1.0 || pos.z < 0.0)
-      break;
+      return 0.0;
+
   }
-  
-  float alpha = 1.0-tm;
-  return vec4(col/alpha, alpha);
-}*/
+
+  // find normal at pos (gradient computation)
+
+  vec3 N;
+  N.x = sampleVolTex(vec3(pos.x+gStepSize,pos.y,pos.z)).w -
+        sampleVolTex(vec3(pos.x-gStepSize,pos.y,pos.z)).w;
+  N.y = sampleVolTex(vec3(pos.x,pos.y+gStepSize,pos.z)).w -
+        sampleVolTex(vec3(pos.x,pos.y-gStepSize,pos.z)).w;
+  N.z = sampleVolTex(vec3(pos.x,pos.y,pos.z+gStepSize)).w -
+        sampleVolTex(vec3(pos.x,pos.y,pos.z-gStepSize)).w;
+  N = normalize(N);
+
+  /* N = normalize(volSample.xyz); */
+
+  vec3 L = normalize(toLocal(uLightP) - pos);
+  vec3 V = normalize(-rd);
+  /* vec3 V = normalize(ro - pos); */
+ 
+  if (dot(N,V) < 0.0)
+          return 0.0;
+
+  if (dot(N, L) < 0.0)
+          return 0.0;
+
+  /* // halfway vector */
+  vec3 s = L+V;
+  vec3 H = s / normalize(s);
+
+  vec3 r = normalize(reflect(-V,N));
+
+  step = L * gStepSize * 2;
+
+  // If there's an intersection on the way to the light, stop
+  for (int i=0; i< uMaxSteps/2; ++i) {
+
+    pos += step;
+
+    float v = sampleVolTex(pos).w;
+
+    if(v > 0.0) return 0.0;
+
+    // no surface
+    if( pos.x > 1.0 || pos.x < 0.0 ||
+      pos.y > 1.0 || pos.y < 0.0 ||
+      pos.z > 1.0 || pos.z < 0.0)
+            break;
+
+  }
+
+  float alpha = abs(uSpecCoeff);
+  float spec = dot(normalize(H),N);
+  /* float spec = dot(L,r); */
+
+  if (spec < 0.01)
+          return 0.0;
+
+  return pow(spec, uSpecCoeff); // Blinn Phong
+
+}
 
 
 float getStepSize() 
@@ -314,13 +388,13 @@ float getStepSize()
   /* vec3 rd = normalize( ro - toLocal(uCamPos) ); */
   
   /* float tx; */
-  /* if (abs(rd.x) < 0.0001) */
+  /* if (abs(rd.x) < 0.001) */
   /*         tx = 1e6; */
   /* else */
   /*         tx = rd.x > 0? 1.0 - ro.x / -rd.x : ro.x / -rd.x; */
 
   /* float ty; */
-  /* if (abs(rd.y) < 0.0001) */
+  /* if (abs(rd.y) < 0.001) */
   /*         ty = 1e6; */
   /* else */
   /*         ty = rd.y > 0? 1.0 - ro.y / -rd.y : ro.y / -rd.y; */
@@ -336,7 +410,7 @@ float getStepSize()
   /* float stepSize = ROOTTHREE / uMaxSteps; */
 
   /* stepSize = t / uMaxSteps; */
-  /* stepSize = max(stepSize, 0.5 * ROOTTHREE / uMaxSteps ); */
+  /* stepSize = max(stepSize, ROOTTHREE / uMaxSteps ); */
   /* return stepSize; */
 
 }
@@ -345,9 +419,18 @@ void main()
 {
   // in world coords, just for now
   vec3 ro = vPos1n;
-  vec3 rd = normalize( ro - toLocal(uCamPos) );
+  vec3 rd = normalize(ro - toLocal(uCamPos.xyz));
   
   gStepSize = getStepSize();
   
   gl_FragColor = raymarchLight(ro, rd, uTMK2);
+
+  float spec = abs(raymarchSpec(ro, rd));
+  spec = 1.0 + spec * uSpecMult;
+
+  gl_FragColor *= vec4(spec,spec,spec, 1.0);
+
+  /* gl_FragColor += vec4(spec,spec,spec, 0.0) * 0.4; */
+  /* gl_FragColor = vec4(spec,spec,spec, 1.0); */
+
 }

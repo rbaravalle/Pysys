@@ -27,7 +27,9 @@ GameState::GameState()
         ucolor = Vector3(1.0,1.0,1.0);
         ambient = 0;
         backIllum = 0;
-        shadecoeff = 1.0;
+        shadeCoeff = 1.0;
+        specCoeff= 1.0;
+        specMult = 0.5;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -141,6 +143,7 @@ void GameState::createVolumeTexture()
 {
         std::ifstream input;
         input.open("media/fields/mengel3d.field");
+        // input.open("media/fields/imagen3-1.field");
         if (!input.good()) {
                 std::cout << "Unable to open field file!\n";
                 exit();
@@ -167,6 +170,7 @@ void GameState::createVolumeTexture()
                 ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
                 TEX_TYPE_3D,      // type
                 texW, texH, texD,    // width height depth
+                // MIP_UNLIMITED,                // number of mipmaps
                 0,                // number of mipmaps
                 PF_L8,     // pixel format -> 8 bits luminance
                 TU_DEFAULT);      // usage; should be TU_DYNAMIC_WRITE_ONLY_DISCARDABLE for
@@ -299,6 +303,7 @@ void GameState::createScene()
         breadEntity = m_pSceneMgr->createEntity("BreadEntity", "Cube01.mesh");
         breadNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
         breadNode->attachObject(breadEntity);
+        breadNode->setOrientation(Quaternion::IDENTITY);
         breadNode->setPosition(Vector3(0, 0, 0));
         breadNode->setScale(Vector3(10,10,10));
 
@@ -565,7 +570,13 @@ void GameState::updateMaterial()
         try { fparams->setNamedConstant("uMinTm", mintm); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uShadeCoeff", shadecoeff); } 
+        try { fparams->setNamedConstant("uShadeCoeff", shadeCoeff); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uSpecCoeff", specCoeff); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uSpecMult", specMult); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uShininess", shininess); } 
@@ -587,7 +598,9 @@ void GameState::updateSliders()
         tmkSlider->setValue(tmk, false);
         tmk2Slider->setValue(tmk2, false);
         mintmSlider->setValue(mintm, false);
-        shadecoeffSlider->setValue(shadecoeff, false);
+        shadeCoeffSlider->setValue(shadeCoeff, false);
+        specCoeffSlider->setValue(specCoeff, false);
+        specMultSlider->setValue(specMult, false);
         shininessSlider->setValue(shininess, false);
         stepsSlider->setValue(steps, false);
         ambientSlider->setValue(ambient, false);
@@ -654,8 +667,14 @@ void GameState::buildGUI()
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
                                           "back illumination", 200,80,44,0,3,31);
 
-        shadecoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shadeCoeff", 
+        shadeCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shadeCoeff", 
                                                      "shadeCoeff", 200,80,44,0.1,5,50);
+
+        specCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specCoeff", 
+                                                     "specCoeff", 200,80,44,0.1,5,50);
+
+        specMultSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specMult", 
+                                                     "specMult", 200,80,44,0.1,2,39);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
@@ -703,7 +722,17 @@ void GameState::sliderMoved(OgreBites::Slider * slider)
 
         if (slider->getName() == "shadeCoeff") 
         {
-                shadecoeff = value;
+                shadeCoeff = value;
+        }
+
+        if (slider->getName() == "specCoeff") 
+        {
+                specCoeff = value;
+        }
+
+        if (slider->getName() == "specMult") 
+        {
+                specMult = value;
         }
 
         if (slider->getName() == "shininess") 
