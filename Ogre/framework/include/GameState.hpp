@@ -58,11 +58,15 @@ private:
         void createVolumeTexture();
         void updateMaterial();
         void updateSliders();
+        void updateLight(double timeSinceLastFrame);
 
         Ogre::SceneNode*                        breadNode;
         Ogre::Entity*                           breadEntity;
         Ogre::MaterialPtr                       breadMat; 
         Ogre::TexturePtr                        breadTex;
+        Ogre::Light*                            light;
+        Ogre::Entity*                           lightEntity;
+        Ogre::SceneNode*                        lightNode;
 
         float tmk;
         float tmk2;
@@ -74,6 +78,7 @@ private:
         float shadeCoeff;
         float specCoeff;
         float specMult;
+        float misc;
         Ogre::Vector3 ucolor;
 
         // Ogre::SceneNode*                        m_pOgreHeadNode;
@@ -107,6 +112,7 @@ private:
         OgreBites::Slider* shadeCoeffSlider;
         OgreBites::Slider* specCoeffSlider;
         OgreBites::Slider* specMultSlider;
+        OgreBites::Slider* miscSlider;
 
 };
 

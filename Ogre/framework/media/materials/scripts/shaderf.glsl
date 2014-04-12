@@ -34,8 +34,8 @@ uniform float uMaxSteps;
 //---------------------------------------------------------
 
 varying vec2 vUv;
-varying vec3 vPos0; // position in world coords
-varying vec3 vPos1; // position in object coords
+varying vec3 vProjPos; // Projected coords
+varying vec3 vPos;   // position in object coords
 varying vec3 vPos1n; // normalized 0 to 1, for texture lookup
 
 uniform vec3 uOffset; // TESTDEBUG
@@ -57,64 +57,77 @@ uniform float uMinTm;
 uniform float uShadeCoeff;
 uniform float uSpecCoeff;
 uniform float uSpecMult;
+uniform float uMisc;
 
-uniform mat4 inv_world;
+uniform mat4 inv_world_matrix;
+uniform mat4 world_matrix;
+uniform mat4 mvp_matrix;
 
 float uPhi = 1.0;
 
 float gStepSize;
 float gStepFactor;
 
+
 // TODO: convert world to local volume space
 vec3 toLocal(vec3 p) {
-
-  vec4 p1 = inv_world * vec4(p,1.0);
+  vec4 p1 = inv_world_matrix * vec4(p,1.0);
   p = p1.xyz / p1.w;
   return (p + vec3(1.0)) / 2.0;
 
 }
 
-vec4 sampleVolTexLod(vec3 pos) 
+
+vec3 toTexture(vec3 p)
 {
-        /* vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset); */
-        vec3 point = pos.xyz;
+  return (p + vec3(1.0)) / 2.0;
+}
 
-        float c = textureLod(uTex, point, 1).x;
+vec3 fromTexture(vec3 p) 
+{
+  p = (2.0 * p) - 1.0;
+  return p;
+}
 
-        return vec4(c,c,c,c);
+bool outside(vec3 pos) 
+{
+        return  pos.x > 1.0 || pos.x < 0.0 ||
+                pos.y > 1.0 || pos.y < 0.0 ||
+                pos.z > 1.0 || pos.z < 0.0;
+}
+
+float sampleVolTexLower(vec3 pos) 
+{
+        return textureLod(uTex, pos, floor(uMisc)).x;
 
 }
 
-vec4 sampleVolTex(vec3 pos) {
+float sampleVolTex(vec3 pos) 
+{
+        return textureLod(uTex, pos, 0).x;
+}
 
-        vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset);
-        /* vec3 point = pos; */
+vec3 sampleVolTexNormal(vec3 pos) 
+{
 
-        float c = texture(uTex, point).x;
+        /* vec3 point = vec3(1.0,1.0,1.0)-(pos.xyz+uOffset); */
 
-        return vec4(c,c,c,c);
+        float c = texture(uTex, pos).x;
 
-        float l = textureOffset(uTex, point, ivec3(-1, 0, 0)).x;
-        float r = textureOffset(uTex, point, ivec3( 1, 0, 0)).x;
-        float u = textureOffset(uTex, point, ivec3( 0, 1, 0)).x;
-        float d = textureOffset(uTex, point, ivec3( 0,-1, 0)).x;
-        float f = textureOffset(uTex, point, ivec3( 0, 0, 1)).x;
-        float b = textureOffset(uTex, point, ivec3( 0, 0,-1)).x;
+        int lod = int(uMisc);
 
-        /* l = l > 0.05 ? 1.0 : 0.0; */
-        /* r = r > 0.05 ? 1.0 : 0.0; */
-        /* u = u > 0.05 ? 1.0 : 0.0; */
-        /* d = d > 0.05 ? 1.0 : 0.0; */
-        /* f = f > 0.05 ? 1.0 : 0.0; */
-        /* b = b > 0.05 ? 1.0 : 0.0; */
-
-        float val = c;
+        float l = textureLodOffset(uTex, pos, lod, ivec3(-1, 0, 0)).x;
+        float r = textureLodOffset(uTex, pos, lod, ivec3( 1, 0, 0)).x;
+        float u = textureLodOffset(uTex, pos, lod, ivec3( 0, 1, 0)).x;
+        float d = textureLodOffset(uTex, pos, lod, ivec3( 0,-1, 0)).x;
+        float f = textureLodOffset(uTex, pos, lod, ivec3( 0, 0, 1)).x;
+        float b = textureLodOffset(uTex, pos, lod, ivec3( 0, 0,-1)).x;
 
         float dx = (r-l);
         float dy = (u-d);
         float dz = (f-b);
 
-        return vec4(dx,dy,dz,val);
+        return vec3(dx,dy,dz);
 }
 
 // calc transmittance
@@ -125,14 +138,12 @@ float getTransmittance(vec3 ro, vec3 rd) {
   float tm = 1.0;
   
   for (int i=0; i<int(uMaxSteps); ++i) {
-    tm *= exp( -uTMK*gStepSize*sampleVolTex(pos).w );
+          float sample = sampleVolTex(pos);
+          tm *= exp( -uTMK*gStepSize * sample);
     
     pos += step;
     
-    if (tm < uMinTm ||
-      pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
+    if (tm < uMinTm || outside(pos))
       break;
   }
   
@@ -140,242 +151,205 @@ float getTransmittance(vec3 ro, vec3 rd) {
 }
 
 
+float getSpecularRadiance(vec3 L, vec3 V, vec3 N)
+{
+        /* /////////// Phong //////////// */
+        vec3 R = normalize(reflect(-L,N)); // Reflection vector
+        float spec = dot(R,-V);
+        return clamp(pow(spec, uSpecCoeff), 0.0001, 1.0);
 
-vec4 raymarchNoLight(vec3 ro, vec3 rd) {
-  vec3 step = rd*gStepSize;
-  vec3 pos = ro;
-  
-  vec3 col = vec3(0.0);
-  float tm = 1.0;
-  
-  for (int i=0; i<int(uMaxSteps); ++i) {
-    float dtm = exp( -uTMK*gStepSize*sampleVolTex(pos).w );
-    tm *= dtm;
-    
-    col += (1.0-dtm) * uColor * tm;
-    
-    pos += step;
-    
-    if (tm < uMinTm ||
-      pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
-      break;
-  }
-  
-  float alpha = 1.0-tm;
-  return vec4(col/alpha,1.0);
+        /* /////////// Blinn - Phong //////////// */
+        /* vec3 H = normalize(L-V);   // halfway vector */
+        /* float spec = dot(normalize(H),N) * t; */
+        /* if (spec < 0.01) */
+        /*         return 0.0; */
+        /* return pow(spec, uSpecCoeff); */
+
+        /* /////////// Cook-Torrence //////////// */
+        /* vec3 H = normalize(L-V);   // halfway vector */
+        /* return Rs(2.0, 1.0, N, -L, V, H) ; */
 
 }
 
-vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
+struct light_ret 
+{
+        vec4 col;
+        vec3 pos;
+};
+
+light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
+
+  light_ret ret;
+  ret.pos = vec3(10000.0,10000.0,10000.0);
 
   vec3 step = rd*gStepSize;
   vec3 pos = ro;
-
-  /* vec3 uColor2 = vec3(225.0/255.0,225.0/255.0,225.0/255.0); */
 
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
-  for (int i=0; i<int(uMaxSteps); ++i) {
-    // delta transmittance
+  bool first = true;
 
-    vec4 volSample = sampleVolTex(pos);
+  for (int i=0; i < int(uMaxSteps) && tm > uMinTm && !outside(pos); ++i) {
 
-    if (volSample.w < 0.1 && uBackIllum <= 0.0) {
+    float volSample = sampleVolTex(pos);
+
+    /* If there's no mass and no back illumination, continue */
+    if (volSample < 0.1 && uBackIllum <= 0.0) {
             pos += step;
-            if (tm < uMinTm ||
-                pos.x > 1.0 || pos.x < 0.0 ||
-                pos.y > 1.0 || pos.y < 0.0 ||
-                pos.z > 1.0 || pos.z < 0.0)
-                    break;
             continue;
     }
 
-
-    float dtm = exp( -tr*gStepSize * volSample.w);
-
+    // delta transmittance
+    float dtm = exp( -tr * gStepSize * volSample);
     tm *= dtm;
 
-    tm *= (1.000 + (-uShininess*0.001));
-
+    // accumulate color
     vec3 sampleCol = uColor;
-    /* float sampleCoeff = uShadeCoeff * (1.f/volSample.w); */
-    /* sampleCol.x = pow(sampleCol.x, sampleCoeff) * sampleCoeff; */
-    /* sampleCol.y = pow(sampleCol.y, sampleCoeff) * sampleCoeff; */
-    /* sampleCol.z = pow(sampleCol.z, sampleCoeff) * sampleCoeff; */
-
     col += (1.0-dtm) * sampleCol * uAmbient * 0.1;
-
     col += sampleCol * dtm * uBackIllum * 0.02;
 
-    // get contribution per light
-    if (volSample.w < 0.1) {
+    // if there's no mass at pos, continue
+    if (volSample < 0.1) {
             pos += step;
-            if (tm < uMinTm || 
-                pos.x > 1.0 || pos.x < 0.0 ||
-                pos.y > 1.0 || pos.y < 0.0 ||
-                pos.z > 1.0 || pos.z < 0.0)
-                    break;
             continue;
     }
 
+    // get contribution per light
     for (int k=0; k<LIGHT_NUM; ++k) {
-            vec3 ld = normalize( toLocal(uLightP)-pos );
-            float ltm = getTransmittance(pos,ld);
+            vec3 L = normalize( toTexture(uLightP)-pos ); // Light direction
+            float ltm = getTransmittance(pos,L); // Transmittance towards light
 
-            if (uShininess > 0 && false) {
-                    float mean;
-                    float d = length(pos-ro);
-                    float r = d*tan(uPhi/2.0);
-                    float ltm2 = getTransmittance(pos,normalize(ld+vec3(  r,0.0,0.0)));
-                    float ltm3 = getTransmittance(pos,normalize(ld+vec3( -r,0.0,0.0)));
-                    float ltm4 = getTransmittance(pos,normalize(ld+vec3(0.0,  r,0.0)));
-                    float ltm5 = getTransmittance(pos,normalize(ld+vec3(0.0, -r,0.0)));
-                    float ltm6 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0,  r)));
-                    float ltm7 = getTransmittance(pos,normalize(ld+vec3(0.0,0.0, -r)));
-                    mean = 0.5 * ltm + 0.5 * 0.1666 * (ltm2+ltm3+ltm4+ltm5+ltm6+ltm7);
-                    col += (1.0-dtm) * uColor * uLightC * tm * mean;
-            } else {
-                    float mean;
-                    float d = length(pos-ro);
-                    float r = d*tan(uPhi/2.0);
+            float mean;
+            float d = length(pos-ro);  // Distance to hit point
+            float r = d*tan(uPhi/2.0); // 
 
-                    if (k%6 < 3)
-                            r *= -1;
+            // Generate a vector cycling direction each step
+            if (k%6 < 3)
+                    r *= -1;
+            vec3 newDir = vec3(0.0,0.0,0.0);
+            if (k%3 == 0)
+                    newDir.x = r;
+            else if (k%3 == 1)
+                    newDir.y = r;
+            else 
+                    newDir.z = r;
 
-                    vec3 newDir = vec3(0.0,0.0,0.0);
-                    if (k%3 == 0)
-                            newDir.x = r;
-                    else if (k%3 == 1)
-                            newDir.y = r;
-                    else 
-                            newDir.z = r;
+            // Get new vector direction transmittance and mix with light transmittance
+            float ltm2 = getTransmittance(pos,normalize(L+newDir));
+            mean = 0.6 * ltm + 0.4 * ltm2;
 
-                    float ltm2 = getTransmittance(pos,normalize(ld+newDir));
-                    mean = 0.6 * ltm + 0.4 * ltm2;
+            float sampleCoeff = uShadeCoeff * mean;
+            sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess * sampleCoeff;
+            sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess * sampleCoeff;
+            sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess * sampleCoeff;
 
-                    float sampleCoeff = uShadeCoeff * mean;
-                    sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess * sampleCoeff;
-                    sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess * sampleCoeff;
-                    sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess * sampleCoeff;
+            // Accumulate color based on delta transmittance and mean transmittance
+            col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
 
-                    col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
+            // If first hit and not blocked, calculate specular lighting
+            if (first) {
+
+                    ret.pos = pos;
+
+                    first = false;
+
+                    if (ltm > 0.6) {
+                            vec3 N = normalize(sampleVolTexNormal(pos).xyz); // Normal
+                            vec3 V = normalize(rd); // View vector
                     
+                            // If view vector faces normal and light faces normal
+                            if (dot(N,V) < 0.0 && dot(N,L) > 0.0) {
+                                    col += vec3(getSpecularRadiance(L,V,N)) * 0.2 * uSpecMult;
+                            }
+                    }
             }
-            /* col += uColor * uLightC * pow((1.0-dtm)  * tm * ltm,0.85); */
-
     }
 
     pos += step;
-    
-    if (tm < uMinTm ||
-      pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
-      break;
   }
   
   float alpha = 1.0-tm;
-
-  /* if (abs(alpha) < 0.1) */
-  /*         return vec4(0,0,0,0); */
-  
-  /* if(alpha > 0.7) alpha = 0.7; */
-  
   vec3 shade = col/alpha;
-  /* shade.x = pow(shade.x, uShadeCoeff) * uShadeCoeff; */
-  /* shade.y = pow(shade.y, uShadeCoeff) * uShadeCoeff; */
-  /* shade.z = pow(shade.z, uShadeCoeff) * uShadeCoeff; */
 
-  return vec4(shade, pow(alpha * 2,2));
+  ret.col = vec4(shade, pow(alpha * 2,2));
+  return ret;
+  /* return vec4(shade, pow(alpha * 2,2)); */
   
 }
 
+// Cook-Torrance radiance
+float Rs(float m,float F,vec3 N, vec3 L,vec3 V, vec3 H)
+{
+    float result;
+    float NdotV= dot(N,V);
+    float NdotH= dot(N,H);
+    float NdotL= dot(N,L);
+    float VdotH= dot(V,H);
+    float Geom= min(min(1.0, (2.0*NdotV*NdotH)/VdotH), (2.0*NdotL*NdotH)/VdotH);
+    float Rough= (1.0/(pow(m,2.0)*pow(NdotH,4.0)) * 
+                  exp ( pow(NdotH,2.0)-1.0)/( pow(m,2.0)*pow(NdotH,2.0)));
+    float Fresnel= F + pow(1.0-VdotH,5.0) * (1.0-F);
+    return (Fresnel * Rough * Geom)/(NdotV*NdotL);
+}
 
 float raymarchSpec(vec3 ro, vec3 rd) {
-  vec3 step = rd*gStepSize;
+  vec3 step = rd*gStepSize*4;
   vec3 pos = ro;
   vec3 uColor2 = uColor;
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
   
-  vec4 volSample;
+  float volSample;
   
   // find intersection
-  for (int i=0; i< uMaxSteps; ++i) {
+  for (int i=0; i< uMaxSteps/4; ++i) {
     // delta transmittance 
     volSample = sampleVolTex(pos);
 
-    if(volSample.w > 0.0) break;
+    if(volSample > 0.0) break;
 
     pos += step;
 
     // no surface
-    if( pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
+    if (outside(pos))
       return 0.0;
 
   }
 
   // find normal at pos (gradient computation)
-
   vec3 N;
-  N.x = sampleVolTex(vec3(pos.x+gStepSize,pos.y,pos.z)).w -
-        sampleVolTex(vec3(pos.x-gStepSize,pos.y,pos.z)).w;
-  N.y = sampleVolTex(vec3(pos.x,pos.y+gStepSize,pos.z)).w -
-        sampleVolTex(vec3(pos.x,pos.y-gStepSize,pos.z)).w;
-  N.z = sampleVolTex(vec3(pos.x,pos.y,pos.z+gStepSize)).w -
-        sampleVolTex(vec3(pos.x,pos.y,pos.z-gStepSize)).w;
+  N = sampleVolTexNormal(pos).xyz;
+
   N = normalize(N);
 
   /* N = normalize(volSample.xyz); */
-
-  vec3 L = normalize(toLocal(uLightP) - pos);
-  vec3 V = normalize(-rd);
+  vec3 L = normalize(toTexture(uLightP) - pos);
+  vec3 V = normalize(rd);
   /* vec3 V = normalize(ro - pos); */
  
-  if (dot(N,V) < 0.0)
+  // If view vector doesn't face normal, return 0
+  if (dot(N,V) > 0.0)
           return 0.0;
 
-  if (dot(N, L) < 0.0)
+  // If light doesn't face normal, return 0
+  if (dot(N,L) < 0.0)
           return 0.0;
 
-  /* // halfway vector */
-  vec3 s = L+V;
-  vec3 H = s / normalize(s);
-
-  vec3 r = normalize(reflect(-V,N));
-
-  step = L * gStepSize * 2;
+  step = L * gStepSize * 4;
 
   // If there's an intersection on the way to the light, stop
-  for (int i=0; i< uMaxSteps/2; ++i) {
-
+  for (int i=0; i< uMaxSteps/4; ++i) {
     pos += step;
-
-    float v = sampleVolTex(pos).w;
-
+    float v = sampleVolTex(pos);
     if(v > 0.0) return 0.0;
 
     // no surface
-    if( pos.x > 1.0 || pos.x < 0.0 ||
-      pos.y > 1.0 || pos.y < 0.0 ||
-      pos.z > 1.0 || pos.z < 0.0)
+    if (outside(pos))
             break;
-
   }
 
-  float alpha = abs(uSpecCoeff);
-  float spec = dot(normalize(H),N);
-  /* float spec = dot(L,r); */
-
-  if (spec < 0.01)
-          return 0.0;
-
-  return pow(spec, uSpecCoeff); // Blinn Phong
+  return getSpecularRadiance(L,V,N);
 
 }
 
@@ -418,19 +392,25 @@ float getStepSize()
 void main()
 {
   // in world coords, just for now
-  vec3 ro = vPos1n;
-  vec3 rd = normalize(ro - toLocal(uCamPos.xyz));
+  vec3 ro = clamp(toTexture(vPos), vec3(0.0,0.0,0.0), vec3(1.0,1.0,1.0));
+  vec3 rd = normalize(ro - toTexture(uCamPos.xyz));
   
   gStepSize = getStepSize();
   
-  gl_FragColor = raymarchLight(ro, rd, uTMK2);
+  light_ret ret = raymarchLight(ro, rd, uTMK2);
+  gl_FragColor = ret.col;
 
-  float spec = abs(raymarchSpec(ro, rd));
-  spec = 1.0 + spec * uSpecMult;
+  vec4 depth_pos = vec4(1000.0,1000.0,1000.0,1.0);
 
-  gl_FragColor *= vec4(spec,spec,spec, 1.0);
+  if (ret.col.a > 0.4)
+          depth_pos = vec4(fromTexture(ret.pos),1.0);
 
-  /* gl_FragColor += vec4(spec,spec,spec, 0.0) * 0.4; */
-  /* gl_FragColor = vec4(spec,spec,spec, 1.0); */
 
+  /////////// Compute depth of fragment
+  vec4 projPos = mvp_matrix * depth_pos;
+  projPos.z /= projPos.w;
+  float dfar = gl_DepthRange.far;
+  float dnear = gl_DepthRange.near;
+  float ddiff = gl_DepthRange.diff;
+  gl_FragDepth = (ddiff * 0.5) * projPos.z + (dfar+dnear) * 0.5;
 }

@@ -8,12 +8,7 @@ material Mat01
     {
         pass Mat01
         {
-            ambient 1.0 0.8040767908096313 0.19592323899269104 1.0
-            diffuse 0.800000011920929 0.6432614422330474 0.15673859352973984 1.0
-            specular 0.5 0.5 0.5 1.0 12.5
-            emissive 0.0 0.0 0.0 1.0
-
-            alpha_to_coverage off
+            alpha_to_coverage on
             colour_write on
             cull_hardware clockwise
             depth_check on
@@ -23,13 +18,21 @@ material Mat01
             light_clip_planes off
             light_scissor off
             lighting on
-            normalise_normals off
+            normalise_normals on
             polygon_mode solid
             scene_blend one zero
             scene_blend_op add
-            shading gouraud
+            shading phong
             transparent_sorting on
 
+            texture_unit 
+            {
+                texture wood2.jpg
+                tex_address_mode wrap
+                scale 0.1 0.1
+                tex_coord_set 0
+                colour_op modulate
+            }
         }
     }
 }

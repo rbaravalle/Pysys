@@ -2,6 +2,7 @@
 
 #include "GameState.hpp"
 #include "ReloadMaterial.hpp"
+#include "OgreWireBoundingBox.h" 
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
@@ -30,6 +31,7 @@ GameState::GameState()
         shadeCoeff = 1.0;
         specCoeff= 1.0;
         specMult = 0.5;
+        misc = 1.0;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -170,8 +172,8 @@ void GameState::createVolumeTexture()
                 ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
                 TEX_TYPE_3D,      // type
                 texW, texH, texD,    // width height depth
-                // MIP_UNLIMITED,                // number of mipmaps
-                0,                // number of mipmaps
+                MIP_UNLIMITED,                // number of mipmaps
+                // 0,                // number of mipmaps
                 PF_L8,     // pixel format -> 8 bits luminance
                 TU_DEFAULT);      // usage; should be TU_DYNAMIC_WRITE_ONLY_DISCARDABLE for
         // textures updated very often (e.g. each frame)
@@ -293,24 +295,90 @@ void GameState::createVolumeTexture()
 
 void GameState::createScene()
 {
+        ////////////////////// Volume texture
         createVolumeTexture();
 
+        //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->m_pViewport;
-        vp->setBackgroundColour (ColourValue(0.1,0.2,0.1));
+        vp->setBackgroundColour (ColourValue(0.1,0.1,0.1));
 
-        m_pSceneMgr->createLight("Light")->setPosition(75,75,75);
+        //////////// Light
+        m_pSceneMgr->setAmbientLight(ColourValue(0.1,0.1,0.1));
 
+        light = m_pSceneMgr->createLight("Light");
+        light->setType(Light::LT_POINT);
+        light->setPosition(100,100,100);
+        // light->setDirection(100,-100,100);
+        light->setDiffuseColour(1,1,1);
+        light->setSpecularColour(1.0,1.0,1.0);
+        light->setSpotlightRange(Radian(M_PI/2), Radian(M_PI/3));
+        // light->setAttenuation(20, 0.5, 1, 1);
+        
+        //////////// Shadows
+        // m_pSceneMgr->setShadowTechnique(SHADOWTYPE_STENCIL_ADDITIVE);
+        // m_pSceneMgr->setShadowTextureSettings( 256, 2);
+        // m_pSceneMgr->setShadowTextureConfig( 0, 512, 512, PF_FLOAT16_R, 50 );
+
+        ////////////////////// BREAD
         breadEntity = m_pSceneMgr->createEntity("BreadEntity", "Cube01.mesh");
         breadNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
         breadNode->attachObject(breadEntity);
         breadNode->setOrientation(Quaternion::IDENTITY);
         breadNode->setPosition(Vector3(0, 0, 0));
         breadNode->setScale(Vector3(10,10,10));
+        breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
 
         breadEntity->getSubEntity(0)->setMaterialName("Bread","General");
 
         breadMat = breadEntity->getSubEntity(0)->getMaterial();
         
+
+        /////////////////////// TABLE
+        Entity* planeEntity;
+        SceneNode* planeNode;
+        planeEntity = m_pSceneMgr->createEntity("PlaneEntity", "Plane.mesh");
+        planeEntity->getSubEntity(0)->setMaterialName("Table","General");
+        planeNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("PlaneNode");
+        planeNode->attachObject(planeEntity);
+        planeNode->setOrientation(Quaternion::IDENTITY);
+        planeNode->setPosition(Vector3(0, 0, 0));
+        planeNode->setScale(Vector3(10,10,10));
+
+        ////////////////////// BACKGROUND
+        // // Create background material
+        // MaterialPtr material = MaterialManager::getSingleton().create("Background", "General");
+        // material->getTechnique(0)->getPass(0)->createTextureUnitState("steel.jpg");
+        // material->getTechnique(0)->getPass(0)->setDepthCheckEnabled(false);
+        // material->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
+        // material->getTechnique(0)->getPass(0)->setLightingEnabled(false);
+ 
+        // Create background rectangle covering the whole screen
+        Rectangle2D* rect = new Rectangle2D(true);
+        rect->setCorners(-1.0, 1.0, 1.0, -1.0);
+        rect->setMaterial("Degrade");
+ 
+        // Render the background before everything else
+        rect->setRenderQueueGroup(RENDER_QUEUE_BACKGROUND);
+ 
+        // Use infinite AAB to always stay visible
+        AxisAlignedBox aabInf;
+        aabInf.setInfinite();
+        rect->setBoundingBox(aabInf);
+ 
+        // Attach background to the scene
+        SceneNode* node = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("Background");
+        node->attachObject(rect);
+
+
+        /////////////// Light obj
+        // Create background rectangle covering the whole screen
+        lightEntity = m_pSceneMgr->createEntity("LightEntity", "Cube01.mesh");
+        lightNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("Light");
+        lightEntity->getSubEntity(0)->setMaterialName("White","General");
+        lightNode->attachObject(lightEntity);
+        lightNode->setPosition(light->getPosition());
+        lightNode->showBoundingBox(true);
+
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -408,8 +476,8 @@ bool GameState::mousePressed(const OIS::MouseEvent &evt, OIS::MouseButtonID id)
 
         if(id == OIS::MB_Left)
         {
-                onLeftPressed(evt);
-                m_bLMouseDown = true;
+                // onLeftPressed(evt);
+                // m_bLMouseDown = true;
         }
         else if(id == OIS::MB_Right)
         {
@@ -540,6 +608,7 @@ void GameState::update(double timeSinceLastFrame)
 
         updateMaterial();
         updateSliders();
+        updateLight(timeSinceLastFrame);
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -558,8 +627,8 @@ void GameState::updateMaterial()
         // lightpos = Ogre::Vector3(sin(ro), cos(ro), 0);
         // try { fparams->setNamedConstant("uLightP", lightpos); } catch (Ogre::Exception) {}
 
-        Ogre::Vector3 campos = m_pCamera->getPosition();
-        try { fparams->setNamedConstant("uCamPos", campos); } catch (Ogre::Exception) {}
+        // Ogre::Vector3 campos = m_pCamera->getPosition();
+        // try { fparams->setNamedConstant("uCamPos", campos); } catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uTMK", tmk); } 
         catch (Ogre::Exception) {}
@@ -591,6 +660,9 @@ void GameState::updateMaterial()
         try { fparams->setNamedConstant("uBackIllum", backIllum); } 
         catch (Ogre::Exception) {}
 
+        try { fparams->setNamedConstant("uMisc", misc); } 
+        catch (Ogre::Exception) {}
+
 }
 
 void GameState::updateSliders()
@@ -605,7 +677,24 @@ void GameState::updateSliders()
         stepsSlider->setValue(steps, false);
         ambientSlider->setValue(ambient, false);
         backIllumSlider->setValue(backIllum, false);
+        miscSlider->setValue(misc, false);
 }
+
+//|||||||||||||||||||||||||||||||||||||||||||||||
+
+void GameState::updateLight(double timeSinceLastFrame)
+{
+        static double elapsed = 0;
+        elapsed += timeSinceLastFrame * 0.001;
+        double se = sin(elapsed);
+        double ce = cos(elapsed);
+
+        Vector3 pos = Vector3(100 * se, 100 , 100 * ce); 
+        light->setPosition(pos);
+        lightNode->setPosition(pos);
+        // light->setDirection(-pos);
+}
+
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 void GameState::buildGUI()
@@ -659,7 +748,7 @@ void GameState::buildGUI()
                                                     "shininess",  200,80,44,0,10,101);
 
         stepsSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", 
-                                                "steps",  200,80,44,20,200,21);
+                                                "steps",  200,80,44,16,256,241);
 
         ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
                                                   "ambient",  200,80,44,-3,3,61);
@@ -675,6 +764,9 @@ void GameState::buildGUI()
 
         specMultSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specMult", 
                                                      "specMult", 200,80,44,0.1,2,39);
+
+        miscSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc", 
+                                               "misc", 200,80,44,0,10,101);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
@@ -745,14 +837,19 @@ void GameState::sliderMoved(OgreBites::Slider * slider)
                 steps = value;
         }
 
-        if (slider->getName() == "ambient") 
+        if (slider == ambientSlider) 
         {
                 ambient = value;
         }
 
-        if (slider->getName() == "backIllum") 
+        if (slider == backIllumSlider) 
         {
                 backIllum = value;
+        }
+
+        if (slider == miscSlider) 
+        {
+                misc = value;
         }
 
 }

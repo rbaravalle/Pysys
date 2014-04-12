@@ -1,0 +1,39 @@
+vertex_program degrade_vertex glsl
+{
+        source degv.glsl
+}
+
+fragment_program degrade_fragment glsl
+{
+        source degf.glsl
+}
+
+material Degrade
+{
+        receive_shadows on
+
+	technique
+	{
+		pass
+		{
+
+                        scene_blend alpha_blend
+                        depth_check off
+                        depth_write off
+                        lighting off
+                        
+                        vertex_program_ref degrade_vertex
+                        {
+                                param_named uOffset float3 0 0 0
+                        }
+
+                        fragment_program_ref degrade_fragment
+                        {
+                                param_named uCol1     float3 0.5 0.6 1.0
+                                param_named uCol2     float3 0.8 0.9 1.0
+                        }
+		}
+	}
+}
+
+
