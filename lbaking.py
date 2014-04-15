@@ -19,14 +19,14 @@ import baking1D as bak
 bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
 delta = N/16 # radius to check for intersections with other bubbles
 
-
+print "Delta: ", delta
 
 def fdist(a): # distance depends on size
     #if(a > 40): return 20*a
     #if(a > 30): return 20*a
     #if(a > 20): return 20*a
     #if(a > 10): return 20*a
-    return 11*a
+    return 2*a
 
 #def ffrac(r):
     #if(r > 40): return 0.75
@@ -39,7 +39,7 @@ def drawShape(draw,x,y,r,c):
     if(c == 0): return
     r = int(r)
     #print str()
-    rr = 255#int(r+10)
+    rr = 0#int(r+10)
     draw.ellipse((x-r, y-r, x+r, y+r), fill=rr)
     return
     r2 = r
@@ -88,7 +88,7 @@ class Lindenmayer(object):
         # Finally store the stream ...
         self.stream = stream
 
-        self.arr = bak.calc()
+        self.arr = np.zeros((N,N))# bak.calc()
         print "Baking Bread..."
 
         # state
@@ -105,20 +105,24 @@ class Lindenmayer(object):
     # calculates new radius based on a poisson distribution (?)
     def poisson(self):
         global bubbles, delta
-        x1 = min(max(self.x-delta,0),N)
-        y1 = min(max(self.y-delta,0),N)
+        #x1 = min(max(self.x-delta,0),N)
+        #y1 = min(max(self.y-delta,0),N)
+        x1 = self.x
+        y1 = self.y
 
         suma = 0.0
         x0 = max(x1-delta,0)
         y0 = max(y1-delta,0)
         x2 = min(x1+delta,N)
         y2 = min(y1+delta,N)
+        #print x0,y0,x2,y2
+        #print abs(x0-x2),abs(y0-y2)
         for i in range(x0,x2):
             for j in range(y0,y2):
-                #d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
+                d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
                 #if(d==0): suma+=bubbles[i,j]
                 #else:
-                suma += bubbles[i,j]#*delta*delta
+                suma += bubbles[i,j]#*(np.sqrt(2)*delta+1-d)/(np.sqrt(2)*delta)
                 #suma += np.pi*bubbles[i,j]*bubbles[i,j]
                 #if(bubbles[i,j]): print "RADIO:" , bubbles[i,j]
 
@@ -130,24 +134,25 @@ class Lindenmayer(object):
         #1/ sum_D (cant*radios*D^2) 
 
         #D = np.sqrt(np.power((self.x-self.height/2),2)+np.power((self.y-self.width/2),2))
-        G = 1+4*self.arr[min(self.width,max(self.x-1,0)),min(self.width,max(self.y-1,0))]#D/300 #gelatinization
-        print "G: ", G
+        G = 1#+2.5*self.arr[min(self.width,max(self.x-1,0)),min(self.width,max(self.y-1,0))]#D/300 #gelatinization
+        #print "G: ", G
 
-        if(suma > 0.0):
-            #print "NUEVO RADIO: ", np.floor(factor*(1/suma))/2, self.x, self.y
+        if(suma > 0):
             m = 1/suma
-            return np.random.randint(delta*m/2,delta*m+1)/G
+            if(delta*m < 1): return np.random.randint(0,1)
+            return np.random.randint(0,delta*m)
         else: # free
-            #print "NUEVO RADIO: ", delta/4-1, self.x, self.y
-            return np.random.randint(delta/2.6,delta/2-1)/G
+            return np.random.randint(0,delta/2+delta/4)
 
     def rotate(self):
         #self.x += self.r
         #self.y += self.r
         #d = 2*np.pi*random.random()
         ang = self.angle#+random.random()/10
-        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
-        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
+        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r/2),int(self.r/2))
+        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r/2),int(self.r/2))
+        #self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
+        #self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
         #pass
 
     def moveX(self):
@@ -292,10 +297,15 @@ class Lindenmayer(object):
             return
             
         result = self.axiom
-        for repeat in range(0, self.iterations):
+        I = Image.new('L',(self.width,self.height),(255))
+        draw = ImageDraw.Draw(I)
+        for i in range(0, self.iterations):
             result = self.translate(result)
+            I,draw,res = self.draw2(result,i,I,draw)
 
-        return result
+        #result = self.translate(result)
+        #I,draw,res = self.draw2(result,i,I,draw)
+        return res
 
     def translate(self, axiom):
         result = ''
@@ -325,11 +335,11 @@ class Lindenmayer(object):
             result += ''.join(map(str, self.rules.get(key, axiom[i])))
         return result
 
-    def delta(self,x,y):
-        temp = (np.max(self.arr)-self.arr[x,y])
+    #def delta(self,x,y):
+    #    temp = (np.max(self.arr)-self.arr[x,y])
         #if(temp == 0):
         #return 40
-        return 30*(temp)
+    #    return 30*(temp)
 
     def rad(self):
         #x1 = min(self.width,max(self.x-1,0))
@@ -337,13 +347,13 @@ class Lindenmayer(object):
         #return self.r+self.delta(x1,y1)
         return self.poisson()
 
-    def draw2(self,stream):
+    def draw2(self,stream,num,I,draw):
         maxX = self.width
         maxY = self.height
         import Image
         print self.width,self.height
-        I = Image.new('L',(self.width,self.height),(0))
-        draw = ImageDraw.Draw(I)
+        #I = Image.new('L',(self.width,self.height),(255))
+        #draw = ImageDraw.Draw(I)
 
         # Process the result stream symbol by symbol.
         for i in range(len(stream)):
@@ -366,79 +376,47 @@ class Lindenmayer(object):
                     #print 'Params:', L
                     
             if c == 'F':
-                # draw
-                #raphael.forward(self.lineLength)
-    
-                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
                 r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,r,2)
+                drawShape(draw,x1,y1,r,2)
                 bubbles[x1,y1] = r # set actual bubble
 
             if c == 'G':
-                # draw
-                #raphael.forward(self.lineLength)
-    
-                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
                 r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,r,2)
+                drawShape(draw,x1,y1,r,2)
                 bubbles[x1,y1] = r # set actual bubble
             if c == 'H':
-                # draw
-                #raphael.forward(self.lineLength)
-    
-                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
                 r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,r,2)
+                drawShape(draw,x1,y1,r,2)
                 bubbles[x1,y1] = r # set actual bubble
-                #self.forward()
             if c == 'I':
-                # draw
-                #raphael.forward(self.lineLength)
-    
-                #draw.ellipse((self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r), fill=255)
+
                 r = self.rad()
                 x1 = min(self.width,max(self.x-1,0))
                 y1 = min(self.height,max(self.y-1,0))
-                drawShape(draw,self.x,self.y,r,2)
+                drawShape(draw,x1,y1,r,2)
                 bubbles[x1,y1] = r # set actual bubble
                 #self.forward()
             if c == 'X':
-                # Move forward
-                #raphael.forward(self.lineLength)
+
                 self.moveX()
             if c == 'x':
-                # Move forward
-                #raphael.forward(self.lineLength)
                 self.mmoveX()
             if c == 'Y':
-                # Move forward
-                #raphael.forward(self.lineLength)
                 self.moveY()
             if c == 'y':
-                # Move forward
-                #raphael.forward(self.lineLength)
                 self.mmoveY()
             if c == 'f':
-                #self.forward()
                 self.r = self.r*ffrac(self.r)
-                # Move forward without drawing
-                #raphael.penup()
-                #raphael.forward(self.lineLength)
-                #raphael.pendown()
             if c == '+':
-                # rotate clockwise
-                #raphael.right(self.alpha)
                 self.angle+=self.alpha
                 self.rotate()
             if c == '-':
-                # rotate anti-clockwise
-                #raphael.left(self.alpha)
                 self.angle-=self.alpha
                 self.rotate()
             if c == '[':
@@ -453,25 +431,19 @@ class Lindenmayer(object):
                 self.x, self.y, self.r,self.angle,self.alpha = self.stack.pop()
                 self.xparent = self.x
                 self.yparent = self.y
-                #raphael.penup()
-                #raphael.pencolor(self.lineColor)
-                #raphael.pensize(self.lineWidth)
-                #raphael.goto(p)
-                #raphael.setheading(d)
-                #raphael.pendown()
 
         # now save the image
-        I.save('lbread.png')
+        I.save('linbread'+str(num)+'.png')
         print np.asarray(I)/255
-        return np.asarray(I)#/255
+        return I,draw,np.asarray(I)#/255
 
 def lin():
     with open('bread.txt', 'r') as fp:
         stream = fp.read()
     lindenmayer = Lindenmayer(stream)
-    stream = lindenmayer.iterate()
+    return lindenmayer.iterate()
     #lindenmayer.draw(stream, outputFile)
-    return lindenmayer.draw2(stream)
+    #return lindenmayer.draw2(stream)
      
         
 
@@ -521,7 +493,7 @@ def main(argv):
     lindenmayer = Lindenmayer(stream)
     stream = lindenmayer.iterate()
     #lindenmayer.draw(stream, outputFile)
-    lindenmayer.draw2(stream)
+    #lindenmayer.draw2(stream)
     
 if __name__ == "__main__":
     main(sys.argv[1:])

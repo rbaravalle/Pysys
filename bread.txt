@@ -3,7 +3,7 @@
 # Project: Bread
 
 # Number of iterations
-Iterations : 11
+Iterations : 7
 # Default angle
 Angle : '0
 #Alpha : '10
@@ -23,7 +23,5 @@ Background : #ffffff
 # Axiom definition
 Axiom : F
 # Definition of mappings
-F = I[---G][-+G][++G]
-G = I[+++H][--H][++H]
-H = f[++G][--G]
+F = I[+F][++F][+++F][++++F]
 
