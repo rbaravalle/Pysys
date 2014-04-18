@@ -26,7 +26,7 @@ def fdist(a): # distance depends on size
     #if(a > 30): return 20*a
     #if(a > 20): return 20*a
     #if(a > 10): return 20*a
-    return 2*a
+    return 1.1*a
 
 #def ffrac(r):
     #if(r > 40): return 0.75
@@ -40,8 +40,16 @@ def drawShape(draw,x,y,r,c):
     r = int(r)
     #print str()
     rr = 0#int(r+10)
-    draw.ellipse((x-r, y-r, x+r, y+r), fill=rr)
-    return
+    for i in range(x-r,x+r):
+        for j in range(y-r,y+r):
+            if(r<= 2):
+                if((x-i)*(x-i)+(y-j)*(y-j)< r*r):
+                    draw.point((i,j),fill=rr)
+            else:
+                if((x-i)*(x-i)+(y-j)*(y-j) < r*r+np.random.randint(-r,r)):
+                    draw.point((i,j),fill=rr)
+    #draw.ellipse((x-r, y-r, x+r, y+r), fill=rr)
+    #return
     r2 = r
     x2 = x
     y2 = y
@@ -88,7 +96,7 @@ class Lindenmayer(object):
         # Finally store the stream ...
         self.stream = stream
 
-        self.arr = np.zeros((N,N))# bak.calc()
+        self.arr =  bak.calc()#np.zeros((N,N))#
         print "Baking Bread..."
 
         # state
@@ -117,12 +125,14 @@ class Lindenmayer(object):
         y2 = min(y1+delta,N)
         #print x0,y0,x2,y2
         #print abs(x0-x2),abs(y0-y2)
+        cant = 0
         for i in range(x0,x2):
             for j in range(y0,y2):
-                d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
+                #d = np.sqrt((x1-i)*(x1-i) + (y1-j)*(y1-j)).astype(np.float32) # distance
                 #if(d==0): suma+=bubbles[i,j]
                 #else:
                 suma += bubbles[i,j]#*(np.sqrt(2)*delta+1-d)/(np.sqrt(2)*delta)
+                cant += bubbles[i,j]>0
                 #suma += np.pi*bubbles[i,j]*bubbles[i,j]
                 #if(bubbles[i,j]): print "RADIO:" , bubbles[i,j]
 
@@ -137,20 +147,26 @@ class Lindenmayer(object):
         G = 1#+2.5*self.arr[min(self.width,max(self.x-1,0)),min(self.width,max(self.y-1,0))]#D/300 #gelatinization
         #print "G: ", G
 
+        x1 = min(max(self.x-delta,0),N)
+        y1 = min(max(self.y-delta,0),N)
+        baking = self.arr[x1,y1]*4
+        #print baking, ": baking"
+
         if(suma > 0):
             m = 1/suma
-            if(delta*m < 1): return np.random.randint(0,1)
-            return np.random.randint(0,delta*m)
+            #if(delta*m < 1): return np.random.randint(0,2)
+            if(cant>10): return 0
+            return np.random.randint(0,delta*m+2)/baking
         else: # free
-            return np.random.randint(0,delta/2+delta/4)
+            return np.random.randint(0,delta/2+delta/2)/baking
 
     def rotate(self):
         #self.x += self.r
         #self.y += self.r
         #d = 2*np.pi*random.random()
-        ang = self.angle#+random.random()/10
-        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r/2),int(self.r/2))
-        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r/2),int(self.r/2))
+        ang = self.angle+random.random()/6
+        self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
+        self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
         #self.x = self.xparent + np.int32(fdist(self.r)*np.cos(ang))+randint(-int(self.r),int(self.r))
         #self.y = self.yparent + np.int32(fdist(self.r)*np.sin(ang))+randint(-int(self.r),int(self.r))
         #pass
