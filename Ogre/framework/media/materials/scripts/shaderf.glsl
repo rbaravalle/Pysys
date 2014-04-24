@@ -221,143 +221,75 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     float uBackIllum2 = uBackIllum;
     vec3 sampleCol = uColor;
     //vec3 sampleCol2 = sampleCol;
-    if(isCrust(pos)) {
-        tr2 = tr*2;
-        sampleCol = vec3(146.0/255.0,97.0/255.0,59.0/255.0);
 
-        // delta transmittance
-            float dtm = exp( -tr2 * gStepSize * volSample);
-            tm *= dtm;
+    if (isCrust(pos)) {
+            tr2 *= 2;
+            sampleCol = vec3(146.0/255.0,97.0/255.0,59.0/255.0);
+    }
+    // delta transmittance
+    float dtm = exp( -tr2 * gStepSize * volSample);
+    tm *= dtm;
 
-            // accumulate color
-            col += (1.0-dtm) * sampleCol * uAmbient * 0.1;
-            //col += sampleCol * dtm * uBackIllum * 0.02;
+    // accumulate color
+    col += (1.0-dtm) * sampleCol * uAmbient * 0.1;
+    col += sampleCol * dtm * uBackIllum * 0.02;
 
-            // if there's no mass at pos, continue
-            if (volSample < 0.1) {
-                    pos += step;
-                    continue;
-            }
+    // if there's no mass at pos, continue
+    if (volSample < 0.1) {
+            pos += step;
+            continue;
+    }
 
-            // get contribution per light
-            for (int k=0; k<LIGHT_NUM; ++k) {
-                    vec3 L = normalize( toTexture(uLightP)-pos ); // Light direction
-                    float ltm = getTransmittance(pos,L); // Transmittance towards light
+    // get contribution per light
+    for (int k=0; k<LIGHT_NUM; ++k) {
+            vec3 L = normalize( toTexture(uLightP)-pos ); // Light direction
+            float ltm = getTransmittance(pos,L); // Transmittance towards light
 
-                    float mean;
-                    float d = length(pos-ro);  // Distance to hit point
-                    float r = d*tan(uPhi/2.0); // 
+            float mean;
+            float d = length(pos-ro);  // Distance to hit point
+            float r = d*tan(uPhi/2.0); // 
 
-                    // Generate a vector cycling direction each step
-                    if (k%6 < 3)
-                            r *= -1;
-                    vec3 newDir = vec3(0.0,0.0,0.0);
-                    if (k%3 == 0)
-                            newDir.x = r;
-                    else if (k%3 == 1)
-                            newDir.y = r;
-                    else 
-                            newDir.z = r;
+            // Generate a vector cycling direction each step
+            if (k%6 < 3)
+                    r *= -1;
+            vec3 newDir = vec3(0.0,0.0,0.0);
+            if (k%3 == 0)
+                    newDir.x = r;
+            else if (k%3 == 1)
+                    newDir.y = r;
+            else 
+                    newDir.z = r;
 
-                    // Get new vector direction transmittance and mix with light transmittance
-                    float ltm2 = getTransmittance(pos,normalize(L+newDir));
-                    mean = 0.6 * ltm + 0.4 * ltm2;
+            // Get new vector direction transmittance and mix with light transmittance
+            float ltm2 = getTransmittance(pos,normalize(L+newDir));
+            mean = 0.6 * ltm + 0.4 * ltm2;
 
-                    float sampleCoeff = 1.0 * mean;
-                    float uShininess2 = 2.0;
-                    sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess2 * sampleCoeff;
-                    sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess2 * sampleCoeff;
-                    sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess2 * sampleCoeff;
+            float sampleCoeff = uShadeCoeff * mean;
+            sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess * sampleCoeff;
+            sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess * sampleCoeff;
+            sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess * sampleCoeff;
 
-                    // Accumulate color based on delta transmittance and mean transmittance
-                    col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
+            // Accumulate color based on delta transmittance and mean transmittance
+            col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
 
-                    // If first hit and not blocked, calculate specular lighting
-                    if (first) {
+            // If first hit and not blocked, calculate specular lighting
+            if (first) {
 
-                            ret.pos = pos;
+                    ret.pos = pos;
 
-                            first = false;
+                    first = false;
 
-                            if (ltm > 0.6) {
-                                    vec3 N = normalize(sampleVolTexNormal(pos).xyz); // Normal
-                                    vec3 V = normalize(rd); // View vector
-                            
-                                    // If view vector faces normal and light faces normal
-                                    if (dot(N,V) < 0.0 && dot(N,L) > 0.0) {
-                                            col += vec3(getSpecularRadiance(L,V,N)) * 0.2 * uSpecMult;
-                                    }
+                    if (ltm > 0.6) {
+                            vec3 N = normalize(sampleVolTexNormal(pos).xyz); // Normal
+                            vec3 V = normalize(rd); // View vector
+                        
+                            // If view vector faces normal and light faces normal
+                            if (dot(N,V) < 0.0 && dot(N,L) > 0.0) {
+                                    col += vec3(getSpecularRadiance(L,V,N)) * 0.2 * uSpecMult;
                             }
                     }
             }
-
     }
-    else {
-        // delta transmittance
-        float dtm = exp( -tr2 * gStepSize * volSample);
-        tm *= dtm;
-
-        // accumulate color
-        col += (1.0-dtm) * sampleCol * uAmbient * 0.1;
-        col += sampleCol * dtm * uBackIllum * 0.02;
-
-        // if there's no mass at pos, continue
-        if (volSample < 0.1) {
-                pos += step;
-                continue;
-        }
-
-        // get contribution per light
-        for (int k=0; k<LIGHT_NUM; ++k) {
-                vec3 L = normalize( toTexture(uLightP)-pos ); // Light direction
-                float ltm = getTransmittance(pos,L); // Transmittance towards light
-
-                float mean;
-                float d = length(pos-ro);  // Distance to hit point
-                float r = d*tan(uPhi/2.0); // 
-
-                // Generate a vector cycling direction each step
-                if (k%6 < 3)
-                        r *= -1;
-                vec3 newDir = vec3(0.0,0.0,0.0);
-                if (k%3 == 0)
-                        newDir.x = r;
-                else if (k%3 == 1)
-                        newDir.y = r;
-                else 
-                        newDir.z = r;
-
-                // Get new vector direction transmittance and mix with light transmittance
-                float ltm2 = getTransmittance(pos,normalize(L+newDir));
-                mean = 0.6 * ltm + 0.4 * ltm2;
-
-                float sampleCoeff = uShadeCoeff * mean;
-                sampleCol.x = pow(sampleCol.x, sampleCoeff) * uShininess * sampleCoeff;
-                sampleCol.y = pow(sampleCol.y, sampleCoeff) * uShininess * sampleCoeff;
-                sampleCol.z = pow(sampleCol.z, sampleCoeff) * uShininess * sampleCoeff;
-
-                // Accumulate color based on delta transmittance and mean transmittance
-                col += (1.0-dtm) * sampleCol * uLightC * tm * mean;
-
-                // If first hit and not blocked, calculate specular lighting
-                if (first) {
-
-                        ret.pos = pos;
-
-                        first = false;
-
-                        if (ltm > 0.6) {
-                                vec3 N = normalize(sampleVolTexNormal(pos).xyz); // Normal
-                                vec3 V = normalize(rd); // View vector
-                        
-                                // If view vector faces normal and light faces normal
-                                if (dot(N,V) < 0.0 && dot(N,L) > 0.0) {
-                                        col += vec3(getSpecularRadiance(L,V,N)) * 0.2 * uSpecMult;
-                                }
-                        }
-                }
-        }
-   }
 
     pos += step;
   }
@@ -498,15 +430,18 @@ void main()
 
   vec4 depth_pos = vec4(1000.0,1000.0,1000.0,1.0);
 
-  if (ret.col.a > 0.4)
+  if (ret.col.a > 0.4) {
           depth_pos = vec4(fromTexture(ret.pos),1.0);
 
-
-  /////////// Compute depth of fragment
-  vec4 projPos = mvp_matrix * depth_pos;
-  projPos.z /= projPos.w;
-  float dfar = gl_DepthRange.far;
-  float dnear = gl_DepthRange.near;
-  float ddiff = gl_DepthRange.diff;
-  gl_FragDepth = (ddiff * 0.5) * projPos.z + (dfar+dnear) * 0.5;
+          /////////// Compute depth of fragment
+          vec4 projPos = mvp_matrix * depth_pos;
+          projPos.z /= projPos.w;
+          float dfar = gl_DepthRange.far;
+          float dnear = gl_DepthRange.near;
+          float ddiff = gl_DepthRange.diff;
+          gl_FragDepth = (ddiff * 0.5) * projPos.z + (dfar+dnear) * 0.5;
+  } else {
+          gl_FragDepth = gl_DepthRange.far;
+  }
+  
 }

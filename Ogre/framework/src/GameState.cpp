@@ -344,6 +344,18 @@ void GameState::createScene()
         planeNode->setPosition(Vector3(0, 0, 0));
         planeNode->setScale(Vector3(10,10,10));
 
+        /////////////////////// KNIFE
+        Entity* knifeEntity;
+        SceneNode* knifeNode;
+        knifeEntity = m_pSceneMgr->createEntity("KnifeEntity", "knife.mesh");
+        knifeEntity->getSubEntity(0)->setMaterialName("Knife","General");
+        knifeNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("KnifeNode");
+        knifeNode->attachObject(knifeEntity);
+        Quaternion ori(Radian(-0.5), Vector3(0,1,0));
+        knifeNode->setOrientation(ori);
+        knifeNode->setPosition(Vector3(30, 1, -30));
+        knifeNode->setScale(Vector3(50,50,50));
+
         ////////////////////// BACKGROUND
         // // Create background material
         // MaterialPtr material = MaterialManager::getSingleton().create("Background", "General");
