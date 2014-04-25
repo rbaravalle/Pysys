@@ -6,7 +6,7 @@ import ImageDraw
 from lparams import *
 import baking1D as bak
 
-N = 300
+N = 500
 maxR = N/20
 
 
@@ -14,6 +14,9 @@ bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
 delta = N/16 # radius to check for intersections with other bubbles
 I = Image.new('L',(N,N),(255))
 draw = ImageDraw.Draw(I)
+arr = bak.calc()
+print arr[32/2]
+
 
 # calculates new radius based on a poisson distribution (?)
 def poisson(x,y):
@@ -66,10 +69,10 @@ def drawShape(x,y,r,c):
     else:
         for i in range(x-r,x+r):
             for j in range(y-r,y+r):
-                if((x-i)*(x-i)+(y-j)*(y-j) < r*r+np.random.randint(-r,r)):
+                if((x-i)*(x-i)+(y-j)*(y-j)<r*r):# < r*r+np.random.randint(-r,r)):
                     draw.point((i,j),fill=rr)
     #draw.ellipse((x-r, y-r, x+r, y+r), fill=rr)
-    #return
+    return
     r2 = r
     x2 = x
     y2 = y
@@ -96,9 +99,37 @@ def main():
     global I
     maxx = 10000
     
+    a = 0.000004#0.001 # amount of rotation
+
+    arr = np.zeros((N,N,2)) # vector field
+    for i in range(0,N):
+        for j in range(0,N):
+            arr[i,j][0] = np.sign(i-N/2)*((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2))/400
+            arr[i,j][1] = np.sign(j-N/2)*((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2))/400
+
     for i in range (0,maxx):
         shape(np.random.randint(0,N),np.random.randint(0,N))
+
+
         if(i%500 == 0):
-            I.save('fractal'+str(i)+'Bread.png')
+
+            I2 = Image.new("L",(N,N))
+            for x in range(0,N):    
+                for y in range(0,N):
+                    #dist = 4*(x-N/2)*(x-N/2)+(y-N/2)*(y-N/2)
+                    #angle = -arr[np.floor(x/32),np.floor(y/32)]*2#*dist#*np.exp(-(x*x+y*y)/(b*b))
+                    #print angle, dist
+                    u = x+arr[x,y,0]#np.cos(angle)*x - np.sin(angle)*y
+                    v = y+arr[x,y,1]
+                    #print x,y,u,v
+                    #u2 = min(N-1,max(u,0))
+                    #v2 = min(N-1,max(v,0))
+                    if(u < 0 or u >= N or v < 0 or v >= N):
+                        value = 0#I.getpixel((np.floor(u)%N,np.floor(v)%N))
+                    else:
+                        value = I.getpixel((np.floor(u),np.floor(v)))
+                    I2.putpixel((x,y),value)
+
+            I2.save('fractal'+str(i)+'Bread.png')
 
 main()
