@@ -105,13 +105,20 @@ float sampleVolTexLower(vec3 pos)
 
 bool isCrust(vec3 pos) {
     float limit = (pos.x-0.5)*(pos.x-0.5)+(pos.y-0.5)*(pos.y-0.5);
-    
-    return (pos.x < 0.03 || pos.x > 0.97 || pos.y < 0.52) || limit > uMisc/4.0 && limit < uMisc/4.0+0.05;
+    float hx = 0.5;
+    float hy = 0.91;
+    float dist = (pos.x-hx)*(pos.x-hx)+(pos.y-hy)+(pos.y-hy);
+    bool hongo = dist < 0.30 && dist > 0.1;
+    return ((pos.y < 0.6 && (pos.x < 0.09 || pos.x > 0.91 )) || 
+           (pos.y > 0.6 && (pos.x < 0.05 || pos.x > 0.95 )) || hongo || pos.y < 0.03) || limit > uMisc/4.0 && limit < uMisc/4.0+0.05;
 }
 
 bool outsideCrust(vec3 pos) {
+    if(int(pos.z*10) % 2 == 0 && pos.z < 0.5) return true;
+
     float limit = (pos.x-0.5)*(pos.x-0.5)+(pos.y-0.5)*(pos.y-0.5);
-    return limit > uMisc/4.0+0.05;
+    bool outr = (pos.y < 0.6 && (pos.x < 0.06 || pos.x > 0.94 ));
+    return outr || limit > uMisc/4.0+0.05;
 }
 
 float sampleVolTex(vec3 pos) 
@@ -151,16 +158,15 @@ float getTransmittance(vec3 ro, vec3 rd) {
   
   float tm = 1.0;
   
-  for (int i=0; i<int(uMaxSteps); ++i) {
+  for (int i=0; i<int(uMaxSteps/4.0); ++i) {
           float sample = sampleVolTex(pos);
           tm *= exp( -uTMK*gStepSize * sample);
     
     pos += step;
     
-    if (tm < uMinTm || outside(pos))
+    if (tm < uMisc/10.0 || outside(pos))
       break;
   }
-  
   return tm;
 }
 
@@ -219,7 +225,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     float tr2 = tr;
     float gStepSize2 = gStepSize;
     float uBackIllum2 = uBackIllum;
-    vec3 sampleCol = uColor;
+    vec3 sampleCol = uColor;//vec3(224.0/255.0,234/255.0,194/255.0);//uColor;
     //vec3 sampleCol2 = sampleCol;
 
     if (isCrust(pos)) {
@@ -296,7 +302,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
   
   float alpha = 1.0-tm;
-  vec3 shade = col/alpha;
+  vec3 shade = col/(pow(alpha,uMisc/2.0));
 
   ret.col = vec4(shade, pow(alpha * 2,2));
   return ret;
@@ -426,7 +432,15 @@ void main()
   light_ret ret = raymarchLight(ro, rd, uTMK2);
   vec4 r = ret.col;
   //if(vPos.x*vPos.x+vPos.y*.y) ret.col+=vec4(113.0/255.0,68.0/255.0,8.0/255.0,0.0);
-  gl_FragColor = ret.col;
+
+vec4 a = vec4(0.0,0.0,0.0,0.0);
+vec4 b = vec4(1.0,1.0,1.0,1.0);
+gl_FragColor = clamp(ret.col+ vec4(0.3,0.2,0.1,0.0),a,b) + vec4(0.3,0.3,0.3,0.0);
+  //gl_FragColor = ret.col;
+
+    /*vec4 a = vec4(0.0,0.0,0.0,0.0);
+    vec4 b = vec4(1.0,1.0,1.0,1.0);
+    gl_FragColor = clamp(raymarchLight(ro, rd,uTMK2) + vec4(0.3,0.2,0.1,0.0),a,b) + vec4(0.3,0.3,0.3,0.0);*/
 
   vec4 depth_pos = vec4(1000.0,1000.0,1000.0,1.0);
 

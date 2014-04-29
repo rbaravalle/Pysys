@@ -20,18 +20,18 @@ GameState::GameState()
 
         m_pDetailsPanel             = 0;
 
-        tmk = 4.0;
-        tmk2 = 5.0;
-        mintm = 0.5;
+        tmk = 15.0;
+        tmk2 = 25.0;
+        mintm = 0.2;
         shininess = 1.0;
-        steps = 64.0;
-        ucolor = Vector3(1.0,1.0,1.0);
-        ambient = 0;
-        backIllum = 0;
-        shadeCoeff = 1.0;
-        specCoeff= 1.0;
-        specMult = 0.5;
-        misc = 1.0;
+        steps = 140.0;
+        ucolor = Vector3(0.8,0.7,0.6);
+        ambient = 0.3;
+        backIllum = 0.0;
+        shadeCoeff = 1.1;
+        specCoeff= 5.0;
+        specMult = 0.1;
+        misc = 1.3;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -341,7 +341,7 @@ void GameState::createScene()
         planeNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("PlaneNode");
         planeNode->attachObject(planeEntity);
         planeNode->setOrientation(Quaternion::IDENTITY);
-        planeNode->setPosition(Vector3(0, 0, 0));
+        planeNode->setPosition(Vector3(0, -10, 0));
         planeNode->setScale(Vector3(10,10,10));
 
         /////////////////////// KNIFE
@@ -353,7 +353,7 @@ void GameState::createScene()
         knifeNode->attachObject(knifeEntity);
         Quaternion ori(Radian(-0.5), Vector3(0,1,0));
         knifeNode->setOrientation(ori);
-        knifeNode->setPosition(Vector3(30, 1, -30));
+        knifeNode->setPosition(Vector3(30, -9, -30));
         knifeNode->setScale(Vector3(50,50,50));
 
         ////////////////////// BACKGROUND
