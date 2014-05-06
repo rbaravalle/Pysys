@@ -1,0 +1,69 @@
+// **-- Begin GLSL Section --**
+vertex_program DepthShadowmap/CasterVP_GLSL glsl
+{
+    source DepthShadowmapCasterVp.glsl
+    
+    default_params
+    {
+        param_named_auto worldViewProj worldviewproj_matrix
+	param_named_auto texelOffsets texel_offsets
+    }
+}
+
+
+fragment_program DepthShadowmap/CasterFP_GLSL glsl
+{
+    source DepthShadowmapCasterFp.glsl
+    
+    default_params
+    {
+    }
+}
+
+// **-- End GLSL Section --**
+
+// **-- Begin Unified Section --**
+vertex_program DepthShadowmap/CasterVP unified
+{
+    delegate DepthShadowmap/CasterVP_GLSL
+}
+fragment_program DepthShadowmap/CasterFP unified
+{
+    delegate DepthShadowmap/CasterFP_GLSL
+}
+
+// **-- End Unified Section --**
+
+
+// Generic Shadow caster material (floating point shadowmap)
+material DepthShadowmap/Caster/Bread
+{
+    technique
+    {
+        pass 
+        {
+            vertex_program_ref DepthShadowmap/CasterVP
+            {
+            }
+            fragment_program_ref DepthShadowmap/CasterFP
+            {
+                param_named uTex       int         0
+                param_named uMaxSteps  int         128
+                param_named uTMK       float       4.0
+                param_named uTMK2      float       15.0
+                param_named_auto inv_world_matrix  inverse_world_matrix 
+                param_named_auto world_matrix      world_matrix 
+                param_named_auto mvp_matrix        worldviewproj_matrix
+                param_named_auto uCamPos           camera_position_object_space
+            }
+
+            texture_unit {
+                texture volumeTex 3d unlimited none PF_L8 
+                tex_address_mode clamp clamp clamp
+                filtering point
+                max_anisotropy 8
+            }
+        }
+    }
+}
+

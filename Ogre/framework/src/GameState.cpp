@@ -24,7 +24,7 @@ GameState::GameState()
         tmk2 = 25.0;
         mintm = 0.2;
         shininess = 1.0;
-        steps = 140.0;
+        steps = 64.0;
         ucolor = Vector3(0.8,0.7,0.6);
         ambient = 0.3;
         backIllum = 0.0;
@@ -45,9 +45,11 @@ void GameState::enter()
 
         m_pSceneMgr->addRenderQueueListener(OgreFramework::getSingletonPtr()->m_pOverlaySystem);
 
+        /////////////////// Setup Ray queries (unused)
         m_pRSQ = m_pSceneMgr->createRayQuery(Ray());
         m_pRSQ->setQueryMask(OGRE_HEAD_MASK);
 
+        ////////////////// Setup Camera
         m_pCamera = m_pSceneMgr->createCamera("GameCamera");
         m_pCamera->setPosition(Vector3(5, 60, 60));
         m_pCamera->lookAt(Vector3(5, 20, 0));
@@ -59,9 +61,31 @@ void GameState::enter()
         OgreFramework::getSingletonPtr()->m_pViewport->setCamera(m_pCamera);
         m_pCurrentObject = 0;
 
+        ////////////////// Setup GUI
         buildGUI();
 
+        ////////////////// Setup Scene
         createScene();
+
+        ////////////////// Setup shadow params
+        m_pSceneMgr->setShadowFarDistance(100);
+        m_pSceneMgr->setShadowTextureCount(2);
+        m_pSceneMgr->setShadowTextureSelfShadow(true);
+        m_pSceneMgr->setShadowCasterRenderBackFaces(false);
+        m_pSceneMgr->setShadowTextureCasterMaterial("DepthShadowmap/Caster/Bread");
+        m_pSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_ADDITIVE_INTEGRATED);
+        m_pSceneMgr->setShadowTextureConfig( 0, 2048, 2048, PF_FLOAT32_R );
+        // m_pSceneMgr->setShadowTexturePixelFormat(Ogre::PF_FLOAT32_R);
+        // m_pSceneMgr->setShadowTextureSize(1024);
+
+        tableEntity->getSubEntity(0)->getMaterial()->setReceiveShadows(true);
+        tableEntity->getSubEntity(0)->setMaterialName("DepthShadowmap/Receiver/Float",
+                                                      "General");
+        breadEntity->setCastShadows(true);
+        
+        // OgreBites::SdkTrayManager* trayMgr = OgreFramework::getSingletonPtr()->m_pTrayMgr;
+        // trayMgr->hideTrays();
+        // trayMgr->hideCursor();
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -306,9 +330,10 @@ void GameState::createScene()
         m_pSceneMgr->setAmbientLight(ColourValue(0.1,0.1,0.1));
 
         light = m_pSceneMgr->createLight("Light");
-        light->setType(Light::LT_POINT);
+        // light->setType(Light::LT_POINT);
+        light->setType(Light::LT_SPOTLIGHT);
         light->setPosition(100,100,100);
-        // light->setDirection(100,-100,100);
+        light->setDirection(100,-100,100);
         light->setDiffuseColour(1,1,1);
         light->setSpecularColour(1.0,1.0,1.0);
         light->setSpotlightRange(Radian(M_PI/2), Radian(M_PI/3));
@@ -326,29 +351,27 @@ void GameState::createScene()
         breadNode->setOrientation(Quaternion::IDENTITY);
         breadNode->setPosition(Vector3(0, 0, 0));
         breadNode->setScale(Vector3(10,10,10));
-        breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
+        // breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
+        breadEntity->setCastShadows(true);
 
         breadEntity->getSubEntity(0)->setMaterialName("Bread","General");
-
         breadMat = breadEntity->getSubEntity(0)->getMaterial();
         
 
         /////////////////////// TABLE
-        Entity* planeEntity;
-        SceneNode* planeNode;
-        planeEntity = m_pSceneMgr->createEntity("PlaneEntity", "Plane.mesh");
-        planeEntity->getSubEntity(0)->setMaterialName("Table","General");
-        planeNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("PlaneNode");
-        planeNode->attachObject(planeEntity);
-        planeNode->setOrientation(Quaternion::IDENTITY);
-        planeNode->setPosition(Vector3(0, -10, 0));
-        planeNode->setScale(Vector3(10,10,10));
+        tableEntity = m_pSceneMgr->createEntity("PlaneEntity", "Plane.mesh");
+        tableEntity->getSubEntity(0)->setMaterialName("Table","General");
+        tableEntity->setCastShadows(false);
+        tableNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("PlaneNode");
+        tableNode->attachObject(tableEntity);
+        tableNode->setOrientation(Quaternion::IDENTITY);
+        tableNode->setPosition(Vector3(0, -10, 0));
+        tableNode->setScale(Vector3(10,10,10));
 
         /////////////////////// KNIFE
-        Entity* knifeEntity;
-        SceneNode* knifeNode;
         knifeEntity = m_pSceneMgr->createEntity("KnifeEntity", "knife.mesh");
         knifeEntity->getSubEntity(0)->setMaterialName("Knife","General");
+        knifeEntity->setCastShadows(false);
         knifeNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("KnifeNode");
         knifeNode->attachObject(knifeEntity);
         Quaternion ori(Radian(-0.5), Vector3(0,1,0));
@@ -356,18 +379,11 @@ void GameState::createScene()
         knifeNode->setPosition(Vector3(30, -9, -30));
         knifeNode->setScale(Vector3(50,50,50));
 
-        ////////////////////// BACKGROUND
-        // // Create background material
-        // MaterialPtr material = MaterialManager::getSingleton().create("Background", "General");
-        // material->getTechnique(0)->getPass(0)->createTextureUnitState("steel.jpg");
-        // material->getTechnique(0)->getPass(0)->setDepthCheckEnabled(false);
-        // material->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
-        // material->getTechnique(0)->getPass(0)->setLightingEnabled(false);
- 
         // Create background rectangle covering the whole screen
         Rectangle2D* rect = new Rectangle2D(true);
         rect->setCorners(-1.0, 1.0, 1.0, -1.0);
         rect->setMaterial("Degrade");
+        rect->setCastShadows(false);
  
         // Render the background before everything else
         rect->setRenderQueueGroup(RENDER_QUEUE_BACKGROUND);
@@ -378,8 +394,8 @@ void GameState::createScene()
         rect->setBoundingBox(aabInf);
  
         // Attach background to the scene
-        SceneNode* node = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("Background");
-        node->attachObject(rect);
+        backgroundNode =m_pSceneMgr->getRootSceneNode()->createChildSceneNode("Background");
+        backgroundNode->attachObject(rect);
 
 
         /////////////// Light obj
@@ -387,9 +403,10 @@ void GameState::createScene()
         lightEntity = m_pSceneMgr->createEntity("LightEntity", "Cube01.mesh");
         lightNode = m_pSceneMgr->getRootSceneNode()->createChildSceneNode("Light");
         lightEntity->getSubEntity(0)->setMaterialName("White","General");
+        lightEntity->setCastShadows(false);
         lightNode->attachObject(lightEntity);
         lightNode->setPosition(light->getPosition());
-        lightNode->showBoundingBox(true);
+        lightNode->showBoundingBox(false);
 
 }
 
@@ -554,8 +571,9 @@ void GameState::onLeftPressed(const OIS::MouseEvent &evt)
 void GameState::moveCamera()
 {
         if(OgreFramework::getSingletonPtr()->m_pKeyboard->isKeyDown(OIS::KC_LSHIFT))
+                m_pCamera->moveRelative(m_TranslateVector / 10);
+        else 
                 m_pCamera->moveRelative(m_TranslateVector);
-        m_pCamera->moveRelative(m_TranslateVector / 10);
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -701,10 +719,12 @@ void GameState::updateLight(double timeSinceLastFrame)
         double se = sin(elapsed);
         double ce = cos(elapsed);
 
-        Vector3 pos = Vector3(100 * se, 100 , 100 * ce); 
+        float dist = 85;
+        Vector3 pos = Vector3(dist * se, dist-20 , dist * ce); 
         light->setPosition(pos);
+        light->setDirection(-pos);
+        // light->setDirection(Vector3(0,-1,0));
         lightNode->setPosition(pos);
-        // light->setDirection(-pos);
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||

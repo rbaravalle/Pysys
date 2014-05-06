@@ -77,7 +77,6 @@ vec3 toLocal(vec3 p) {
 
 }
 
-
 vec3 toTexture(vec3 p)
 {
   return (p + vec3(1.0)) / 2.0;
@@ -386,9 +385,17 @@ float raymarchSpec(vec3 ro, vec3 rd) {
 }
 
 
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+
 float getStepSize() 
 {
-  return ROOTTHREE / uMaxSteps;
+  float stepSize = ROOTTHREE / uMaxSteps;
+  stepSize *= 1.0 + (0.5-rand(vPos1n.xy)) * 0.1;
+
+  return stepSize;
 
   /* vec3 ro = vPos1n; */
   /* vec3 rd = normalize( ro - toLocal(uCamPos) ); */
@@ -433,9 +440,9 @@ void main()
   vec4 r = ret.col;
   //if(vPos.x*vPos.x+vPos.y*.y) ret.col+=vec4(113.0/255.0,68.0/255.0,8.0/255.0,0.0);
 
-vec4 a = vec4(0.0,0.0,0.0,0.0);
-vec4 b = vec4(1.0,1.0,1.0,1.0);
-gl_FragColor = clamp(ret.col+ vec4(0.3,0.2,0.1,0.0),a,b) + vec4(0.3,0.3,0.3,0.0);
+  vec4 a = vec4(0.0,0.0,0.0,0.0);
+  vec4 b = vec4(1.0,1.0,1.0,1.0);
+  gl_FragColor = clamp(ret.col+ vec4(0.3,0.2,0.1,0.0),a,b) + vec4(0.3,0.3,0.3,0.0);
   //gl_FragColor = ret.col;
 
     /*vec4 a = vec4(0.0,0.0,0.0,0.0);

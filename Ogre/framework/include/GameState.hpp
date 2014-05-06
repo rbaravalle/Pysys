@@ -64,9 +64,18 @@ private:
         Ogre::Entity*                           breadEntity;
         Ogre::MaterialPtr                       breadMat; 
         Ogre::TexturePtr                        breadTex;
+
+        Ogre::SceneNode*                        tableNode;
+        Ogre::Entity*                           tableEntity;
+
+        Ogre::SceneNode*                        knifeNode;
+        Ogre::Entity*                           knifeEntity;
+
         Ogre::Light*                            light;
         Ogre::Entity*                           lightEntity;
         Ogre::SceneNode*                        lightNode;
+
+        Ogre::SceneNode*                        backgroundNode;
 
         float tmk;
         float tmk2;
