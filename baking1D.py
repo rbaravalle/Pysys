@@ -30,14 +30,14 @@ W1 = np.zeros((M+2,N+2)).astype(np.float32)
 def transform(W):
     print W[10]
     t = 20
-    arr = np.zeros((2*N+1,2*N+1)).astype(np.float32)
-    for i in range(-N,N):
-        for j in range(-N,N):
+    arr = np.zeros((N+1,N+1)).astype(np.float32)
+    for i in range(-N/2,N/2+1):
+        for j in range(-N/2,N/2+1):
             i2 = i
             j2 = j
             r = np.round(np.sqrt(i2*i2+j2*j2)).astype(np.uint8)
             if(r < N and r >= 0):
-                arr[N-i,N-j] = W[t,N-r]
+                arr[N/2-i,N/2-j] = W[t,N-r]
 
     #print arr
     #I2 = Image.frombuffer('L',(N+1,N+1), (100*arr).astype(np.uint8),'raw','L',0,1)
