@@ -10,7 +10,7 @@ def f1(v):
     a = np.float32(0.2)
     b = np.float32(0.2)
     c = np.float32(5.7)
-    return np.array([-y-z,x+a*y,b+z*(x-c)])
+    return np.array([y,-np.sin(x),0])#b+z*(x-c)])
 
 def f2(v):
     x=v[0]

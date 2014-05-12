@@ -41,9 +41,9 @@ uOffset = np.array([0.0,0.0,0.0])
 uLightP = np.array([0.0,0.0,0.0])
 alpha = 0.0
 alpha2 = 0.0
-uTMK = 4.0
+uTMK = 15.0
 uTMK2 = 25.0
-uShininess = 1.0
+uShininess = 0.0
 uMaxSteps = 128
 zoom = 5
 uPhi = 1
@@ -103,6 +103,12 @@ def LoadTextures():
                 k3 = k-dim/2
                 if(i2*i2+j2*j2>10000): #or i3*i3+j3*j3+k3+k3<2000):
                     im[i+j*dim+k*dim*dim] = np.uint8(0)#-random.randint(0,100)
+
+                x1 = i+124
+                y1 = j+124
+                z1 = k-64
+                if(x1*x1+y1*y1+z1*z1 < 110*110+np.random.randint(-400,400)):
+                    im[i+j*dim+k*dim*dim] = np.uint8(0)
 
     glPixelStorei(GL_UNPACK_ALIGNMENT,1)
     glBindTexture(GL_TEXTURE_3D, glGenTextures(1))
