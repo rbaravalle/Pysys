@@ -153,13 +153,13 @@ def main():
 
     p = 100
     # Arbitrary shape, mean value coordinates
-    cageOrig = np.array([[p,N-1-p],[N/2,N-1-p],[N/2+50,N-1-p],[N-1-p,N-1-p],[N-1-p,N/2+50],[N-1-p,N/2],[N-1-p,p],[N/2-1,p],[p,p]]).astype(np.float32)
+    cageOrig = np.array([[p,N-1-p],[N/2,N-1-p],[N/2+50,N-1-p],[N-1-p,N-1-p],[N-1-p,N/2+50],[N-1-p,N/2],[N-1-p,N/2-50],[N-1-p,p],[N/2+50,p],[N/2,p],[N/2-50,p],[p,p]]).astype(np.float32)
 
     cageReal = np.array(cageOrig)
     cageNew = np.array(cageOrig)
 
     # control points displacements
-    trs=[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,30],[0,30],[0,30]]
+    trs=[[0,0],[15,20],[15,20],[40,0],[40,0],[40,0],[0,65],[0,70],[0,75],[0,40],[0,45],[0,50]]
 
     for i in range(len(cageOrig)):
         cageReal[i] = cageOrig[i]+trs[i]
@@ -178,6 +178,7 @@ def main():
         for j in range(0,int(maxrank)):
             shape2(np.random.randint(0,N),np.random.randint(0,N),i)
         I2 = Image.new("L",(N,N))
+        I3 = Image.new("L",(N,N))
         data = np.array(I.getdata()).reshape((N,N))
         for x in range(0,N):    
             for y in range(0,N):
@@ -190,17 +191,20 @@ def main():
                     value = I.getpixel((u,v))
                 I2.putpixel((x,y),value)
 
-        I3 = Image.new("L",(N,N))
-        for x in range(0,N):    
-            for y in range(0,N):
                 barycoords = mvc([x,y],cageOrig)
                 value = 0
                 v = np.zeros((2)).astype(np.float32)
+                #v = barycoords*cageNew
                 for h in range(len(barycoords)):
                     v += barycoords[h]*cageNew[h]
                 v = np.array(v).astype(int)
                 v = np.clip(v,0,N-1)
                 I3.putpixel((x,y),I2.getpixel((int(v[0]),int(v[1]))) )
+
+        
+        #for x in range(0,N):    
+        #    for y in range(0,N):
+                
 
         map(lambda i: paint(i,N,I3), cageReal)
 
