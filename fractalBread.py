@@ -5,6 +5,7 @@ import ImageDraw
 
 from lparams import *
 import baking1D as bak
+from mvc import mvc
 
 N = 400
 maxR = N/20
@@ -18,7 +19,7 @@ arr = bak.calc()
 gx, gy = np.gradient(arr)
 import pylab
 fig = pylab.figure()
-#pylab.imshow(arr)
+pylab.imshow(arr)
 #pylab.colorbar()
 #pylab.show()
 
@@ -109,28 +110,64 @@ def f(c):
 def shape2(x,y,r):
     drawShape(x,y,r,2)
 
+def paint(i,N,I2):
+    p = 6
+    for x in range(int(i[0])-p,int(i[0])+p):
+        for y in range(int(i[1])-p,int(i[1])+p):
+            I2.putpixel((np.clip(x,0,N-1),np.clip(y,0,N-1)),255)
+
 def main():
     global I,gx,gy
 
     gx2 = np.zeros((N,N)) # vector field
     gy2 = np.zeros((N,N)) # vector field
 
+    #pylab.quiver(gx,gy)
+    #pylab.show()
 
     shx = gx.shape[0]-1
     shy = gy.shape[1]-1
 
     for i in range(0,N):
         for j in range(0,N):
-            dist = ((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2))/1600
+            dist = np.sqrt(((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2)))
+            if(dist < 50): dist /= 4
+            #print dist
             u = i*(shx/(np.float32(N)-1))
             v = j*(shy/(np.float32(N)-1))
-            gx2[i,j] = np.sign(gx[u,v])*dist**2
-            gy2[i,j] = np.sign(gy[u,v])*dist**2
+            gx2[i,j] = np.sign(gx[u,v])*dist
+            gy2[i,j] = np.sign(gy[u,v])*dist
+
+    #for i in range(0,N):
+        #for j in range(0,N):
+            #dist = ((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2))/1600
+            #u = i*(shx/(np.float32(N)-1))
+            #v = j*(shy/(np.float32(N)-1))
+            #gx2[i,j] = np.sign(gx[u,v])*dist
+            #gy2[i,j] = np.sign(gy[u,v])*dist
 
 
 
     shx = gx.shape[0]
     shy = gy.shape[1]
+
+    p = 100
+    # Arbitrary shape, mean value coordinates
+    cageOrig = np.array([[p,N-1-p],[N/2,N-1-p],[N/2+50,N-1-p],[N-1-p,N-1-p],[N-1-p,N/2+50],[N-1-p,N/2],[N-1-p,p],[N/2-1,p],[p,p]]).astype(np.float32)
+
+    cageReal = np.array(cageOrig)
+    cageNew = np.array(cageOrig)
+
+    # control points displacements
+    trs=[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,30],[0,30],[0,30]]
+
+    for i in range(len(cageOrig)):
+        cageReal[i] = cageOrig[i]+trs[i]
+        cageNew[i] = cageOrig[i]-trs[i]
+
+    print cageOrig
+    print cageReal
+    print cageNew
 
 
     for i in range(1,50,1):
@@ -153,8 +190,23 @@ def main():
                     value = I.getpixel((u,v))
                 I2.putpixel((x,y),value)
 
+        I3 = Image.new("L",(N,N))
+        for x in range(0,N):    
+            for y in range(0,N):
+                barycoords = mvc([x,y],cageOrig)
+                value = 0
+                v = np.zeros((2)).astype(np.float32)
+                for h in range(len(barycoords)):
+                    v += barycoords[h]*cageNew[h]
+                v = np.array(v).astype(int)
+                v = np.clip(v,0,N-1)
+                I3.putpixel((x,y),I2.getpixel((int(v[0]),int(v[1]))) )
+
+        map(lambda i: paint(i,N,I3), cageReal)
+
         print "Image saving...", i
-        I2.save('fractal'+str(i)+'Bread.png')
+        I2.save('warp/fractal'+str(i)+'Bread.png')
+        I3.save('warp/fractalBreadWarp'+str(i)+'.png')
 
     
 
