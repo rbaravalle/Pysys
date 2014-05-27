@@ -91,7 +91,10 @@ def main():
     cageNew = np.array(cageOrig)
 
     # control points displacements
-    trs=[[10,-10],[-10,0],[30,-10],[-10,0],[20,0],[25,0],[10,20],[5,-10],[20,0],[15,0],[35,10],[12,25]]
+    # RIGHT, BOTTOM,LEFT, TOP < |> <_> <| > <->
+    # X: BOTTOM - TOP
+    # Y : LEFT - RIGHT
+    trs=[[0,-20],[0,0],[0,0],[0,0],[30,0],[45,0],[30,40],[-5,0],[30,10],[25,10],[45,20],[12,15]]
 
     for i in range(len(cageOrig)):
         cageReal[i] = cageOrig[i]+trs[i]
