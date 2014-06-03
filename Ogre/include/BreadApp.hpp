@@ -19,7 +19,7 @@ public:
 	void start();
 
 private:
-	AppStateManager*	m_pAppStateManager;
+	AppStateManager*	_appStateManager;
 };
 
 //|||||||||||||||||||||||||||||||||||||||||||||||

@@ -1,23 +1,20 @@
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 #include "BreadApp.hpp"
-
-#include "MenuState.hpp"
-#include "GameState.hpp"
-#include "PauseState.hpp"
+#include "RenderState.hpp"
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 BreadApp::BreadApp()
 {
-	m_pAppStateManager = 0;
+	_appStateManager = 0;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 BreadApp::~BreadApp()
 {
-	delete m_pAppStateManager;
+	delete _appStateManager;
         delete OgreFramework::getSingletonPtr();
 }
 
@@ -29,15 +26,13 @@ void BreadApp::start()
 	if(!OgreFramework::getSingletonPtr()->initOgre("Bread crumbs", 0, 0))
 		return;
 
-	OgreFramework::getSingletonPtr()->m_pLog->logMessage("Bread initialized!");
+	OgreFramework::getSingletonPtr()->_log->logMessage("Bread initialized!");
 
-	m_pAppStateManager = new AppStateManager();
+	_appStateManager = new AppStateManager();
 
-	// MenuState::create(m_pAppStateManager, "MenuState");
-	GameState::create(m_pAppStateManager, "GameState");
-        // PauseState::create(m_pAppStateManager, "PauseState");
+	RenderState::create(_appStateManager, "RenderState");
 
-	m_pAppStateManager->start(m_pAppStateManager->findByName("GameState"));
+	_appStateManager->start(_appStateManager->findByName("RenderState"));
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||

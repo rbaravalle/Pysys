@@ -1,0 +1,108 @@
+vertex_program bounding_cubes_pos_vertex glsl
+{
+        source boundingcubesposv.glsl
+
+    default_params 
+    {
+        param_named_auto eyePosition camera_position_object_space
+    }
+}
+
+fragment_program bounding_cubes_pos_fragment glsl
+{
+        source boundingcubesposf.glsl
+
+    default_params 
+    {
+        param_named_auto mvp     worldviewproj_matrix
+    } 
+    
+}
+
+vertex_program bounding_cubes_dir_vertex glsl
+{
+        source boundingcubesdirv.glsl
+
+    default_params 
+    {
+        param_named_auto eyePosition camera_position_object_space
+    }
+}
+
+fragment_program bounding_cubes_dir_fragment glsl
+{
+        source boundingcubesdirf.glsl
+
+    default_params 
+    {
+        param_named_auto mvp     worldviewproj_matrix
+    } 
+    
+}
+
+material BoundingCubesPositions
+{
+        receive_shadows off
+
+	technique
+	{
+		pass
+		{
+                    colour_write on
+                    cull_hardware none
+                    cull_software none
+                    depth_func less
+                    depth_write on
+                    lighting off
+                    polygon_mode solid
+                        
+                    vertex_program_ref bounding_cubes_pos_vertex
+                    {
+                    }
+
+                    fragment_program_ref bounding_cubes_pos_fragment
+                    {
+                    }
+
+		}
+	}
+}
+
+
+material BoundingCubesDirections
+{
+        receive_shadows off
+
+	technique
+	{
+		pass
+		{
+                    colour_write on
+                    cull_hardware none
+                    cull_software none
+                    depth_func greater
+                    depth_write on
+                    lighting off
+                    polygon_mode solid
+                        
+                    vertex_program_ref bounding_cubes_dir_vertex
+                    {
+                    }
+
+                    fragment_program_ref bounding_cubes_dir_fragment
+                    {
+                        param_named  posTex      int   0
+                        param_named  width_inv   float 
+                        param_named  height_inv  float 
+                    }
+
+                    texture_unit {
+                        texture rayPos
+                        tex_address_mode clamp clamp
+                        filtering point
+                    }
+		}
+	}
+}
+
+

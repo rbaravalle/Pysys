@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mesh>
+    <sharedgeometry vertexcount="4">
+        <vertexbuffer texture_coords="1" normals="true" colours_diffuse="False" positions="true">
+            <vertex>
+                <position z="10.000000" y="0.000000" x="-10.000000"/>
+                <normal z="-0.000000" y="1.000000" x="0.000000"/>
+                <texcoord v="0.999900" u="0.000100"/>
+            </vertex>
+            <vertex>
+                <position z="10.000000" y="0.000000" x="10.000000"/>
+                <normal z="-0.000000" y="1.000000" x="0.000000"/>
+                <texcoord v="0.999900" u="0.999900"/>
+            </vertex>
+            <vertex>
+                <position z="-10.000000" y="0.000000" x="10.000000"/>
+                <normal z="-0.000000" y="1.000000" x="0.000000"/>
+                <texcoord v="0.000100" u="0.999900"/>
+            </vertex>
+            <vertex>
+                <position z="-10.000000" y="0.000000" x="-10.000000"/>
+                <normal z="0.000000" y="1.000000" x="0.000000"/>
+                <texcoord v="0.000100" u="0.000100"/>
+            </vertex>
+        </vertexbuffer>
+    </sharedgeometry>
+    <submeshes>
+        <submesh usesharedvertices="true" use32bitindexes="False" operationtype="triangle_list" material="Mat01">
+            <faces count="2">
+                <face v2="1" v3="2" v1="0"/>
+                <face v2="0" v3="2" v1="3"/>
+            </faces>
+        </submesh>
+    </submeshes>
+    <submeshnames>
+        <submesh index="0" name="Mat01">
+        </submesh>
+    </submeshnames>
+</mesh>
