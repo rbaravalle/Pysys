@@ -131,28 +131,29 @@ float sampleVolTexLower(vec3 pos)
 
 vec3 sampleVolTexNormal(vec3 pos) 
 {
-
-
-        int lod = int(uMisc);
+        const int lod = 1;
 
         float c = textureLod(uTex, pos, lod).x;
 
+        ////////// Forward difference
         float r = textureLodOffset(uTex, pos, lod, ivec3( 1, 0, 0)).x;
         float u = textureLodOffset(uTex, pos, lod, ivec3( 0, 1, 0)).x;
         float f = textureLodOffset(uTex, pos, lod, ivec3( 0, 0, 1)).x;
 
+        float dx = (r-c);
+        float dy = (u-c);
+        float dz = (f-c);
+
+        ///////// For central difference (disabled)
         /* float l = textureLodOffset(uTex, pos, lod, ivec3(-1, 0, 0)).x; */
         /* float d = textureLodOffset(uTex, pos, lod, ivec3( 0,-1, 0)).x; */
         /* float b = textureLodOffset(uTex, pos, lod, ivec3( 0, 0,-1)).x; */
-
-        float dx = -(r-c);
-        float dy = -(u-c);
-        float dz = -(f-c);
 
         /* float dx = (r-l); */
         /* float dy = (u-d); */
         /* float dz = (f-b); */
         
+
         return normalize(vec3(dx,dy,dz));
 }
 
@@ -290,7 +291,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
             //////// The diffuse coefficient is never below 0.5, due to transparency
             vec3 N = sampleVolTexNormal(pos);
-            float diffuseCoefficient =  (1.0 + abs(dot(L,N)));
+            float diffuseCoefficient =  uShadeCoeff + uSpecCoeff * abs(dot(L,N));
 
             // Accumulate color based on delta transmittance and mean transmittance
             diffuseColor += (1.0-dtm) * sampleCol * uLightC * ltm * diffuseCoefficient;

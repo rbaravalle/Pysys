@@ -25,14 +25,15 @@ RenderState::RenderState()
         tmk2 = 25.0;
         mintm = 0.2;
         shininess = 1.0;
-        steps = 64.0;
+        steps = 128.0;
         ucolor = Vector3(0.8,0.7,0.6);
         ambient = 0.3;
         backIllum = 0.0;
-        shadeCoeff = 1.1;
-        specCoeff= 5.0;
+        shadeCoeff = 1.0;
+        specCoeff= 1.0;
         specMult = 0.1;
         misc = 1.3;
+        lightIsMoving = true;
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -501,8 +502,9 @@ void RenderState::update(double timeSinceLastFrame)
         getInput();
         moveCamera();
 
+        updateWidgets();
+
         updateMaterial();
-        updateSliders();
         updateLight(timeSinceLastFrame);
 
         ////////// Update render textures
@@ -587,7 +589,7 @@ void RenderState::updateMaterial()
 
 }
 
-void RenderState::updateSliders()
+void RenderState::updateWidgets()
 {
         tmkSlider->setValue(tmk, false);
         tmk2Slider->setValue(tmk2, false);
@@ -600,14 +602,18 @@ void RenderState::updateSliders()
         ambientSlider->setValue(ambient, false);
         backIllumSlider->setValue(backIllum, false);
         miscSlider->setValue(misc, false);
+        lightCheckBox->setChecked(lightIsMoving, false);
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
 void RenderState::updateLight(double timeSinceLastFrame)
 {
+        if (!lightIsMoving)
+                return;
+
         static double elapsed = 0;
-        elapsed += timeSinceLastFrame * 0.001;
+        elapsed += (timeSinceLastFrame * 0.001) * shininess;
         double se = sin(elapsed);
         double ce = cos(elapsed);
 
@@ -654,6 +660,9 @@ void RenderState::buildGUI()
                                       "DisplayModeSelMenu", 
                                       "Display Mode", 200, 3, displayModes);
 
+        lightCheckBox = trayMgr->createCheckBox(OgreBites::TL_TOPLEFT, "light", 
+                                                "Moving light", 200);
+
         tmkSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk", 
                                               "tmk", 200,80,44,0,25,101);
 
@@ -692,7 +701,7 @@ void RenderState::buildGUI()
         //                               "ReloadMaterial", 
         //                               "Reload material", 60);
 
-        updateSliders();
+        updateWidgets();
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -706,6 +715,14 @@ void RenderState::buttonHit(OgreBites::Button* button)
                                "Bread.material",
                                true);
 
+        }
+
+}
+
+void RenderState::checkBoxToggled(OgreBites::CheckBox* checkBox)
+{
+        if (checkBox->getName() == "light") {
+                lightIsMoving = checkBox->isChecked();
         }
 
 }

@@ -53,13 +53,14 @@ public:
         void itemSelected(OgreBites::SelectMenu* menu);
 	void sliderMoved(OgreBites::Slider * slider);
 	void buttonHit(OgreBites::Button* button);
+	void checkBoxToggled(OgreBites::CheckBox* checkBox);
 
         void update(double timeSinceLastFrame);
 
 private:
 
         void updateMaterial();
-        void updateSliders();
+        void updateWidgets();
         void updateLight(double timeSinceLastFrame);
 
         Volume                                  breadVolume;
@@ -114,6 +115,7 @@ private:
         float specMult;
         float misc;
         Ogre::Vector3 ucolor;
+        bool  lightIsMoving;
 
         OgreBites::Slider* tmkSlider;
         OgreBites::Slider* tmk2Slider;
@@ -126,6 +128,7 @@ private:
         OgreBites::Slider* specCoeffSlider;
         OgreBites::Slider* specMultSlider;
         OgreBites::Slider* miscSlider;
+        OgreBites::CheckBox* lightCheckBox;
 
 };
 
