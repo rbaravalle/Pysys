@@ -1,4 +1,4 @@
-#version 400
+#version 330
 
 //////// Shadow variables
 uniform sampler2D shadowMap; // Shadow map

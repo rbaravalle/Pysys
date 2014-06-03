@@ -5,16 +5,16 @@ varying vec3 vPos;
 varying vec3 vNor;
 varying vec2 vUV;
 
-uniform vec3 lightPosition;
-uniform vec3 eyePosition;
+uniform mat4 mvp;
 
-uniform mat4 worldMatrix;
+attribute vec4 vertex;
+attribute vec3 normal;
+attribute vec2 uv0;
 
 void main()
 {
-    vec3 pos = gl_Vertex.xyz;
-    gl_Position = gl_ModelViewProjectionMatrix * vec4(pos,1.0);
-    vPos = pos;
-    vNor = gl_Normal;
-    vUV  = gl_MultiTexCoord0.xy;
+    gl_Position = mvp * vertex;
+    vPos = vertex.xyz;
+    vNor = normal;
+    vUV  = uv0;
 }

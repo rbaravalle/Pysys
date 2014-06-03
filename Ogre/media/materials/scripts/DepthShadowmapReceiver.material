@@ -11,8 +11,6 @@ vertex_program DepthShadowmap/ReceiverVP_GLSL glsl
         param_named_auto worldViewProj worldviewproj_matrix
 	param_named_auto texViewProj texture_viewproj_matrix
         param_named_auto lightPosition light_position 0
-	param_named_auto lightColour light_diffuse_colour 0
-
     }
 }
 

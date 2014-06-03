@@ -4,7 +4,7 @@ vertex_program bounding_cubes_pos_vertex glsl
 
     default_params 
     {
-        param_named_auto eyePosition camera_position_object_space
+        param_named_auto mvp     worldviewproj_matrix
     }
 }
 
@@ -14,7 +14,6 @@ fragment_program bounding_cubes_pos_fragment glsl
 
     default_params 
     {
-        param_named_auto mvp     worldviewproj_matrix
     } 
     
 }
@@ -25,7 +24,7 @@ vertex_program bounding_cubes_dir_vertex glsl
 
     default_params 
     {
-        param_named_auto eyePosition camera_position_object_space
+        param_named_auto mvp     worldviewproj_matrix
     }
 }
 
@@ -35,7 +34,6 @@ fragment_program bounding_cubes_dir_fragment glsl
 
     default_params 
     {
-        param_named_auto mvp     worldviewproj_matrix
     } 
     
 }

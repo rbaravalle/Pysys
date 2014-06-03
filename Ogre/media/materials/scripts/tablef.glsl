@@ -19,9 +19,6 @@ varying vec3 vPos; // position in local coords
 varying vec3 vNor; // normal for fragment
 varying vec2 vUV; // texture coordinates for fragment
 
-uniform mat4 mvp;
-uniform mat4 inv_mvp;
-
 void main()
 {
     vec3 tex = texture(uTex, vUV * texScale).xyz;

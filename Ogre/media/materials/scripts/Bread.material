@@ -23,7 +23,7 @@ material Bread
 
             vertex_program_ref bread_vertex
             {
-                param_named uOffset float3 0 0 0
+                    param_named_auto mvp     worldviewproj_matrix
             }
 
             fragment_program_ref bread_fragment

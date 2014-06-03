@@ -4,8 +4,7 @@ vertex_program knife_vertex glsl
 
     default_params 
     {
-        param_named_auto lightPosition light_position_object_space 0
-        param_named_auto eyePosition camera_position_object_space
+        param_named_auto mvp     worldviewproj_matrix
     }
 }
 
@@ -59,7 +58,6 @@ material Knife
                         
                     vertex_program_ref knife_vertex
                     {
-                        param_named uOffset float3 0 0 0
                     }
 
                     fragment_program_ref knife_fragment
