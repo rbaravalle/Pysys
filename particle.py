@@ -25,9 +25,9 @@ class Particle:
         gy = generadores[c][1]
         gz = generadores[c][2]
            
-        self.xi = floor(gx + distG*(random()*2-1)*maxcoord)
-        self.yi = floor(gy + distG*(random()*2-1)*maxcoord)
-        self.zi = floor(gz + distG*(random()*2-1)*maxcoordZ)
+        self.xi = randint(0,maxcoord)#floor(gx + distG*(random()*2-1)*maxcoord)
+        self.yi = randint(0,maxcoord)#floor(gy + distG*(random()*2-1)*maxcoord)
+        self.zi = randint(0,maxcoord)#floor(gz + distG*(random()*2-1)*maxcoordZ)
 
         x = self.xi
         y = self.yi
@@ -97,7 +97,7 @@ class Particle:
         x2 = xp[0] - toSpace(x)
         y2 = xp[1] - toSpace(y)
         z2 = xp[2] - toSpace(z)
-        # priorities
+        # priorities: euclidean distance
         return np.float32(x2*x2+y2*y2+z2*z2)
 
     def setBorder(self,x,y,z):
@@ -145,14 +145,17 @@ class Particle:
     def alive(self):
         return sparticles[self.i]
 
+    # How much should the particle grow?
     def fn(self):
-        size = self.size
-        if(size > 20 and size < 400): return np.floor(size/8).astype(np.int32)
+        size = self.size/8
+        if(size > 20 and size < 400): return np.floor(size).astype(np.int32)
         if(self.randomm > 0.9):
-            return np.floor(size/8).astype(np.int32)
-        else: return np.floor(0).astype(np.int32)
+            return np.floor(size).astype(np.int32)
+        else: return np.floor(1).astype(np.int32)
 
+    # Different separations depending on the size of the bubble
     def sep(self):
+        return 1
         s = self.size
         if(s > MCA*0.8): return 4
         if(s > MCA*0.6): return 3

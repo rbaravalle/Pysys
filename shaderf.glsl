@@ -124,7 +124,7 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
     // delta transmittance 
     float dtm = exp( -tr*gStepSize*sampleVolTex(pos).x );
     //float dtm = exp( -uTMK2*gStepSize*sampleVolTex(pos) );
-    tm *= dtm*(1.000+(-uShininess*0.001));
+    tm *= dtm;//*(1.000+(-uShininess*0.001));
     
     // get contribution per light
     for (int k=0; k<LIGHT_NUM; ++k) {
@@ -199,6 +199,9 @@ vec4 raymarchLight(vec3 ro, vec3 rd,float tr) {
   return vec4(col/alpha, alpha);
 }*/
 
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
 
 void main()
 {
@@ -207,6 +210,11 @@ void main()
   vec3 rd = normalize( ro -toLocal(uCamPos) );
   
   gStepSize = ROOTTHREE / uMaxSteps;
+  gStepSize *= 1.0 + (0.5-rand(vPos1n.xy)) * 0.1;
   
-  gl_FragColor =   vec4(0.2,0.2,0.2,0.0)+raymarchLight(ro, rd,uTMK2);
+
+  vec4 a = vec4(0.0,0.0,0.0,0.0);
+  vec4 b = vec4(1.0,1.0,1.0,1.0);
+  gl_FragColor = clamp(raymarchLight(ro, rd,uTMK2)+ vec4(0.3,0.2,0.1,0.0),a,b) + vec4
+(0.2,0.2,0.2,0.0);
 }

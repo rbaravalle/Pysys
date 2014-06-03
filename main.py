@@ -29,31 +29,30 @@ def mover(t) :
                 for w in range(amountSons):
                     print amountSons
                     d = random()*np.pi*2
-                    d = random()*np.pi*2
                     e = random()*np.pi*2
                     rr = 5*(np.sqrt(pi.size/np.pi))
-                    if(len(pi.contorno) >= 0):
-                        if(len(pi.contorno) <= w+1):
+                    if(pi.contorno.size > 0):
+                        if(pi.contorno.size >= w+1):
                             con = pi.contorno[w]
                         else: con = pi.contorno[0]
                     else : con = [pi.xi,pi.yi,pi.zi,0]
 
+                    # The son appears close to the father
                     u = con[0]+np.int32(rr*np.cos(d)*np.sin(e))
                     v = con[1]+np.int32(rr*np.sin(d)*np.sin(e))
                     s = con[2]+np.int32(rr*np.cos(e))
 
                     particles.append(Particle(k, MCA,u,v,s,randomness));
                     k +=1
-                    sparticles.append(True); # la particula esta viva
-
+                    sparticles.append(True); # The particle is alive
             suma += pi.fn()
             for w in range(pi.fn()):
                 pi.grow(randomness)
-            largoCont = largoCont + len(pi.contorno)
+            largoCont = largoCont + pi.contorno.size
 
     print "Iteracion :",t
     print "TIME : ", time()-timm
-    print "LLAMADAS: ", suma
+    #print "LLAMADAS: ", suma
 
 
     return largoCont
@@ -70,7 +69,7 @@ def dibujarParticulas() :
         I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,maxcoord*i))
 
-    I.save('imagen3-1.png')
+    I.save('imagenSystemPaper.png')
 
 def alg() :  
 
@@ -79,7 +78,7 @@ def alg() :
         t = t+1
         #if(t % 40 == 0) : 
         print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 10 == 0): dibujarParticulas()   
+        if(t % 6 == 0): dibujarParticulas()   
         if(largoCont == 0):
             break
 
