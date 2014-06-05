@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 #define ROOTTHREE 1.73205081
 

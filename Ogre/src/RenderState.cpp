@@ -31,7 +31,7 @@ RenderState::RenderState()
         backIllum = 0.0;
         shadeCoeff = 1.0;
         specCoeff= 1.0;
-        specMult = 0.1;
+        specMult = 1.0;
         misc = 1.3;
         lightIsMoving = true;
 }
@@ -176,7 +176,9 @@ void RenderState::createScene()
 {
         ////////////////////// Volume texture
         // breadVolume.createTexture("media/fields/imagen3-1.field", "volumeTex");
-        breadVolume.createTexture("media/fields/mengel3d.field", "volumeTex");
+        // breadVolume.createTexture("media/fields/mengel3d.field", "volumeTex");
+        // breadVolume.createTexture("media/fields/3Dbread.256.field", "volumeTex");
+        breadVolume.createTexture("media/fields/warped.field", "volumeTex");
         breadTex = breadVolume.getTexturePtr();
         if (breadTex.isNull()) {
                 exit();
@@ -691,7 +693,7 @@ void RenderState::buildGUI()
                                                      "specCoeff", 200,80,44,0.1,5,50);
 
         specMultSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specMult", 
-                                                     "specMult", 200,80,44,0.1,2,39);
+                                                     "specMult", 200,80,44,0.1,8,80);
 
         miscSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc", 
                                                "misc", 200,80,44,0,10,101);

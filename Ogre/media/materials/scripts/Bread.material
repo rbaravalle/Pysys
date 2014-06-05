@@ -32,8 +32,9 @@ material Bread
                 param_named_auto uCamPos camera_position_object_space
 
                 param_named uTex       int   0
-                param_named posTex     int   1
-                param_named dirTex     int   2
+                param_named noiseTex   int   1
+                param_named posTex     int   2
+                param_named dirTex     int   3
 
                 param_named uOffset float3 0 0 0
 
@@ -68,6 +69,13 @@ material Bread
                 tex_address_mode clamp clamp clamp
                 filtering bilinear
                 max_anisotropy 8
+            }
+
+            texture_unit  
+            {
+                texture noise2.jpg
+                tex_address_mode wrap wrap
+                filtering point
             }
 
             // texture_unit  

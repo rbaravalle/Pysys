@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 precision highp float;
 
@@ -41,7 +41,8 @@ uniform vec3 uLightP; // light position in object space
 uniform vec3 uLightC; // light color
 
 //////////////////// Volume definition uniforms
-uniform sampler3D uTex;   // 3D(2D) volume texture
+uniform sampler3D uTex;   // 3D volume texture
+uniform sampler2D noiseTex;   // 2D noise texture
 uniform vec3 uTexDim;     // dimensions of texture
 
 //////////////////// Volume parameters uniforms
@@ -70,6 +71,9 @@ uniform mat4 mvp_matrix;
 
 float uPhi = 1.0;
 
+/////////////////// Varying
+varying vec3 vPos;
+
 //////////////////// Step global variables
 float gStepSize;
 float gStepFactor;
@@ -79,12 +83,16 @@ float gSteps;
 
 bool outside(vec3 pos) 
 {
-        return any(greaterThan(pos, ONE3)) || any(lessThan(pos, ZERO3));
+    return any(greaterThan(pos, ONE3)) || any(lessThan(pos, ZERO3));
 }
 
 
+float rand(){
+        return texture2D(noiseTex, vec2(vPos.x + vPos.z, vPos.y + vPos.z)).x;
+}
+
 float rand(vec2 co){
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+    return fract(sin(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
 
@@ -124,7 +132,8 @@ float sampleVolTex(vec3 pos)
 
 float sampleVolTexLower(vec3 pos) 
 {
-        if(outsideCrust(pos)) return 0.0;
+        if (outsideCrust(pos)) 
+                return 0.0;
 
         return textureLod(uTex, pos, 1).x;
 }
@@ -152,6 +161,9 @@ vec3 sampleVolTexNormal(vec3 pos)
         /* float dx = (r-l); */
         /* float dy = (u-d); */
         /* float dz = (f-b); */
+
+        if (abs(dx) < 0.1 && abs(dy) < 0.1 && abs(dz) < 0.1)
+                return vec3(0,0,0);
         
 
         return normalize(vec3(dx,dy,dz));
@@ -163,15 +175,18 @@ vec3 sampleVolTexNormal(vec3 pos)
 // Compute accumulated transmittance for the input ray
 float getTransmittance(vec3 ro, vec3 rd) {
 
-  //////// Steps size is trebled inside this function
-  vec3 step = rd * gStepSize * 3.0;
-  vec3 pos = ro;
+
+  //////// Step size is cuadrupled inside this function
+  vec3 step = rd * gStepSize * 4.0;
+  vec3 pos = ro + step;
   
   float tm = 1.0;
   
-  float uTMK_gStepSize = -uTMK * gStepSize * 6.0;
+  int maxSteps = int (4.0 / gStepSize);
 
-  for (int i=0; i<int(uMaxSteps) && !outside(pos); ++i, pos+=step) {
+  float uTMK_gStepSize = -uTMK * gStepSize * 16.0;
+
+  for (int i=0; i< maxSteps && !outside(pos); ++i, pos+=step) {
           float sample = sampleVolTexLower(pos);
           tm *= exp( uTMK_gStepSize * sample);
   }
@@ -291,7 +306,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
             //////// The diffuse coefficient is never below 0.5, due to transparency
             vec3 N = sampleVolTexNormal(pos);
-            float diffuseCoefficient =  uShadeCoeff + uSpecCoeff * abs(dot(L,N));
+            float diffuseCoefficient =  uShadeCoeff + pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
 
             // Accumulate color based on delta transmittance and mean transmittance
             diffuseColor += (1.0-dtm) * sampleCol * uLightC * ltm * diffuseCoefficient;
@@ -346,8 +361,8 @@ void main()
   ///////////  Set globals defining ray steps
   ///////////  
   gStepSize = ROOTTHREE / uMaxSteps;
-  gStepSize *= 1.0 + (0.5-rand(gl_FragCoord.xy)) * 0.15;
-  /* ro += rand(gl_FragCoord.xy) * gStepSize * 0.15; */
+  gStepSize *= 1.0 + (0.5-rand()) * 0.35;
+  /* ro += rand() * gStepSize * 0.15; */
   gSteps = clamp(rlen / gStepSize, 1, uMaxSteps);
   ///////////  ///////////  ///////////  ///////////  ///////////  
   
