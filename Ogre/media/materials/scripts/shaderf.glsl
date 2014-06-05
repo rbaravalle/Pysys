@@ -135,7 +135,7 @@ float sampleVolTexLower(vec3 pos)
         if (outsideCrust(pos)) 
                 return 0.0;
 
-        return textureLod(uTex, pos, 1).x;
+        return textureLod(uTex, pos, 0).x;
 }
 
 vec3 sampleVolTexNormal(vec3 pos) 
@@ -245,7 +245,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
   vec3 col = vec3(0.0);   // accumulated color
   float tm = 1.0;         // accumulated transmittance
-  
+
   bool first = true;
 
   for (int i=0; i < gSteps && tm > uMinTm; ++i, pos += step) {
@@ -349,7 +349,7 @@ void main()
   ///////////  
   ///////////  If ray is too small, return blank fragment
   ///////////  
-  if (rlen < 1e-6 || !any(greaterThan(ro, ZERO3))) {
+  if (rlen < 1e-4 || !any(greaterThan(ro, ZERO3))) {
           gl_FragDepth = gl_DepthRange.far;
           gl_FragColor = ZERO4;
           return;
@@ -383,7 +383,7 @@ void main()
   ///////////  
   //////////// If fragment is visible, set appropiate depth
   ///////////  
-  if (ret.col.a > 0.4) {
+  if (ret.col.a > uMinTm) {
           vec4 depth_pos = vec4(ret.first_hit, 1.0);
 
           /////////// Compute depth of fragment
