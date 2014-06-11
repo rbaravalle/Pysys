@@ -318,8 +318,32 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
             }
     }
 
-    col += 0.3 * ambientColor + 0.4 * diffuseColor;
+    // Ambient Occlusion Computation
+    float c = 0.3/100.0; // uShininess/100.0;
+    float m = 0.0;
+    float maxNeigh = 15.0;
+    m += sampleVolTex(pos);
+    m += sampleVolTex(pos+vec3(-c));
+    m += sampleVolTex(pos+vec3(c));
+    m += sampleVolTex(pos+vec3(0,0,c));
+    m += sampleVolTex(pos+vec3(c,0,0));
+    m += sampleVolTex(pos+vec3(0,c,0));
+    m += sampleVolTex(pos+vec3(0,0,-c));
+    m += sampleVolTex(pos+vec3(-c,0,0));
+    m += sampleVolTex(pos+vec3(0,-c,0));
+    m += sampleVolTex(pos+vec3(0,-c,-c));
+    m += sampleVolTex(pos+vec3(0,c,c));
+    m += sampleVolTex(pos+vec3(-c,-c,0));
+    m += sampleVolTex(pos+vec3(c,c,0));
+    m += sampleVolTex(pos+vec3(-c,0,-c));
+    m += sampleVolTex(pos+vec3(c,0,c));
+
+    float occlusion = 1.0-m/maxNeigh;
+
+    col += 0.3 * ambientColor + 0.4 * diffuseColor * occlusion;
   }
+
+
 
   
   float alpha = 1.0-(tm - uMinTm);
@@ -377,7 +401,8 @@ void main()
   ///////////  
   //////////// Brighten and clamp resulting color
   ///////////  
-  gl_FragColor = ret.col + vec4(0.35,0.3,0.25,0.0);
+  float d = 1.0/length(uLightP-ro);
+  gl_FragColor = clamp(800.0*pow(d,4.0)*vec4(0.4,0.3,0.2,0.0) +ret.col,ZERO4,ONE4);
   ///////////  ///////////  ///////////  ///////////  ///////////  
 
   ///////////  
