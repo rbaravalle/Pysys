@@ -236,7 +236,7 @@ float ambientOcclusion(vec3 pos)
 {
 
     // Ambient Occlusion Computation
-    float c = 0.3/100.0; // uShininess/100.0;
+    float c = 2.5/100.0; // uShininess/100.0;
     float m = 0.0;
     float maxNeigh = 15.0;
     m += sampleVolTex(pos);
@@ -346,7 +346,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     float occlusion = ambientOcclusion(pos);
 
-    col += 0.3 * ambientColor + 0.4 * diffuseColor * occlusion;
+    col += 0.001 * ambientColor + 0.5 * diffuseColor * occlusion;
   }
 
 
