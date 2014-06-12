@@ -190,7 +190,8 @@ float getTransmittance(vec3 ro, vec3 rd) {
           tm *= exp( uTMK_gStepSize * sample);
   }
 
-  /* tm *= tm; */
+  if (tm <= uMinTm)
+          return 0.0;
 
   return tm;
 }
