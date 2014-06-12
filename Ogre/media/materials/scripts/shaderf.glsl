@@ -26,7 +26,6 @@ precision highp float;
 
 #define LIGHT_NUM 1
 
-// 32 48 64 96 128
 uniform float uMaxSteps;
 
 //---------------------------------------------------------
@@ -186,10 +185,12 @@ float getTransmittance(vec3 ro, vec3 rd) {
 
   float uTMK_gStepSize = -uTMK * gStepSize * 16.0;
 
-  for (int i=0; i< maxSteps && !outside(pos); ++i, pos+=step) {
+  for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
           float sample = sampleVolTexLower(pos);
           tm *= exp( uTMK_gStepSize * sample);
   }
+
+  /* tm *= tm; */
 
   return tm;
 }
@@ -228,6 +229,42 @@ float getSpecularRadiance(vec3 L, vec3 V, vec3 N)
         /* vec3 H = normalize(L-V);   // halfway vector */
         /* return Rs(2.0, 1.0, N, -L, V, H) ; */
 
+}
+
+float ambientOcclusion(vec3 pos)
+{
+
+    // Ambient Occlusion Computation
+    float c = 0.3/100.0; // uShininess/100.0;
+    float m = 0.0;
+    float maxNeigh = 15.0;
+    m += sampleVolTex(pos);
+    m += sampleVolTex(pos+vec3(-c));
+    m += sampleVolTex(pos+vec3(c));
+    m += sampleVolTex(pos+vec3(0,0,c));
+    m += sampleVolTex(pos+vec3(c,0,0));
+    m += sampleVolTex(pos+vec3(0,c,0));
+    m += sampleVolTex(pos+vec3(0,0,-c));
+    m += sampleVolTex(pos+vec3(-c,0,0));
+    m += sampleVolTex(pos+vec3(0,-c,0));
+    m += sampleVolTex(pos+vec3(0,-c,-c));
+    m += sampleVolTex(pos+vec3(0,c,c));
+    m += sampleVolTex(pos+vec3(-c,-c,0));
+    m += sampleVolTex(pos+vec3(c,c,0));
+    m += sampleVolTex(pos+vec3(-c,0,-c));
+    m += sampleVolTex(pos+vec3(c,0,c));
+
+    float occlusion = 1.0-m/maxNeigh;
+    return occlusion;
+}
+
+vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol)
+{
+        float ltm = getTransmittance(P, L); // Transmittance towards light
+        float diffuseCoefficient =  uShadeCoeff + 
+                pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
+
+        return lCol * ltm * diffuseCoefficient;
 }
 
 struct light_ret 
@@ -275,70 +312,38 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     tm *= dtm;
 
     // sample color from ambient and back illumination
-    vec3 ambientColor = (1.0-dtm) * sampleCol * uAmbient; 
+    vec3 ambientColor = (1.0-dtm) * sampleCol * 0.1; 
     ambientColor +=  sampleCol * dtm * uBackIllum;
 
     vec3 diffuseColor = ZERO3;
 
+    vec3 N = sampleVolTexNormal(pos);
+
+    vec3 LK = ZERO3;
+
     // get contribution per light
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
-            float ltm = getTransmittance(pos,L); // Transmittance towards light
-
-            //////////// Extra random ray computation (disabled)
-            /* float mean; */
-            /* float d = length(pos-ro);  // Distance to hit point */
-            /* float r = d*tan(uPhi/2.0); // */
-            /* /\* Generate a vector cycling direction each step *\/ */
-            /* if (k%6 < 3) */
-            /*         r *= -1; */
-            /* vec3 newDir = vec3(0.0,0.0,0.0); */
-            /* if (k%3 == 0) */
-            /*         newDir.x = r; */
-            /* else if (k%3 == 1) */
-            /*         newDir.y = r; */
-            /* else */
-            /*         newDir.z = r; */
-            /* /\* Get new vector direction transmittance and mix with light transmittance *\/ */
-            /* newDir = normalize(L+newDir); */
-            /* float ltm2 = getTransmittance(pos,newDir); */
-            /* ltm += ltm2 * max(0.0, dot(L, newDir)); */
-
-            //////// The diffuse coefficient is never below 0.5, due to transparency
-            vec3 N = sampleVolTexNormal(pos);
-            float diffuseCoefficient =  uShadeCoeff + pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
-
-            // Accumulate color based on delta transmittance and mean transmittance
-            diffuseColor += (1.0-dtm) * sampleCol * uLightC * ltm * diffuseCoefficient;
-
-            // If it's the first hit, save it for depth computation
-            if (first) {
-                    ret.first_hit = pos;
-                    first = false;
-            }
+            LK += diffuseComponent(pos, N, L, uLightC);
     }
 
-    // Ambient Occlusion Computation
-    float c = 0.3/100.0; // uShininess/100.0;
-    float m = 0.0;
-    float maxNeigh = 15.0;
-    m += sampleVolTex(pos);
-    m += sampleVolTex(pos+vec3(-c));
-    m += sampleVolTex(pos+vec3(c));
-    m += sampleVolTex(pos+vec3(0,0,c));
-    m += sampleVolTex(pos+vec3(c,0,0));
-    m += sampleVolTex(pos+vec3(0,c,0));
-    m += sampleVolTex(pos+vec3(0,0,-c));
-    m += sampleVolTex(pos+vec3(-c,0,0));
-    m += sampleVolTex(pos+vec3(0,-c,0));
-    m += sampleVolTex(pos+vec3(0,-c,-c));
-    m += sampleVolTex(pos+vec3(0,c,c));
-    m += sampleVolTex(pos+vec3(-c,-c,0));
-    m += sampleVolTex(pos+vec3(c,c,0));
-    m += sampleVolTex(pos+vec3(-c,0,-c));
-    m += sampleVolTex(pos+vec3(c,0,c));
+    // get ambient contribution, simulated as 2 lights
+    vec3 C = -normalize(rd + vec3(0.3, 0.3, 0.3));
+    vec3 CK = uAmbient * diffuseComponent(pos, N, C, uLightC);
 
-    float occlusion = 1.0-m/maxNeigh;
+    C = -normalize(rd + vec3(-0.3, -0.3, -0.3));
+    CK += uAmbient * diffuseComponent(pos, N, C, uLightC);
+
+    // Accumulate color based on delta transmittance and mean transmittance
+    diffuseColor += (1.0-dtm) * sampleCol * (LK+CK);
+
+    // If it's the first hit, save it for depth computation
+    if (first) {
+            ret.first_hit = pos;
+            first = false;
+    }
+
+    float occlusion = ambientOcclusion(pos);
 
     col += 0.3 * ambientColor + 0.4 * diffuseColor * occlusion;
   }
