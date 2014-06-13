@@ -134,7 +134,7 @@ float sampleVolTexLower(vec3 pos)
         if (outsideCrust(pos)) 
                 return 0.0;
 
-        return textureLod(uTex, pos, 0).x;
+        return textureLod(uTex, pos, 1).x;
 }
 
 vec3 sampleVolTexNormal(vec3 pos) 
@@ -184,6 +184,31 @@ float getTransmittance(vec3 ro, vec3 rd) {
   int maxSteps = int (4.0 / gStepSize);
 
   float uTMK_gStepSize = -uTMK * gStepSize * 16.0;
+
+  for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
+          float sample = sampleVolTex(pos);
+          tm *= exp( uTMK_gStepSize * sample);
+  }
+
+  if (tm <= uMinTm)
+          return 0.0;
+
+  return tm;
+}
+
+// Compute accumulated transmittance for the input ray
+float getTransmittanceLower(vec3 ro, vec3 rd) {
+
+
+  //////// Step size is cuadrupled inside this function
+  vec3 step = rd * gStepSize * 8.0;
+  vec3 pos = ro + step;
+  
+  float tm = 1.0;
+  
+  int maxSteps = int (8.0 / gStepSize);
+
+  float uTMK_gStepSize = -uTMK * gStepSize * 32.0;
 
   for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
           float sample = sampleVolTexLower(pos);
@@ -268,6 +293,15 @@ vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol)
         return lCol * ltm * diffuseCoefficient;
 }
 
+vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol)
+{
+        float ltm = getTransmittanceLower(P, L); // Transmittance towards light
+        float ambientCoefficient =  uShadeCoeff + 
+                pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
+
+        return lCol * ltm * ambientCoefficient;
+}
+
 struct light_ret 
 {
         vec4 col;
@@ -312,31 +346,31 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     // accumulate transmittance
     tm *= dtm;
 
-    // sample color from ambient and back illumination
-    vec3 ambientColor = (1.0-dtm) * sampleCol * 0.1; 
-    ambientColor +=  sampleCol * dtm * uBackIllum;
-
     vec3 diffuseColor = ZERO3;
-
+    vec3 ambientColor = ZERO3;
     vec3 N = sampleVolTexNormal(pos);
 
+    /////////// get diffuse contribution per light
     vec3 LK = ZERO3;
-
-    // get contribution per light
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
-            LK += diffuseComponent(pos, N, L, uLightC);
+            diffuseColor += diffuseComponent(pos, N, L, uLightC);
     }
 
-    // get ambient contribution, simulated as 2 lights
-    vec3 C = -normalize(rd + vec3(0.3, 0.3, 0.3));
-    vec3 CK = uAmbient * diffuseComponent(pos, N, C, uLightC);
+    ////////// get ambient contribution, simulated as light close to the view direction
+    vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
+    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0));
+    /* C = -normalize(rd + vec3(-0.3, -0.3, -0.3)); */
+    /* ambientColor += ambientComponent(pos, N, C, uLightC); */
 
-    C = -normalize(rd + vec3(-0.3, -0.3, -0.3));
-    CK += uAmbient * diffuseComponent(pos, N, C, uLightC);
+    ambientColor *= uAmbient;
+
+    // Get local ambient occlusion to modulate result
+    float occlusion = ambientOcclusion(pos);
 
     // Accumulate color based on delta transmittance and mean transmittance
-    diffuseColor += (1.0-dtm) * sampleCol * (LK+CK);
+    col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
+
 
     // If it's the first hit, save it for depth computation
     if (first) {
@@ -344,9 +378,6 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
             first = false;
     }
 
-    float occlusion = ambientOcclusion(pos);
-
-    col += 0.001 * ambientColor + 0.5 * diffuseColor * occlusion;
   }
 
 
