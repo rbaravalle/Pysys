@@ -7,19 +7,19 @@ from lparams import *
 import baking1D as bak
 from mvc import mvc
 
-N = 400
+N = 600
 maxR = N/20
 
 
 bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
 delta = N/16 # radius to check for intersections with other bubbles
-I = Image.new('L',(N,N),(255))
+I = Image.new('L',(N,N),(0))
 draw = ImageDraw.Draw(I)
 arr = bak.calc()
 gx, gy = np.gradient(arr)
 import pylab
 fig = pylab.figure()
-pylab.imshow(arr)
+#pylab.imshow(arr)
 #pylab.colorbar()
 #pylab.show()
 
@@ -29,7 +29,7 @@ def drawShape(x,y,r,c):
     global draw
     if(c == 0): return
     r = int(r)
-    rr = 0#int(r+10)
+    rr = 255#int(r+10)
     if(r<=2):
         draw.ellipse((x-r, y-r, x+r, y+r), fill=rr)
     else:
@@ -38,16 +38,7 @@ def drawShape(x,y,r,c):
                 if((x-i)*(x-i)+(y-j)*(y-j)<r*r):
                     draw.point((i,j),fill=rr)
     return
-    r2 = r
-    x2 = x
-    y2 = y
-    r2 = int(r2/(1))
-    dd = int(r*1.0)
-    for i in range(2):
-        x3 = x2+np.random.randint(-dd,dd+1)
-        y3 = y2+np.random.randint(-dd,dd+1)
-        drawShape(x3,y3,r2,c-1)
-
+    
 
     
 def bilinear_interpolate2(ar,kx,ky):
@@ -132,21 +123,10 @@ def main():
         for j in range(0,N):
             dist = np.sqrt(((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2)))
             if(dist < 50): dist /= 4
-            #print dist
             u = i*(shx/(np.float32(N)-1))
             v = j*(shy/(np.float32(N)-1))
             gx2[i,j] = np.sign(gx[u,v])*dist
             gy2[i,j] = np.sign(gy[u,v])*dist
-
-    #for i in range(0,N):
-        #for j in range(0,N):
-            #dist = ((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2))/1600
-            #u = i*(shx/(np.float32(N)-1))
-            #v = j*(shy/(np.float32(N)-1))
-            #gx2[i,j] = np.sign(gx[u,v])*dist
-            #gy2[i,j] = np.sign(gy[u,v])*dist
-
-
 
     shx = gx.shape[0]
     shy = gy.shape[1]
@@ -159,59 +139,73 @@ def main():
     cageNew = np.array(cageOrig)
 
     # control points displacements
-    trs=[[0,0],[15,20],[15,20],[40,0],[40,0],[40,0],[0,65],[0,70],[0,75],[0,40],[0,45],[0,50]]
+    trs=[[0,0],[15,20],[15,20],[30,0],[25,0],[20,0],[0,45],[0,40],[0,35],[0,20],[0,35],[0,40]]
 
     for i in range(len(cageOrig)):
         cageReal[i] = cageOrig[i]+trs[i]
         cageNew[i] = cageOrig[i]-trs[i]
 
-    print cageOrig
-    print cageReal
-    print cageNew
+    #print cageOrig
+    #print cageReal
+    #print cageNew
 
+    bufferr = np.zeros((N,N)).astype(np.uint8)
 
-    for i in range(1,50,1):
+    print "Proving..."
+    for i in range(3,50,2):
         cubr = f(i)
-        maxrank = N*N/cubr/(i*i*i)
-        if(maxrank <=0): exit()
-        print i, maxrank
-        for j in range(0,int(maxrank)):
-            shape2(np.random.randint(0,N),np.random.randint(0,N),i)
-        I2 = Image.new("L",(N,N))
-        I3 = Image.new("L",(N,N))
-        data = np.array(I.getdata()).reshape((N,N))
-        for x in range(0,N):    
-            for y in range(0,N):
-                val = 16.0
-                u = x+gx2[x,y]
-                v = y+gy2[x,y]
-                if(u < 0 or u >= N or v < 0 or v >= N):
-                    value = 0
-                else:
-                    value = I.getpixel((u,v))
-                I2.putpixel((x,y),value)
+        maxrank = 10*N*N/cubr/(i*i*i*i)
+        if(maxrank >0):
+            print i, maxrank
+            for j in range(0,int(maxrank)):
+                shape2(np.random.randint(0,N),np.random.randint(0,N),i)
 
-                barycoords = mvc([x,y],cageOrig)
+    data = np.array(I.getdata()).reshape((N,N))
+    print "SUM: ", data
+    print "Baking.."
+    for x in range(0,N):    
+        for y in range(0,N):
+            #val = 16.0
+            u = x+gx2[x,y]
+            v = y+gy2[x,y]
+            if(u < 0 or u >= N or v < 0 or v >= N):
                 value = 0
-                v = np.zeros((2)).astype(np.float32)
-                #v = barycoords*cageNew
-                for h in range(len(barycoords)):
-                    v += barycoords[h]*cageNew[h]
-                v = np.array(v).astype(int)
-                v = np.clip(v,0,N-1)
-                I3.putpixel((x,y),I2.getpixel((int(v[0]),int(v[1]))) )
+            else:
+                bufferr[x,y] = data[u,v]
 
-        
-        #for x in range(0,N):    
-        #    for y in range(0,N):
-                
+    I2 = Image.new("L",(N,N))
+    for x in range(N):
+        for y in range(N):
+            I2.putpixel((x,y),bufferr[x,y])
 
-        map(lambda i: paint(i,N,I3), cageReal)
+    I2.save('warp/fractal'+str(i)+'Bread.png')
 
-        print "Image saving...", i
-        I2.save('warp/fractal'+str(i)+'Bread.png')
-        I3.save('warp/fractalBreadWarp'+str(i)+'.png')
 
-    
+    print "Warping.."
+    bufferr2 = np.zeros((N,N))
+    for x in range(0,N):
+        for y in range(0,N):
+            barycoords = mvc([x,y],cageOrig)
+            value = 0
+            v = np.zeros((2)).astype(np.float32)
+            #v = barycoords*cageNew
+            for h in range(len(barycoords)):
+                v += barycoords[h]*cageNew[h]
+            v = np.array(v).astype(int)
+            v = np.clip(v,0,N-1)
+            bufferr2[x,y] = bufferr[int(v[0]),int(v[1])]
+
+    I3 = Image.new("L",(N,N))
+    for x in range(N):
+        for y in range(N):
+            I3.putpixel((x,y),bufferr2[x,y])
+            
+
+    #map(lambda i: paint(i,N,I3), cageReal)
+
+    print "Image saving...", i
+    I3.save('warp/fractalBreadWarp'+str(i)+'.png')
+
+
 
 main()
