@@ -6,12 +6,15 @@ import numpy as np
 import Image
 from lparams import *
 from matplotlib import pyplot as plt
+from scipy.interpolate import interp1d
+import pylab
 
 theta=0;
 dx=0.01/np.float32(N); 
 dt=30;
 Time=5400;
 M=Time/np.float32(dt);
+print M
 # N is number of spacial nodes
 # M is number of temporal nodes
 #**********************************
@@ -28,22 +31,39 @@ W1 = np.zeros((M+2,N+2)).astype(np.float32)
 
 # transform from polar coordinates to x,y
 def transform(W):
-    print W[10]
+    global N
+    print W[20]
     t = 20
+
+
+    MM = N
+    N = 32
+    #bakk = W[t]
     arr = np.zeros((N+1,N+1)).astype(np.float32)
+
+    # interpolation in order to keep the baking in 32 array elements
+    bakk = interp1d(range(MM+1), W[t], kind='cubic')
+
+    print "BAKK: ", bakk
+
     for i in range(-N/2,N/2+1):
         for j in range(-N/2,N/2+1):
             i2 = i
             j2 = j
-            r = np.round(np.sqrt(i2*i2+j2*j2)).astype(np.uint8)
+            r = np.sqrt(i2*i2+j2*j2).astype(np.float32)
             if(r < N and r >= 0):
-                arr[N/2-i,N/2-j] = W[t,N-r]
+                arr[N/2-i,N/2-j] = bakk((N-r)*MM/N)
 
     #print arr
-    #I2 = Image.frombuffer('L',(N+1,N+1), (100*arr).astype(np.uint8),'raw','L',0,1)
-    #imgplot = plt.imshow(I2)
-    #plt.colorbar()
-    #plt.show()
+    if(False):
+        I2 = Image.frombuffer('L',(N+1,N+1), (arr).astype(np.uint8),'raw','L',0,1)
+        imgplot = plt.imshow(I2)
+        plt.colorbar()
+        gx, gy = np.gradient(arr)
+        pylab.quiver(gx,gy)
+        pylab.show()
+
+        plt.show()
     #print "Saving Image res.png..."
     #I2.save('res.png')
     return arr
