@@ -37,7 +37,8 @@ def transform(W):
 
 
     MM = N
-    N = 32
+    N = 400
+
     #bakk = W[t]
     arr = np.zeros((N+1,N+1)).astype(np.float32)
 

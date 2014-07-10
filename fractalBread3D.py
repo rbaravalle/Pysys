@@ -7,7 +7,7 @@ from lparams import *
 import baking1D as bak
 from mvc import mvc # mean value coordinates
 
-N = 256
+N = 400
 maxR = N/16
 
 field = np.zeros((N,N,N)).astype(np.uint8) + np.uint8(255)
@@ -68,7 +68,6 @@ def main():
     gx2 = np.zeros((N,N)) # vector field
     gy2 = np.zeros((N,N)) # vector field
 
-
     shx = gx.shape[0]-1
     shy = gy.shape[1]-1
 
@@ -76,12 +75,12 @@ def main():
     for i in range(0,N):
         for j in range(0,N):
             dist = np.sqrt(((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2)))
-            if(dist < 50): dist /= 4
+            #if(dist < 50): dist /= 4
             #print dist
             u = i*(shx/(np.float32(N)-1))
             v = j*(shy/(np.float32(N)-1))
-            gx2[i,j] = np.sign(gx[u,v])*dist
-            gy2[i,j] = np.sign(gy[u,v])*dist
+            gx2[i,j] = gx[u,v]*dist
+            gy2[i,j] = gy[u,v]*dist
 
     p = 64
     # Arbitrary shape, mean value coordinates
@@ -94,7 +93,8 @@ def main():
     # RIGHT, BOTTOM,LEFT, TOP < |> <_> <| > <->
     # X: BOTTOM - TOP
     # Y : LEFT - RIGHT
-    trs=[[0,-20],[0,0],[0,0],[0,0],[30,0],[45,0],[30,40],[-5,0],[30,10],[25,10],[45,20],[12,15]]
+    #trs=[[0,-20],[0,0],[0,0],[0,0],[30,0],[45,0],[30,40],[-5,0],[30,10],[25,10],[45,20],[12,15]]
+    trs=[[0,-10],[0,0],[0,0],[0,0],[20,0],[35,0],[20,30],[-5,0],[20,10],[15,10],[25,10],[12,5]]
 
     for i in range(len(cageOrig)):
         cageReal[i] = cageOrig[i]+trs[i]
@@ -104,58 +104,66 @@ def main():
     print cageReal
     print cageNew
 
-    for i in range(1,50,1):
+    for i in range(1,30,1):
         cubr = f(i)
         maxrank = 2*N* (N*N/cubr/(4*i*i*i*i)) # N* 2D Case
-        if(maxrank <=0): exit()
-        print i, maxrank
-        for j in range(0,int(maxrank)):
-            shape(np.random.randint(0,N),np.random.randint(0,N),np.random.randint(0,N),i)
+        if(maxrank >0):
+            print i, maxrank
+            for j in range(0,int(maxrank)):
+                shape(np.random.randint(0,N),np.random.randint(0,N),np.random.randint(0,N),i)
+        else: break
 
-        field2 = np.zeros((N,N,N)).astype(np.uint8) + np.uint8(255)
-        field3 = np.zeros((N,N,N)).astype(np.uint8) + np.uint8(255)
+    for w in range(N):
+        III = Image.frombuffer('L',(N/2,N/2), np.array(field[N/4:N*3/4,N/4:N*3/4,w]).astype(np.uint8),'raw','L',0,1)
+        I.paste(III,(0,N/2*w))
 
-        for x in range(0,N):    
-            for y in range(0,N):
-                for z in range(0,N):
-                    u = x+gx2[x,y]
-                    v = y+gy2[x,y]
-                    w = z
-                    if(u < 0 or u >= N or v < 0 or v >= N):
-                        value = 0
-                    else:
-                        value = field[u,v,w]
-                    field2[x,y,z] = value
+    I.save('warp/fractalBread3D'+str(i)+'.png')
 
-        for x in range(0,N):
-            for y in range(0,N):
-                barycoords = mvc([x,y],cageOrig)
-                arr = np.zeros((2)).astype(np.float32)
-                for h in range(len(barycoords)):
-                    arr += barycoords[h]*cageNew[h]
-                arr = np.array(arr).astype(int)
-                arr = np.clip(arr,0,N-1)
-                for z in range(0,N):
-                    field3[x,y,z] = field2[int(arr[0]),int(arr[1]),z]
+    field2 = np.zeros((N,N,N)).astype(np.uint8) + np.uint8(255)
+    field3 = np.zeros((N,N,N)).astype(np.uint8) + np.uint8(255)
+    k = float(30.0)
 
-        for h in range(len(cageReal)):
-            a = cageReal[h]
-            field3 = paint([a[0],a[1],10],N,field3)
+    print "Baking..."
+    for x in range(0,N):    
+        for y in range(0,N):
+            for z in range(0,N):
+                u = np.round(x+k*gx2[x,y])
+                v = np.round(y+k*gy2[x,y])
+                w = z
+                if(u < 0 or u >= N or v < 0 or v >= N):
+                    value = 0
+                else:
+                    value = field[u,v,w]
+                field2[x,y,z] = value
 
-        if(i%1 == 0):
-            print i
-            for w in range(N):
-                I2 = Image.frombuffer('L',(N/2,N/2), np.array(field2[N/4:N*3/4,N/4:N*3/4,w]).astype(np.uint8),'raw','L',0,1)
-                I.paste(I2,(0,N/2*w))
+    print "Warping..."
+    for x in range(0,N):
+        for y in range(0,N):
+            barycoords = mvc([x,y],cageOrig)
+            arr = np.zeros((2)).astype(np.float32)
+            for h in range(len(barycoords)):
+                arr += barycoords[h]*cageNew[h]
+            arr = np.array(arr).astype(int)
+            arr = np.clip(arr,0,N-1)
+            for z in range(0,N):
+                field3[x,y,z] = field2[int(arr[0]),int(arr[1]),z]
 
-                #II = Image.frombuffer('L',(N/2,N/2), np.array(field3[N/4:N*3/4,N/4:N*3/4,w]).astype(np.uint8),'raw','L',0,1)
-                #I3.paste(II,(0,N/2*w))
-                II = Image.frombuffer('L',(N,N), np.array(field3[:,:,w]).astype(np.uint8),'raw','L',0,1)
-                I3.paste(II,(0,N*w))
+    #for h in range(len(cageReal)):
+        #a = cageReal[h]
+        #field3 = paint([a[0],a[1],10],N,field3)
 
-            I.save('warp/fractalBread3D'+str(i)+'.png')
-            I3.save('warp/field'+str(i)+'.png')
-            print "Image "+ str(i) +" saved"
+    print "Saving Image..."
+    for w in range(N):
+        I2 = Image.frombuffer('L',(N/2,N/2), np.array(field2[N/4:N*3/4,N/4:N*3/4,w]).astype(np.uint8),'raw','L',0,1)
+        I.paste(I2,(0,N/2*w))
+
+        #II = Image.frombuffer('L',(N/2,N/2), np.array(field3[N/4:N*3/4,N/4:N*3/4,w]).astype(np.uint8),'raw','L',0,1)
+        #I3.paste(II,(0,N/2*w))
+        II = Image.frombuffer('L',(N,N), np.array(field3[:,:,w]).astype(np.uint8),'raw','L',0,1)
+        I3.paste(II,(0,N*w))
+
+    I3.save('warp/field'+str(i)+'.png')
+    print "Image "+ str(i) +" saved"
 
 
 main()

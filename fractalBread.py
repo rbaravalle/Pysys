@@ -8,7 +8,7 @@ import baking1D as bak
 from mvc import mvc
 from sat import *
 
-N = 400
+N = 1200
 maxR = N/20
 
 bubbles = np.zeros((N+1,N+1)).astype(np.int32) # posicion y tamanio burbujas
@@ -60,6 +60,7 @@ def main():
             for j in range(0,int(maxrank)):
                 shape2(np.random.randint(0,N),np.random.randint(0,N),i)
 
+    print "fractal"+str(i+1)+"Bread.png"
     I.save('warp/fractal'+str(i+1)+'Bread.png')
 
     data = np.array(I.getdata()).reshape((N,N))
@@ -94,8 +95,8 @@ def main():
     print gx.shape
     print gy.shape
 
-    gx = np.vstack((gx[:sx/2],gx[sx/2+1:]))
-    gy = np.hstack((gy[:,:sy/2],gy[:,sy/2+1:]))
+    #gx = np.vstack((gx[:sx/2],gx[sx/2+1:]))
+    #gy = np.hstack((gy[:,:sy/2],gy[:,sy/2+1:]))
 
     print gx.shape
     print gy.shape
@@ -103,40 +104,25 @@ def main():
     shx = gx.shape[0]-1
     shy = gx.shape[1]-1
 
-    np.savetxt('gx.txt', gx, fmt='%.2f')
-    np.savetxt('gy.txt', gy, fmt = '%.2f')
-
-    for i in range(0,N-shx):
-
-        for j in range(0,N-shy):
+    for i in range(0,N):
+        for j in range(0,N):
             dist = np.sqrt(((i-N/2)*(i-N/2)+(j-N/2)*(j-N/2)))
-            #if(dist < 50): dist /= 4
             u = np.round(i*(shx/(np.float32(N)-1))).astype(np.int32)
             v = np.round(j*(shy/(np.float32(N)-1))).astype(np.int32)
-            #print gx[u,v]
-            sx = np.sign(gx[u,v])
-            sy = np.sign(gy[u,v])
-            gx2[i,j] = dist*sx
-            gy2[i,j] = dist*sy
-
-    satx = sat(gx2,N,N,'data')
-    saty = sat(gy2,N,N,'data')
+            gx2[i,j] = gx[u,v]*dist
+            gy2[i,j] = gy[u,v]*dist
 
     shx = gx.shape[0]
     shy = gy.shape[1]
 
-    print "SUM: ", data
     print "Baking.."
     d = 2
-    k = 0.4
+    k = 20
 
-    #print gx[N/2]
-    #print gx2[N/2]
     for x in range(0,N):    
         for y in range(0,N):
-            #val = 16.0
-            u = x+k*count(max(0,x-d),max(0,y-d), min(N-1,x+d), min(N-1,y+d),satx)/(d*d+2*d+1) #gx2[x,y]
-            v = y+k*count(max(0,x-d),max(0,y-d), min(N-1,x+d), min(N-1,y+d) ,saty)/(d*d+2*d+1) #gy2[x,y]
+            u = np.round(x+k*gx2[x,y])
+            v = np.round(y+k*gy2[x,y])
             if(u < 0 or u >= N or v < 0 or v >= N):
                 value = 0
             else:
@@ -151,7 +137,7 @@ def main():
     I2.save('warp/fractal'+str(i)+'Bread.png')
 
 
-    exit()
+    #exit()
     print "Warping.."
     bufferr2 = np.zeros((N,N))
     for x in range(0,N):
