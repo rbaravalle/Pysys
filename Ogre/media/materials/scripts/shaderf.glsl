@@ -41,6 +41,7 @@ uniform vec3 uLightC; // light color
 
 //////////////////// Volume definition uniforms
 uniform sampler3D uTex;   // 3D volume texture
+uniform sampler3D uOcclussion;   // 3D volume texture
 uniform sampler2D noiseTex;   // 2D noise texture
 uniform vec3 uTexDim;     // dimensions of texture
 
@@ -284,9 +285,8 @@ float ambientOcclusion(vec3 pos)
     return occlusion;
 }
 
-vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol)
+vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm)
 {
-        float ltm = getTransmittance(P, L); // Transmittance towards light
         float diffuseCoefficient =  uShadeCoeff + 
                 pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
 
@@ -322,6 +322,9 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
   for (int i=0; i < gSteps && tm > uMinTm; ++i, pos += step) {
 
+    vec3 L = normalize( uLightP - pos ); // Light direction
+    float ltm = getTransmittance(pos, L); // Transmittance towards light
+
     float volSample = sampleVolTex(pos); // Density at sample point
 
     /* If there's no mass and no back illumination, continue */
@@ -354,7 +357,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     vec3 LK = ZERO3;
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
-            diffuseColor += diffuseComponent(pos, N, L, uLightC);
+            diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm);
     }
 
     ////////// get ambient contribution, simulated as light close to the view direction
@@ -370,6 +373,8 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     // Accumulate color based on delta transmittance and mean transmittance
     col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
+
+    if(ltm<uShininess/10.0) col+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0;
 
 
     // If it's the first hit, save it for depth computation

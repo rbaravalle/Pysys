@@ -24,15 +24,15 @@ RenderState::RenderState()
         tmk = 15.0;
         tmk2 = 25.0;
         mintm = 0.2;
-        shininess = 1.0;
-        steps = 128.0;
+        shininess = 9.1;
+        steps = 440.0;
         ucolor = Vector3(0.8,0.7,0.6);
-        ambient = 0.3;
-        backIllum = 0.0;
+        ambient = 0.0;
+        backIllum = 0.5;
         shadeCoeff = 1.0;
-        specCoeff= 1.0;
-        specMult = 1.0;
-        misc = 1.3;
+        specCoeff= 0.1;
+        specMult = 8;
+        misc = 10.0;
         lightIsMoving = true;
 }
 
@@ -43,7 +43,7 @@ void RenderState::enter()
         OgreFramework* framework = OgreFramework::getSingletonPtr();
         
         framework->_viewport->setVisibilityMask(RF_MAIN);
-        framework->_log->logMessage("Entering RenderState...");
+        //framework->_log->logMessage("Entering RenderState...");
 
         _sceneMgr = framework->_root->createSceneManager(ST_GENERIC, "RenderSceneMgr");
         _sceneMgr->setAmbientLight(Ogre::ColourValue(0.7f, 0.7f, 0.7f));
@@ -137,7 +137,7 @@ void RenderState::enter()
 
 bool RenderState::pause()
 {
-        OgreFramework::getSingletonPtr()->_log->logMessage("Pausing RenderState...");
+        //OgreFramework::getSingletonPtr()->_log->logMessage("Pausing RenderState...");
 
         return true;
 }
@@ -146,7 +146,7 @@ bool RenderState::pause()
 
 void RenderState::resume()
 {
-        OgreFramework::getSingletonPtr()->_log->logMessage("Resuming RenderState...");
+        //OgreFramework::getSingletonPtr()->_log->logMessage("Resuming RenderState...");
 
         buildGUI();
 
@@ -159,7 +159,7 @@ void RenderState::resume()
 void RenderState::exit()
 {
 
-        OgreFramework::getSingletonPtr()->_log->logMessage("Leaving RenderState...");
+        //OgreFramework::getSingletonPtr()->_log->logMessage("Leaving RenderState...");
 
         _sceneMgr->destroyCamera(_camera);
         _sceneMgr->destroyQuery(_rsq);
@@ -181,6 +181,13 @@ void RenderState::createScene()
         breadVolume.createTexture("media/fields/warped.field", "volumeTex");
         breadTex = breadVolume.getTexturePtr();
         if (breadTex.isNull()) {
+                exit();
+        }
+
+        breadVolume2.createTexture("media/fields/warpedO.field", "volumeTex2");
+        breadTex2 = breadVolume2.getTexturePtr();
+        if (breadTex2.isNull()) {
+                printf("Wrong breadTex2");
                 exit();
         }
 
@@ -669,7 +676,7 @@ void RenderState::buildGUI()
                                               "tmk", 200,80,44,0,25,101);
 
         tmk2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk2", 
-                                               "tmk2", 200,80,44,0,25,101);
+                                               "tmk2", 200,80,44,0,70,101);
 
         mintmSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "minTm", 
                                                 "minTm", 200,80,44,0,1,101);
@@ -681,7 +688,7 @@ void RenderState::buildGUI()
                                                 "steps",  200,80,44,16,512,241);
 
         ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
-                                                  "ambient",  200,80,44,-3,3,61);
+                                                  "ambient",  200,80,44,-1,3,61);
 
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
                                           "back illumination", 200,80,44,0,3,31);

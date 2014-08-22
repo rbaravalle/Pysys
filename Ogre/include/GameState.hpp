@@ -64,6 +64,7 @@ private:
         Ogre::Entity*                           breadEntity;
         Ogre::MaterialPtr                       breadMat; 
         Ogre::TexturePtr                        breadTex;
+        Ogre::TexturePtr                        breadTex2;
 
         Ogre::SceneNode*                        tableNode;
         Ogre::Entity*                           tableEntity;

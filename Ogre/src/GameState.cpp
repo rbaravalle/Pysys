@@ -225,7 +225,7 @@ void GameState::createVolumeTexture()
                         for(size_t x = 0; x < texW; x++)
                         {
                                 int idx = x + y * texW + z * texW * texH;
-                                idx = idx % (250*250*250);
+                                idx = idx % (texD*texH*texW);
                                 *pDest++ = field[idx]; 
                         }
                         pDest += pixelBox.getRowSkip() * colBytes;
@@ -768,10 +768,10 @@ void GameState::buildGUI()
                                       "Display Mode", 200, 3, displayModes);
 
         tmkSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk", 
-                                              "tmk", 200,80,44,0,25,101);
+                                              "tmk", 200,80,44,0,50,101);
 
         tmk2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "tmk2", 
-                                               "tmk2", 200,80,44,0,25,101);
+                                               "tmk2", 200,80,44,0,70,101);
 
         mintmSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "minTm", 
                                                 "minTm", 200,80,44,0,1,101);
@@ -783,7 +783,7 @@ void GameState::buildGUI()
                                                 "steps",  200,80,44,16,256,241);
 
         ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
-                                                  "ambient",  200,80,44,-3,3,61);
+                                                  "ambient",  200,80,44,-1,3,61);
 
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
                                           "back illumination", 200,80,44,0,3,31);
@@ -833,7 +833,7 @@ void GameState::sliderMoved(OgreBites::Slider * slider)
         {
                 tmk = value;
         }
-
+cxcz
         if (slider->getName() == "tmk2") 
         {
                 tmk2 = value;
