@@ -23,5 +23,3 @@ command4 = "python texs.py "+filename
 # compute textures
 os.system(command4)
 
-os.system('cd ..; cd ..; ./OgreBread')
-

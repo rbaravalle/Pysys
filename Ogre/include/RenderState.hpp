@@ -65,6 +65,7 @@ private:
 
         Volume                                  breadVolume;
         Volume                                  breadVolume2;
+        Volume                                  breadVolume3;
         VolumeBoundingCubes                     breadVolumeBoundingCubes;
 
         RenderTex                               rayPositions;
@@ -75,6 +76,7 @@ private:
         Ogre::MaterialPtr                       breadMat; 
         Ogre::TexturePtr                        breadTex;
         Ogre::TexturePtr                        breadTex2;
+        Ogre::TexturePtr                        breadTex3;
 
 
         Ogre::SceneNode*                        tableNode;

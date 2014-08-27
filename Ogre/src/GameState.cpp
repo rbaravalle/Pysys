@@ -715,7 +715,7 @@ void GameState::updateSliders()
 void GameState::updateLight(double timeSinceLastFrame)
 {
         static double elapsed = 0;
-        elapsed += timeSinceLastFrame * 0.001;
+        elapsed += timeSinceLastFrame * 0.0001;
         double se = sin(elapsed);
         double ce = cos(elapsed);
 

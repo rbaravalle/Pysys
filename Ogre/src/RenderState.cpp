@@ -184,10 +184,17 @@ void RenderState::createScene()
                 exit();
         }
 
-        breadVolume2.createTexture("media/fields/warpedO.field", "volumeTex2");
+        breadVolume2.createTexture("media/fields/warpedC.field", "volumeTex2");
         breadTex2 = breadVolume2.getTexturePtr();
         if (breadTex2.isNull()) {
                 printf("Wrong breadTex2");
+                exit();
+        }
+
+        breadVolume3.createTexture("media/fields/warpedO.field", "volumeTex3");
+        breadTex3 = breadVolume3.getTexturePtr();
+        if (breadTex3.isNull()) {
+                printf("Wrong breadTex3");
                 exit();
         }
 
@@ -622,7 +629,7 @@ void RenderState::updateLight(double timeSinceLastFrame)
                 return;
 
         static double elapsed = 0;
-        elapsed += (timeSinceLastFrame * 0.001) * shininess;
+        elapsed += (timeSinceLastFrame * 0.0001) * shininess;
         double se = sin(elapsed);
         double ce = cos(elapsed);
 

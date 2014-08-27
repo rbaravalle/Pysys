@@ -40,8 +40,9 @@ uniform vec3 uLightP; // light position in object space
 uniform vec3 uLightC; // light color
 
 //////////////////// Volume definition uniforms
+uniform sampler3D uCrust;   // 3D volume texture
 uniform sampler3D uTex;   // 3D volume texture
-uniform sampler3D uOcclussion;   // 3D volume texture
+uniform sampler3D uOcclusion;   // 3D volume texture
 uniform sampler2D noiseTex;   // 2D noise texture
 uniform vec3 uTexDim;     // dimensions of texture
 
@@ -96,19 +97,6 @@ float rand(vec2 co){
 }
 
 
-///// Crust Functions
-
-bool isCrust(vec3 pos) {
-
-    float limit = (pos.x-0.5)*(pos.x-0.5)+(pos.y-0.5)*(pos.y-0.5);
-    float hx = 0.5;
-    float hy = 0.91;
-    float dist = (pos.x-hx)*(pos.x-hx)+(pos.y-hy)+(pos.y-hy);
-    bool hongo = dist < 0.30 && dist > 0.1;
-    return ((pos.y < 0.6 && (pos.x < 0.09 || pos.x > 0.91 )) || 
-           (pos.y > 0.6 && (pos.x < 0.05 || pos.x > 0.95 )) || hongo || pos.y < 0.03) || limit > uMisc/4.0 && limit < uMisc/4.0+0.05;
-}
-
 bool outsideCrust(vec3 pos) {
 
         return (int(pos.z*10) % 2 == 0 && pos.z < 0.5);
@@ -124,10 +112,23 @@ bool outsideCrust(vec3 pos) {
 
 float sampleVolTex(vec3 pos) 
 {
-        //if(pos.x*pos.x+pos.y*pos.y > 0.7) return -1;
         if(outsideCrust(pos)) return 0.0;
 
         return textureLod(uTex, pos, 0).x;
+}
+
+float sampleVolTex2(vec3 pos) 
+{
+        if(outsideCrust(pos)) return 0.0;
+
+        return textureLod(uCrust, pos, 0).x;
+}
+
+float sampleVolTex3(vec3 pos) 
+{
+        if(outsideCrust(pos)) return 0.0;
+
+        return textureLod(uOcclusion, pos, 0).x;
 }
 
 float sampleVolTexLower(vec3 pos) 
@@ -258,33 +259,6 @@ float getSpecularRadiance(vec3 L, vec3 V, vec3 N)
 
 }
 
-float ambientOcclusion(vec3 pos)
-{
-
-    // Ambient Occlusion Computation
-    float c = 2.5/100.0; // uShininess/100.0;
-    float m = 0.0;
-    float maxNeigh = 15.0;
-    m += sampleVolTex(pos);
-    m += sampleVolTex(pos+vec3(-c));
-    m += sampleVolTex(pos+vec3(c));
-    m += sampleVolTex(pos+vec3(0,0,c));
-    m += sampleVolTex(pos+vec3(c,0,0));
-    m += sampleVolTex(pos+vec3(0,c,0));
-    m += sampleVolTex(pos+vec3(0,0,-c));
-    m += sampleVolTex(pos+vec3(-c,0,0));
-    m += sampleVolTex(pos+vec3(0,-c,0));
-    m += sampleVolTex(pos+vec3(0,-c,-c));
-    m += sampleVolTex(pos+vec3(0,c,c));
-    m += sampleVolTex(pos+vec3(-c,-c,0));
-    m += sampleVolTex(pos+vec3(c,c,0));
-    m += sampleVolTex(pos+vec3(-c,0,-c));
-    m += sampleVolTex(pos+vec3(c,0,c));
-
-    float occlusion = 1.0-m/maxNeigh;
-    return occlusion;
-}
-
 vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm)
 {
         float diffuseCoefficient =  uShadeCoeff + 
@@ -319,6 +293,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
   float tm = 1.0;         // accumulated transmittance
 
   bool first = true;
+  float occlusion;
 
   for (int i=0; i < gSteps && tm > uMinTm; ++i, pos += step) {
 
@@ -327,9 +302,6 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     float volSample = sampleVolTex(pos); // Density at sample point
 
-    /* If there's no mass and no back illumination, continue */
-    if (volSample < 0.1) 
-            continue;
 
     
     float tmk = tr;          // transmittance coefficient
@@ -337,10 +309,18 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     vec3 sampleCol = uColor;//vec3(224.0/255.0,234/255.0,194/255.0);//uColor;
     //vec3 sampleCol2 = sampleCol;
 
+    // crust positions
+    float crust = sampleVolTex2(pos);
+    volSample+=crust*uMisc/10.0;
+
+    /* If there's no mass and no back illumination, continue */
+    if (volSample < 0.1/* && co<=0*/) 
+            continue;
+
     /// If the sample point is crust, modify the color and transmittance coefficient
-    if (isCrust(pos)) {
-            tmk *= 2;
-            sampleCol = vec3(146.0/255.0,97.0/255.0,59.0/255.0);
+    if (crust > 0) {
+            tmk *= 4;
+            sampleCol = vec3(186.0/255.0,112.0/255.0,76.0/255.0);
     }
 
     // delta transmittance
@@ -369,12 +349,13 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     ambientColor *= uAmbient;
 
     // Get local ambient occlusion to modulate result
-    float occlusion = ambientOcclusion(pos);
+
+    occlusion = 1.0-sampleVolTex3(pos);
 
     // Accumulate color based on delta transmittance and mean transmittance
     col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
 
-    if(ltm<uShininess/10.0) col+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0;
+    if(ltm<uShininess/10.0) col+=(1.0-ltm)*sampleCol*uBackIllum/20.0;
 
 
     // If it's the first hit, save it for depth computation
