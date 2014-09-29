@@ -99,13 +99,13 @@ float rand(vec2 co){
 
 bool outsideCrust(vec3 pos) {
 
-        return (int(pos.z*10) % 2 == 0 && pos.z < 0.5);
+        return (int(pos.z*10) % 2 == 0 && pos.z > 1.5);
 
     if(int(pos.z*10) % 2 == 0 && pos.z < 0.5) return true;
 
-    float limit = (pos.x-0.5)*(pos.x-0.5)+(pos.y-0.5)*(pos.y-0.5);
+    float limit = (pos.z/1.6-0.25)*(pos.z/1.6-0.25)+(pos.x/1.7-0.25)*(pos.x/1.7-0.25)+(pos.y-0.5)*(pos.y-0.5);
     bool outr = (pos.y < 0.6 && (pos.x < 0.06 || pos.x > 0.94 ));
-    return outr || limit > uMisc/4.0+0.05;
+    return /*outr || */limit > uMisc/4.0;
 }
 
 //////// Sampling functions
@@ -114,21 +114,21 @@ float sampleVolTex(vec3 pos)
 {
         if(outsideCrust(pos)) return 0.0;
 
-        return textureLod(uTex, pos, 0).x;
+        return textureLod(uTex, pos+vec3(0.0,0.0,0.0/10.0), 0).x;
 }
 
 float sampleVolTex2(vec3 pos) 
 {
         if(outsideCrust(pos)) return 0.0;
 
-        return textureLod(uCrust, pos, 0).x;
+        return textureLod(uCrust, pos+vec3(0.0,0.0,0.0/10.0), 0).x;
 }
 
 float sampleVolTex3(vec3 pos) 
 {
         if(outsideCrust(pos)) return 0.0;
 
-        return textureLod(uOcclusion, pos, 0).x;
+        return textureLod(uOcclusion, pos+vec3(0.0,0.0,0.0/10.0), 0).x;
 }
 
 float sampleVolTexLower(vec3 pos) 
@@ -310,7 +310,8 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     //vec3 sampleCol2 = sampleCol;
 
     // crust positions
-    float crust = sampleVolTex2(pos);
+    float distance = sqrt((pos.x-0.5)*(pos.x-0.5)+(pos.y-uShininess/10.0)*(pos.y-uShininess/10.0));
+    float crust = sampleVolTex2(pos)*float((pos.z<0.9 || (pos.z>0.9 && distance > uMisc/10.0)));
     volSample+=crust*uMisc/10.0;
 
     /* If there's no mass and no back illumination, continue */
@@ -355,7 +356,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     // Accumulate color based on delta transmittance and mean transmittance
     col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
 
-    if(ltm<uShininess/10.0) col+=(1.0-ltm)*sampleCol*uBackIllum/20.0;
+    if(ltm<uShininess/10.0) col+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0;
 
 
     // If it's the first hit, save it for depth computation
