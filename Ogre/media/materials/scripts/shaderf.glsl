@@ -79,6 +79,7 @@ varying vec3 vPos;
 float gStepSize;
 float gStepFactor;
 float gSteps;
+float tmk2 = uTMK2;
 
 ///// Helper Functions
 
@@ -99,7 +100,7 @@ float rand(vec2 co){
 
 bool outsideCrust(vec3 pos) {
 
-        return (int(pos.z*10) % 2 == 0 && pos.z > 1.5);
+        return (int(pos.z*11) % 2 == 0 && pos.z > 0.5);
 
     if(int(pos.z*10) % 2 == 0 && pos.z < 0.5) return true;
 
@@ -239,19 +240,19 @@ float Rs(float m,float F,vec3 N, vec3 L,vec3 V, vec3 H)
     return (Fresnel * Rough * Geom)/(NdotV*NdotL);
 }
 
-float getSpecularRadiance(vec3 L, vec3 V, vec3 N)
+float getSpecularRadiance(vec3 L, vec3 V, vec3 N,float specCoeff)
 {
         /* /////////// Phong //////////// */
         vec3 R = normalize(reflect(-L,N)); // Reflection vector
         float spec = dot(R,-V);
-        return clamp(pow(spec, uSpecCoeff), 0.0001, 1.0);
+        return clamp(pow(spec, specCoeff), 0.0001, 1.0);
 
         /* /////////// Blinn - Phong //////////// */
         /* vec3 H = normalize(L-V);   // halfway vector */
         /* float spec = dot(normalize(H),N) * t; */
         /* if (spec < 0.01) */
         /*         return 0.0; */
-        /* return pow(spec, uSpecCoeff); */
+        /* return pow(spec, specCoeff); */
 
         /* /////////// Cook-Torrence //////////// */
         /* vec3 H = normalize(L-V);   // halfway vector */
@@ -259,19 +260,19 @@ float getSpecularRadiance(vec3 L, vec3 V, vec3 N)
 
 }
 
-vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm)
+vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,float specMult, float specCoeff)
 {
         float diffuseCoefficient =  uShadeCoeff + 
-                pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
+                pow(specCoeff * abs(dot(L,N)), specMult);
 
         return lCol * ltm * diffuseCoefficient;
 }
 
-vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol)
+vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float specMult, float specCoeff)
 {
         float ltm = getTransmittanceLower(P, L); // Transmittance towards light
         float ambientCoefficient =  uShadeCoeff + 
-                pow(uSpecCoeff * abs(dot(L,N)), uSpecMult);
+                pow(specCoeff * abs(dot(L,N)), specMult);
 
         return lCol * ltm * ambientCoefficient;
 }
@@ -311,17 +312,25 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     // crust positions
     float distance = sqrt((pos.x-0.5)*(pos.x-0.5)+(pos.y-uShininess/10.0)*(pos.y-uShininess/10.0));
-    float crust = sampleVolTex2(pos)*float((pos.z<0.9 || (pos.z>0.9 && distance > uMisc/10.0)));
-    volSample+=crust*uMisc/10.0;
+    float crust = sampleVolTex2(pos)*float((pos.z<10.0/10.0 || (pos.z>10.0/10.0 && distance > uShininess/10.0)));
+    //volSample+=crust;//*uMisc/10.0;
 
     /* If there's no mass and no back illumination, continue */
     if (volSample < 0.1/* && co<=0*/) 
             continue;
 
+    float specMult = uSpecMult;
+    float specCoeff = uSpecCoeff;
+    float ambient = uAmbient;
+
     /// If the sample point is crust, modify the color and transmittance coefficient
     if (crust > 0) {
             tmk *= 4;
             sampleCol = vec3(186.0/255.0,112.0/255.0,76.0/255.0);
+            specMult = 1.1;
+            specCoeff = 0.8;
+            tmk2 = 34.0;
+            ambient = -0.1;
     }
 
     // delta transmittance
@@ -338,20 +347,21 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     vec3 LK = ZERO3;
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
-            diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm);
+            diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm,specMult,specCoeff);
     }
 
     ////////// get ambient contribution, simulated as light close to the view direction
     vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
-    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0));
+    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0),specMult,specCoeff);
     /* C = -normalize(rd + vec3(-0.3, -0.3, -0.3)); */
     /* ambientColor += ambientComponent(pos, N, C, uLightC); */
 
-    ambientColor *= uAmbient;
+    ambientColor *= ambient;
 
     // Get local ambient occlusion to modulate result
 
     occlusion = 1.0-sampleVolTex3(pos);
+    //if(uMisc > 5.0) occlusion = 1.0;
 
     // Accumulate color based on delta transmittance and mean transmittance
     col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
@@ -417,7 +427,7 @@ void main()
   ///////////  
   /////////// Perform the raymarching
   ///////////  
-  light_ret ret = raymarchLight(ro, rd, uTMK2 * 2.0);
+  light_ret ret = raymarchLight(ro, rd, tmk2 * 2.0);
   vec4 r = ret.col;
   ///////////  ///////////  ///////////  ///////////  ///////////  
 

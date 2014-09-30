@@ -6,6 +6,7 @@ import sys
 import scipy.ndimage
 
 def struct(r):
+    #return np.ones((r,r,r))
     s = np.zeros((r,r,r))
     for i in range(r):
         for j in range(r):
@@ -14,15 +15,15 @@ def struct(r):
                     s[i,j,k] = 1
 
 def border(data):
-    r = 15
-    r2 = 10
-    r3 = 7
-    r4 = 6
-    b1 = scipy.ndimage.binary_closing(data,structure=struct(r)).astype(np.uint8)
-    b1 = scipy.ndimage.binary_dilation(b1,structure=struct(r2)).astype(np.uint8)
-    b = scipy.ndimage.binary_erosion(b1,structure=struct(r3)).astype(np.uint8)
-    #c = b1-b
-    c = scipy.ndimage.binary_closing(b1-b,structure=struct(r4)).astype(np.uint8)
+    r = 8
+    r2 = 7
+    r3 = 6
+    r4 = 5
+    c = scipy.ndimage.binary_closing(data,structure=np.ones((r,r,r))).astype(np.uint8)
+    d = scipy.ndimage.binary_dilation(c,structure=struct(r2)).astype(np.uint8)
+    e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
+
+    c = scipy.ndimage.binary_closing(d-e,structure=struct(r4)).astype(np.uint8)
     c = scipy.ndimage.binary_dilation(c,structure=struct(r4)).astype(np.uint8)
     return np.array(255*(c)).astype(np.uint8)
 
