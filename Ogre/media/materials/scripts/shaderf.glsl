@@ -268,9 +268,8 @@ vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,float specMult
         return lCol * ltm * diffuseCoefficient;
 }
 
-vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float specMult, float specCoeff)
+vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol, float ltm, float specMult, float specCoeff)
 {
-        float ltm = getTransmittanceLower(P, L); // Transmittance towards light
         float ambientCoefficient =  uShadeCoeff + 
                 pow(specCoeff * abs(dot(L,N)), specMult);
 
@@ -352,7 +351,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     ////////// get ambient contribution, simulated as light close to the view direction
     vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
-    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0),specMult,specCoeff);
+    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0),ltm, specMult,specCoeff);
     /* C = -normalize(rd + vec3(-0.3, -0.3, -0.3)); */
     /* ambientColor += ambientComponent(pos, N, C, uLightC); */
 
