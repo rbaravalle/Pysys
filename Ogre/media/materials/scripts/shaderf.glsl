@@ -184,37 +184,13 @@ float getTransmittance(vec3 ro, vec3 rd) {
   
   float tm = 1.0;
   
-  int maxSteps = int (4.0 / gStepSize);
+  // HARDCODED - FIX ME
+  int maxSteps = 5;//int (4.0 / gStepSize);
 
   float uTMK_gStepSize = -uTMK * gStepSize * 16.0;
 
   for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
           float sample = sampleVolTex(pos);
-          tm *= exp( uTMK_gStepSize * sample);
-  }
-
-  if (tm <= uMinTm)
-          return 0.0;
-
-  return tm;
-}
-
-// Compute accumulated transmittance for the input ray
-float getTransmittanceLower(vec3 ro, vec3 rd) {
-
-
-  //////// Step size is cuadrupled inside this function
-  vec3 step = rd * gStepSize * 8.0;
-  vec3 pos = ro + step;
-  
-  float tm = 1.0;
-  
-  int maxSteps = int (8.0 / gStepSize);
-
-  float uTMK_gStepSize = -uTMK * gStepSize * 32.0;
-
-  for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
-          float sample = sampleVolTexLower(pos);
           tm *= exp( uTMK_gStepSize * sample);
   }
 
@@ -296,7 +272,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
   float occlusion;
 
   for (int i=0; i < gSteps && tm > uMinTm; ++i, pos += step) {
-
+    if(i==0) pos+=step*rand(pos.xz);
     vec3 L = normalize( uLightP - pos ); // Light direction
     float ltm = getTransmittance(pos, L); // Transmittance towards light
 
