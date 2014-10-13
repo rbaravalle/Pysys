@@ -217,8 +217,6 @@ float approximateLightDepth(vec3 pos)
     float lightDepth = texture2D(shadowTex, shadowUV.xy).x * shadowUV.w;
     float fragmentDepth = shadowUV.z;
 
-    /* lightDepth = clamp(lightDepth, 0, fragmentDepth); */
-
     return fragmentDepth - lightDepth;
 }
 
@@ -228,34 +226,9 @@ float getTransmittance(vec3 pos, vec3 rd) {
 
   float depth = approximateLightDepth(pos);
   if (depth > 0.0)
-          return exp( -uTMK * depth) * uMisc;
+          return exp( -uTMK * depth);
   else
           return 1.0;
-
-
-  float stepSize = gStepSize * 10.0;
-  vec3  step = rd * stepSize;
-
-  float tm = 1.0;
-
-  float uTMK_stepSize = -uTMK * stepSize;
-         
-  for (int i=0; i < gSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
-
-      if (outsideCrust(pos)) {
-              continue;
-      } 
-
-
-      float density = sampleDensity(pos); 
-      float dtm = exp( uTMK_stepSize * density);
-      tm *= dtm ;
-  }
-
-  if (tm <= uMinTm)
-      return 0.0;
-
-  return tm;
 }
 
 
