@@ -20,6 +20,12 @@ uniform mat4 mvp_matrix;
 
 uniform vec3 uCamPos;
 
+//////////////////// Ray direction and position uniforms
+uniform sampler2D posTex;   // ray origins    texture
+uniform sampler2D dirTex;   // ray directions texture
+uniform float     width_inv; // screen width inverse
+uniform float     height_inv; // screen height inverse
+
 float gStepSize;
 
 bool outside(vec3 pos) 
@@ -28,8 +34,8 @@ bool outside(vec3 pos)
 }
 
 bool outsideCrust(vec3 pos) {
-
-        return (int(pos.z*10) % 2 == 0 && pos.z < 0.5);
+        return false;
+        /* return (int(pos.z*11) % 2 == 0 && pos.z > 0.5); */
 }
 
 float sampleVolTex(vec3 pos) 

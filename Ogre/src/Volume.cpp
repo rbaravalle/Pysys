@@ -368,6 +368,15 @@ Volume::createTextureO(Ogre::String fieldFilenameC, Ogre::String fieldFilenameO,
         return 0;
 }
 
+int 
+Volume::createRadianceTextures(Volume* posVolume, Ogre::String posTextureName, 
+                               Volume* negVolume, Ogre::String negTextureName)
+{
+        if (!posVolume || !negVolume || _mipFields.size() == 0)
+                return -1;
+
+        
+}
 
 Ogre::TexturePtr 
 Volume::getTexturePtr()

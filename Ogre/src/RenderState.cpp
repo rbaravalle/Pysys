@@ -27,11 +27,12 @@ RenderState::RenderState()
         shininess = 9.1;
         steps = 440.0;
         ucolor = Vector3(0.8,0.7,0.6);
-        ambient = 0.0;
+        ambient = 0.2;
         backIllum = 0.5;
         shadeCoeff = 1.0;
         specCoeff= 0.1;
         specMult = 8;
+        glowCoeff = 0.7;
         misc = 10.0;
         lightIsMoving = true;
 }
@@ -129,6 +130,8 @@ void RenderState::enter()
         tableEntity->getSubEntity(0)->getMaterial()->setReceiveShadows(true);
         tableEntity->getSubEntity(0)->setMaterialName("DepthShadowmap/Receiver/Float",
                                                       "General");
+
+        breadEntity->getSubEntity(0)->getMaterial()->setReceiveShadows(true);
         breadEntity->setCastShadows(true);
         
 }
@@ -178,28 +181,29 @@ void RenderState::createScene()
         // breadVolume.createTexture("media/fields/imagen3-1.field", "volumeTex");
         // breadVolume.createTexture("media/fields/mengel3d.field", "volumeTex");
         // breadVolume.createTexture("media/fields/3Dbread.256.field", "volumeTex");
-        breadVolume.createTexture("media/fields/warped.field", "volumeTex");
-        breadTex = breadVolume.getTexturePtr();
-        if (breadTex.isNull()) {
+        breadDensityVolume.createTexture("media/fields/warped.field", "densityTex");
+        breadDensityTex = breadDensityVolume.getTexturePtr();
+        if (breadDensityTex.isNull()) {
+                printf("Error generating density texture");
                 exit();
         }
 
-        breadVolume2.createTexture("media/fields/warpedC.field", "volumeTex2");
-        breadTex2 = breadVolume2.getTexturePtr();
-        if (breadTex2.isNull()) {
-                printf("Wrong breadTex2");
+        breadCrustVolume.createTexture("media/fields/warpedC.field", "crustTex");
+        breadCrustTex = breadCrustVolume.getTexturePtr();
+        if (breadCrustTex.isNull()) {
+                printf("Error generating crust texture");
                 exit();
         }
 
-        breadVolume3.createTexture("media/fields/warpedO.field", "volumeTex3");
-        breadTex3 = breadVolume3.getTexturePtr();
-        if (breadTex3.isNull()) {
-                printf("Wrong breadTex3");
+        breadOcclusionVolume.createTexture("media/fields/warpedO.field", "occlusionTex");
+        breadOcclusionTex = breadOcclusionVolume.getTexturePtr();
+        if (breadOcclusionTex.isNull()) {
+                printf("Error generating occlusion texture");
                 exit();
         }
 
         ///////////////////// Volume bounding cubes
-        breadVolumeBoundingCubes.create(breadVolume, 32, 1, 255, _sceneMgr);
+        breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
 
         //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->_viewport;
@@ -600,6 +604,9 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uBackIllum", backIllum); } 
         catch (Ogre::Exception) {}
 
+        try { fparams->setNamedConstant("uGlowCoeff", glowCoeff); } 
+        catch (Ogre::Exception) {}
+
         try { fparams->setNamedConstant("uMisc", misc); } 
         catch (Ogre::Exception) {}
 
@@ -617,6 +624,7 @@ void RenderState::updateWidgets()
         stepsSlider->setValue(steps, false);
         ambientSlider->setValue(ambient, false);
         backIllumSlider->setValue(backIllum, false);
+        glowCoeffSlider->setValue(glowCoeff, false);
         miscSlider->setValue(misc, false);
         lightCheckBox->setChecked(lightIsMoving, false);
 }
@@ -692,7 +700,7 @@ void RenderState::buildGUI()
                                                     "shininess",  200,80,44,0,10,101);
 
         stepsSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", 
-                                                "steps",  200,80,44,16,512,241);
+                                                "steps",  200,80,44,16,1024,241);
 
         ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
                                                   "ambient",  200,80,44,-1,3,61);
@@ -708,6 +716,9 @@ void RenderState::buildGUI()
 
         specMultSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specMult", 
                                                      "specMult", 200,80,44,0.1,8,80);
+
+        glowCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "glowCoeff", 
+                                               "glowCoeff", 200,80,44,0,5,101);
 
         miscSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc", 
                                                "misc", 200,80,44,0,10,101);
@@ -749,42 +760,42 @@ void RenderState::sliderMoved(OgreBites::Slider * slider)
 {
         float value = slider->getValue();
 
-        if (slider->getName() == "tmk") 
+        if (slider == tmkSlider)
         {
                 tmk = value;
         }
 
-        if (slider->getName() == "tmk2") 
+        if (slider == tmk2Slider)
         {
                 tmk2 = value;
         }
 
-        if (slider->getName() == "minTm") 
+        if (slider == mintmSlider)
         {
                 mintm = value;
         }
 
-        if (slider->getName() == "shadeCoeff") 
+        if (slider == shadeCoeffSlider)
         {
                 shadeCoeff = value;
         }
 
-        if (slider->getName() == "specCoeff") 
+        if (slider == specCoeffSlider)
         {
                 specCoeff = value;
         }
 
-        if (slider->getName() == "specMult") 
+        if (slider == specMultSlider) 
         {
                 specMult = value;
         }
 
-        if (slider->getName() == "shininess") 
+        if (slider == shininessSlider) 
         {
                 shininess = value;
         }
 
-        if (slider->getName() == "steps") 
+        if (slider == stepsSlider) 
         {
                 steps = value;
         }
@@ -797,6 +808,11 @@ void RenderState::sliderMoved(OgreBites::Slider * slider)
         if (slider == backIllumSlider) 
         {
                 backIllum = value;
+        }
+
+        if (slider == glowCoeffSlider) 
+        {
+                glowCoeff = value;
         }
 
         if (slider == miscSlider) 

@@ -22,7 +22,13 @@ class Volume
 public:
         Volume();
         int createTexture(Ogre::String fieldFilename, Ogre::String textureName);
-        int createTextureO(Ogre::String fieldFilenameC, Ogre::String fieldFilenameO, Ogre::String textureName);
+
+        int createTextureO(Ogre::String fieldFilenameC, Ogre::String fieldFilenameO, 
+                           Ogre::String textureName);
+
+        int createRadianceTextures(Volume* posVolume, Ogre::String posTextureName, 
+                                   Volume* negVolume, Ogre::String negTextureName);
+
         Ogre::TexturePtr getTexturePtr();
 
         int fillBounds(VolumeBounds* bounds);

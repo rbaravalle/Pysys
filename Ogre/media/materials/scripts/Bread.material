@@ -13,9 +13,9 @@ material Bread
     receive_shadows on
     transparency_casts_shadows on
 
-    technique
+    technique default
     {
-	pass
+	pass lighting
 	{
 
             scene_blend alpha_blend
@@ -23,7 +23,10 @@ material Bread
 
             vertex_program_ref bread_vertex
             {
-                    param_named_auto mvp     worldviewproj_matrix
+                    param_named_auto world world_matrix
+                    param_named_auto worldViewProj      worldviewproj_matrix
+                    param_named_auto texViewProj texture_viewproj_matrix
+                    param_named_auto lightPosition light_position 0
             }
 
             fragment_program_ref bread_fragment
@@ -31,12 +34,13 @@ material Bread
                 param_named_auto uLightP light_position_object_space 0    
                 param_named_auto uCamPos camera_position_object_space
 
-                param_named uTex       int   0
-                param_named uCrust     int   1
-                param_named uOcclusion int   2
-                param_named noiseTex   int   3
-                param_named posTex     int   4
-                param_named dirTex     int   5
+                param_named shadowTex int 0
+                param_named densityTex   int   1
+                param_named crustTex     int   2
+                param_named occlusionTex int   3
+                param_named noiseTex   int   4
+                param_named posTex     int   5
+                param_named dirTex     int   6
 
 
                 param_named uOffset float3 0 0 0
@@ -59,16 +63,30 @@ material Bread
                 param_named uSpecCoeff  float 1.0
                 param_named uSpecMult   float 0.5
 
+                param_named uGlowCoeff  float 1.0
+
                 param_named uMisc       float 1.0
                 
                 param_named_auto inv_world_matrix  inverse_world_matrix 
                 param_named_auto world_matrix      world_matrix 
                 param_named_auto mvp_matrix        worldviewproj_matrix
+                param_named_auto texViewProj       texture_viewproj_matrix 0
+
+                // 1/2048
+                param_named inverseShadowmapSize float 0.000488281 // 1/2048 
+            }
+
+            // texture_unit ShadowMap
+            texture_unit 0
+            {
+                content_type shadow
+                tex_address_mode clamp
+                filtering none
             }
 
              texture_unit  
             {
-                texture volumeTex 3d unlimited none PF_L8
+                texture densityTex 3d unlimited none PF_L8
                 tex_address_mode clamp clamp clamp
                 tex_coord_set 0
                 filtering bilinear
@@ -77,7 +95,7 @@ material Bread
 
             texture_unit  
             {
-                texture volumeTex2 3d unlimited none PF_L8 
+                texture crustTex 3d unlimited none PF_L8 
                 tex_address_mode clamp clamp clamp
                 tex_coord_set 1
                 filtering bilinear
@@ -86,14 +104,12 @@ material Bread
 
            texture_unit  
             {
-                texture volumeTex3 3d unlimited none PF_L8
+                texture occlusionTex 3d unlimited none PF_L8
                 tex_address_mode clamp clamp clamp
                 tex_coord_set 2
                 filtering bilinear
                 max_anisotropy 8
             }
-
-
 
             texture_unit  
             {
@@ -101,8 +117,6 @@ material Bread
                 tex_address_mode wrap wrap
                 filtering point
             }
-
-
 
             // texture_unit  
             // {

@@ -63,9 +63,6 @@ private:
         void updateWidgets();
         void updateLight(double timeSinceLastFrame);
 
-        Volume                                  breadVolume;
-        Volume                                  breadVolume2;
-        Volume                                  breadVolume3;
         VolumeBoundingCubes                     breadVolumeBoundingCubes;
 
         RenderTex                               rayPositions;
@@ -74,9 +71,14 @@ private:
         Ogre::SceneNode*                        breadNode;
         Ogre::Entity*                           breadEntity;
         Ogre::MaterialPtr                       breadMat; 
-        Ogre::TexturePtr                        breadTex;
-        Ogre::TexturePtr                        breadTex2;
-        Ogre::TexturePtr                        breadTex3;
+
+        Volume                                  breadDensityVolume;
+        Volume                                  breadCrustVolume;
+        Volume                                  breadOcclusionVolume;
+
+        Ogre::TexturePtr                        breadDensityTex;
+        Ogre::TexturePtr                        breadCrustTex;
+        Ogre::TexturePtr                        breadOcclusionTex;
 
 
         Ogre::SceneNode*                        tableNode;
@@ -117,6 +119,7 @@ private:
         float shadeCoeff;
         float specCoeff;
         float specMult;
+        float glowCoeff;
         float misc;
         Ogre::Vector3 ucolor;
         bool  lightIsMoving;
@@ -131,6 +134,7 @@ private:
         OgreBites::Slider* shadeCoeffSlider;
         OgreBites::Slider* specCoeffSlider;
         OgreBites::Slider* specMultSlider;
+        OgreBites::Slider* glowCoeffSlider;
         OgreBites::Slider* miscSlider;
         OgreBites::CheckBox* lightCheckBox;
 

@@ -48,7 +48,7 @@ material DepthShadowmap/Caster/Bread
             fragment_program_ref DepthShadowmap/CasterFP
             {
                 param_named uTex       int         0
-                param_named uMaxSteps  int         128
+                param_named uMaxSteps  int         256
                 param_named uTMK       float       4.0
                 param_named uTMK2      float       15.0
                 param_named_auto inv_world_matrix  inverse_world_matrix 
