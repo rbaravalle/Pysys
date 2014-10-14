@@ -110,7 +110,7 @@ float rand(vec3 co){
 
 bool outsideCrust(vec3 pos) {
 
-        return false;
+    return false;
     return (int(pos.z*11) % 2 == 0 && pos.z > 0.5);
 
     /* if(int(pos.z*10) % 2 == 0 && pos.z < 0.5) return true; */
@@ -129,6 +129,8 @@ float sampleDensity(vec3 pos)
 
 float sampleCrust(vec3 pos) 
 {
+    if (pos.z > 0.9)
+        return 0.0;
     return textureLod(crustTex, pos, 0).x;
 }
 
@@ -177,36 +179,35 @@ vec3 sampleDensityNormal(vec3 pos)
 
 
 /* // Compute accumulated transmittance for the input ray */
-/* float getTransmittance(vec3 ro, vec3 rd) { */
+float getTransmittanceAcurate(vec3 ro, vec3 rd) {
 
-/*   //////// Step size is cuadrupled inside this function */
-/*   vec3 step = rd * gStepSize * 10.0; */
-/*   vec3 pos = ro + rd * gStepSize; */
+  //////// Step size is cuadrupled inside this function
+  vec3 step = rd * gStepSize * 5.0;
+  vec3 pos = ro + rd * gStepSize;
   
-/*   float tm = 1.0; */
+  float tm = 1.0;
   
-/*   int maxSteps = 10; */
+  /* int maxSteps = 10; */
+  int maxSteps = int(uMaxSteps) / 5;
+  /* float uTMK_gStepSize = -uTMK * gStepSize * 16.0; */
+  float uTMK_gStepSize = -uTMK * gStepSize * 5.0;
 
-/*   int maxSteps = int(uMaxSteps) / 10;  */
-/*   /\* float uTMK_gStepSize = -uTMK * gStepSize * 16.0; *\/ */
-/*   float uTMK_gStepSize = -uTMK * gStepSize * 10.0; */
+  for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
 
-/*   for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) { */
+      if (outsideCrust(pos)) {
+              continue;
+      }
 
-/*       if (outsideCrust(pos)) { */
-/*               continue; */
-/*       }  */
+      float density = sampleDensity(pos);
+      float dtm = exp( uTMK_gStepSize * density);
+      tm *= dtm ;
+  }
 
-/*       float density = sampleDensity(pos);  */
-/*       float dtm = exp( uTMK_gStepSize * density); */
-/*       tm *= dtm ; */
-/*   } */
+  if (tm <= uMinTm)
+      return 0.0;
 
-/*   if (tm <= uMinTm) */
-/*       return 0.0; */
-
-/*   return tm; */
-/* } */
+  return tm;
+}
 
 float approximateLightDepth(vec3 pos) 
 {
@@ -222,11 +223,11 @@ float approximateLightDepth(vec3 pos)
 
 
 // Compute accumulated transmittance for the input ray
-float getTransmittance(vec3 pos, vec3 rd) {
+float getTransmittanceApproximate(vec3 pos, vec3 rd) {
 
   float depth = approximateLightDepth(pos);
   if (depth > 0.0)
-          return exp( -uTMK * depth);
+          return exp( -uTMK * depth) * (rand(pos) * 0.2 + 0.8);
   else
           return 1.0;
 }
@@ -304,8 +305,8 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     for (int i = 0; i < gSteps && tm > uMinTm; i++, pos += step) {
 
-        /* if(i==0) */
-        /*     pos += step * rand(pos.xz); */
+        if(i==0)
+            pos += step * rand(pos.xyz);
 
         if (outsideCrust(pos))
                 continue;
@@ -313,9 +314,9 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
         float density = sampleDensity(pos); // Density at sample point
     
         // crust positions
-        /* float distance = sqrt((pos.x-0.5)*(pos.x-0.5)+(pos.y-uShininess/10.0)*(pos.y-uShininess/10.0)); */
-        /* float crust = sampleCrust(pos) * float((pos.z<10.0/10.0 || (pos.z>10.0/10.0 && distance > uShininess/10.0))); */
-        /* density += crust;//\*uMisc/10.0; */
+        float distance = sqrt((pos.x-0.5)*(pos.x-0.5)+(pos.y-uShininess/10.0)*(pos.y-uShininess/10.0));
+        float crust = sampleCrust(pos) /* * float((pos.z<10.0/10.0 || (pos.z>10.0/10.0 && distance > uShininess/10.0))) */;
+        density += crust;//*uMisc/10.0;
 
         /* If there's no mass and no back illumination, continue */
         if (density < 0.1 /* && co<=0*/ )  {
@@ -327,21 +328,29 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
         //vec3 sampleCol2 = sampleCol;
 
         vec3  L   = normalize( uLightP - pos ); // Light direction
-        float ltm = getTransmittance(pos, L);   // Transmittance towards light
+
+        float delta = 0.03 * uMisc;
+        float ltm;
+        
+        if (tm > 0.9) {
+                ltm = getTransmittanceAcurate(pos, L);   // Transmittance towards light
+        } else {
+                ltm = getTransmittanceApproximate(pos, L);   // Transmittance towards light
+        }
 
         float specMult = uSpecMult;
         float specCoeff = uSpecCoeff;
         float ambient = uAmbient;
 
         /// If the sample point is crust, modify the color and transmittance coefficient
-        /* if (crust > 0) { */
-        /*     tmk *= 4; */
-        /*     sampleCol = vec3(186.0/255.0,112.0/255.0,76.0/255.0); */
-        /*     specMult = 1.1; */
-        /*     specCoeff = 0.8; */
-        /*     tmk2 = 34.0; */
-        /*     ambient = -0.1; */
-        /* } */
+        if (crust > 0) {
+            tmk *= 4;
+            sampleCol = vec3(186.0/255.0,112.0/255.0,76.0/255.0);
+            specMult = 1.1;
+            specCoeff = 0.8;
+            tmk2 = 34.0;
+            ambient = -0.1;
+        }
 
         // delta transmittance
         float dtm = exp( -tmk * gStepSize * density);
@@ -368,7 +377,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
         float ambientOcclusion = 1.0 - sampleOcclusion(pos);
 
         // Accumulate color based on delta transmittance and mean transmittance
-        col += (ambientColor * ambientOcclusion + diffuseColor) * 
+        col += (ambientColor * ambientOcclusion + diffuseColor * ambientOcclusion) * 
                 tm * (1.0-dtm) * sampleCol;
 
 
