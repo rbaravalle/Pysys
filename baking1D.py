@@ -15,19 +15,34 @@ dt=30;
 Time=5400;
 M=Time/np.float32(dt);
 print M
+print N
 # N is number of spacial nodes
 # M is number of temporal nodes
 #**********************************
 #% inputting the initial values
 #**********************************
 
-T = np.zeros((N+2)).astype(np.float32)
-V = np.zeros((N+2)).astype(np.float32)
-W = np.zeros((N+2)).astype(np.float32)
+def getWaterContent():
+    Water = 1
+    return calc(Water)
 
-T1 = np.zeros((M+2,N+2)).astype(np.float32)
-V1 = np.zeros((M+2,N+2)).astype(np.float32)
-W1 = np.zeros((M+2,N+2)).astype(np.float32)
+def getTemperatures():
+    return calc()
+
+
+def getTemperaturesArray(step):
+    TT = calc()
+
+    return TT[step] #interp1d(range(N+1), W[step], kind='cubic')
+
+def getDiffTemperaturesArray(step):
+    TT = calc()
+
+    if(step==0):
+        print "ERROR, step must be > 0"
+        exit()    
+    # interpolation in order to keep baking in 32 array elements (for stability)
+    return TT[step]-TT[(step-1)] #interp1d(range(N+1), W[step], kind='cubic')
 
 # transform from polar coordinates to x,y
 def transform(W):
@@ -37,15 +52,13 @@ def transform(W):
 
 
     MM = N
-    N = 400
+    N = 356
 
     #bakk = W[t]
     arr = np.zeros((N+1,N+1)).astype(np.float32)
 
-    # interpolation in order to keep the baking in 32 array elements
+    # interpolation in order to keep baking in 32 array elements (for stability)
     bakk = interp1d(range(MM+1), W[t], kind='cubic')
-
-    print "BAKK: ", bakk
 
     for i in range(-N/2,N/2+1):
         for j in range(-N/2,N/2+1):
@@ -55,7 +68,6 @@ def transform(W):
             if(r < N and r >= 0):
                 arr[N/2-i,N/2-j] = bakk((N-r)*MM/N)
 
-    #print arr
     if(False):
         I2 = Image.frombuffer('L',(N+1,N+1), (arr).astype(np.uint8),'raw','L',0,1)
         imgplot = plt.imshow(I2)
@@ -69,9 +81,15 @@ def transform(W):
     #I2.save('res.png')
     return arr
 
-def calc():
-    print "Baking Computation..."
-    global T,V,W
+def calc(which = 0):
+    #print "Baking Computation..."
+    T = np.zeros((N+2)).astype(np.float32)
+    V = np.zeros((N+2)).astype(np.float32)
+    W = np.zeros((N+2)).astype(np.float32)
+
+    T1 = np.zeros((M+2,N+2)).astype(np.float32)
+    V1 = np.zeros((M+2,N+2)).astype(np.float32)
+    W1 = np.zeros((M+2,N+2)).astype(np.float32)
     # initial conditions
     for i in range(0,N+1):
         T[i]=25
@@ -94,13 +112,6 @@ def calc():
             T1[t+1,i]=T[i]
             V1[t+1,i]=V[i]
             W1[t+1,i]=W[i]
-
-        #import os
-        #clear = lambda: os.system('clear')
-        #clear()
-        #print T
-        #print V
-        #print W
 
     Times = np.zeros((M+1,N+1)).astype(np.float32)
     T = np.zeros((M+1,N+1)).astype(np.float32)
@@ -130,6 +141,6 @@ def calc():
 
     # Transform W to 2D
     #newW = transform(W) # 2D
-    return transform(T)
-
+    if(which==1): return W
+    return T#transform(T)
 
