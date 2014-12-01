@@ -9,6 +9,14 @@ ctypedef np.float32_t DTYPE_tf
 cdef extern from "math.h":
     int round(float x)
 
+def cprintfile(int p, int Nz, int N, np.ndarray[DTYPE_t, ndim=3] arr, f):
+    cdef int z,y,x
+
+    print >> f,N,N,Nz
+    for x from 0<=x<Nz:
+        for y from 0<=y<N:
+            for z from 0<=z<N:
+               print >> f, arr[N-1-y,N-1-x,N-1-z]
 
 def cprint(int p, int Nz, int N, np.ndarray[DTYPE_t, ndim=3] arr):
     cdef int z,y,x

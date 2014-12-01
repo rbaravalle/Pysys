@@ -17,6 +17,7 @@ import csv
 import baking1D as bk
 import cbake
 import cprint
+import cloadobj
 
 # Cython
 #import pipelineCython
@@ -27,8 +28,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 256
-Nz = 256
+N = 400
+Nz = 400
 thresh = 4.4
 
 # apply baking step by step or as one accumulated step
@@ -48,37 +49,12 @@ def printFile(arr,filename):
     f = open(filename, 'w')
     cprint.cprintfile(0,Nz,N,arr,f)
 
-# intersection between a cube field and a geometry
-def intersect(field, geom):
 
-    # threshold value
-    # bubble intersection
-    # based on the distance to the surface
-
-    # distance field
-    dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(N,N,Nz)
-    mask = dfield > thresh
-
-    crumb = 255*(dfield > thresh) #255*np.array(geom-(255*mask*(255-field))).astype(np.uint8)
-    #saveField(255*geom-crust,'crust.png')
-    crust = np.array(255*geom-crumb).astype(np.uint8)
-    #printFile(crust ,"Ogre/output/media/fields/warpedC.field")
-
-    #print field[210:220,240:250,128]
-    #print mask[210:220,240:250,128]
-    #print geom[210:220,240:250,128]
-
-    # the bubbles in white (255-field) are taken into account
-    # when they are away from the surface, so this is the 'crumb region'
-    # crumb = mask * (255-field)
-    # geom - crumb = crust
-    return 255*np.array(geom-(255*(dfield > thresh)*(255-field))).astype(np.uint8)
-    #return 255*np.array(geom-(255*mask*(255-field))).astype(np.uint8)
 
 
 # deform the 3D field
 def deform(field, mask):
-
+    return field
     # ...with the gradient of the distance field
     
     # distance field
@@ -145,7 +121,7 @@ def deform(field, mask):
     k = 0.1
     # deform
     # gy-gz, -gx, gx,
-    return field
+
     return warp.warp(field, gx,gy,gz, N, Nz,k)#gx,gy,gz,N,Nz,k)#gy-gz, -gx, gx, N, Nz)
 
 def loadFromAtlas(atlas):
@@ -200,17 +176,16 @@ def load_obj(obj):
         model = binvox.read_as_3d_array(f)      
 
     model = model.data#.astype(np.uint8)*255
-    model2 = np.zeros((N,N,Nz))
 
-    modelSize = 256
-    for x in xrange(N):
-        for y in xrange(N):
-            for z in xrange(Nz):
-                #model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny
-                x2 = np.floor(x*(256/(N-1)))
-                y2 = np.floor(y*(256/(N-1)))
-                z2 = np.floor(z*(256/(Nz-1)))
-                model2[Nz-1-z,y,x] = model[x2,y2,z2]  # for bread2.vinbox 
+    #print model[210:220,210:220,128]
+    #print model.sum()
+
+    #model2 = np.zeros((N,N,Nz))
+
+    model = cloadobj.resize(np.array(model).astype(np.float32),N,Nz)
+
+    #print model[210:220,210:220,128]
+    #print model.sum()
 
     #model2 = ndimage.filters.gaussian_filter(model2,sigma =0.05)
 
@@ -221,7 +196,7 @@ def load_obj(obj):
     #d = scipy.ndimage.binary_dilation(model2,structure=struct(r2)).astype(np.uint8)
     #e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
     
-    return model2
+    return model
 
 def createFolders():
     if not os.path.isdir('warp2'): 
@@ -258,14 +233,16 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     print "Bubbling Time: ", time.clock()-t
     
     # INTERSECTION
-    # Requires 3D Geometry
 
     # input geometry
+    print "Loading..."
+    t = time.clock()
     geom = np.array(load_obj('bread2.binvox')).astype(np.uint8)
+    print "Loading Time: ", time.clock()-t
 
     print "Intersecting..."
     t = time.clock()
-    field = intersect(field, geom)
+    field,dfield = cloadobj.intersect(field, geom,N,Nz)
     print "Intersect Time: ", time.clock()-t
 
     # 3D DEFORMATION
@@ -291,7 +268,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     if(accumulatedBaking):
 
         #geom = scipy.ndimage.binary_closing(fieldf,structure=sphere).astype(np.uint8)
-        dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(N,N,Nz)
+        #dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(N,N,Nz)
 
         crumb = 255*(dfield > thresh) 
 
@@ -299,23 +276,25 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
         #geom2 = scipy.ndimage.binary_dilation(geom,structure=sphere).astype(np.uint8)
 
         crust = np.array(255*geom-crumb).astype(np.uint8)
-        saveField(crust, "crust.png")
-        #print "Exporting Field to OGRE: warpedC.field "
-        #printFile(crust ,"Ogre/output/media/fields/warpedC.field")
+        #saveField(crust, "crust.png")
+
 
         temperatures = bk.getTemperaturesArray(20)
 
         t2 = time.clock()
         # deform bubbles with temperature
+        print "cbake.."
         fieldf = cbake.bake(fieldf,geom,temperatures,N,Nz,k)
 
-        #fieldf = fieldf*((dfield > thresh/4.0))
+        fieldf = fieldf*((dfield > thresh/4.0))
         saveField(fieldf,'accumulated/bread.png')
-        exit()
 
         # loadtexOcclusion
+        print "Computing ambient Oclussion..."
         arr=cprint.cprint2(0,Nz,N,np.array(fieldf).astype(np.uint8),15)
 
+        print "Exporting Field to OGRE: warpedC.field "
+        printFile(crust ,"Ogre/output/media/fields/warpedC.field")
         print "Exporting Field to OGRE: warpedO.field "
         printFile(arr,'Ogre/output/media/fields/warpedO.field')
         print "Exporting Field to OGRE: warped.field "
@@ -346,4 +325,4 @@ def main(param_a,param_b,param_c,param_d,param_e):
     #saveField(field,'warp2/warped.png')
 
 
-main(1,0.8,3.1,1,5)
+main(1,0.6,3.4,1,7)
