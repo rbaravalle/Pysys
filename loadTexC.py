@@ -14,11 +14,15 @@ def struct(r):
                 if(np.sqrt((i-r/2)**2+(j-r/2)**2+(k-r/2)**2) < r):
                     s[i,j,k] = 1
 
+def borderD(data):
+    dfield = np.array(ndimage.distance_transform_edt(data)).reshape(dim,dim,Nz)
+    return np.array(255*(dfield<0.1)).astype(np.uint8)
+
 def border(data):
-    r = 8
-    r2 = 7
-    r3 = 6
-    r4 = 5
+    r = 16
+    r2 = 15
+    r3 = 14
+    r4 = 13
     c = scipy.ndimage.binary_closing(data,structure=np.ones((r,r,r))).astype(np.uint8)
     d = scipy.ndimage.binary_dilation(c,structure=struct(r2)).astype(np.uint8)
     e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
@@ -35,5 +39,5 @@ N = dim
 
 p = 0
 
-cprint.cprint(p,Nz,N,border(arr))
+cprint.cprint(p,Nz,N,borderD(arr))
 

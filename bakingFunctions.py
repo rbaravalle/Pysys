@@ -43,23 +43,23 @@ def Tnew(T,V,W,N,dt,dx,theta):
     hr=sig*((T_r+273.5)**(2)+(T[0]+273.5)**(2))*((T_r+273.5)+(T[0]+273.5))/(1/esp_p+1/esp_r-2+1/F_sp)
     hw=1.4*10**(-3)*T[0]+0.27*W[0]-4.0*10**(-4)*T[0]*W[0]-0.77*W[0]**(2)
     temp=lam*(170+284*W[0])*Dw*hw;
-    print "temp: ", temp;
+    #print "temp: ", temp;
     T_f=T[1]+2*dx/k*(hr*(T_r-T[0])+hc*(T_air-T[0])-temp*(W[0]-W_air))
     w_f=W[1]-2*dx*hw*(W[0]-W_air)
-    print "T_f, w_f",T_f, w_f,0
+    #print "T_f, w_f",T_f, w_f,0
     r=k*dt/((170+284*W[0])*cp*dx*dx);
     a[0,0]=1+2*r*(1-theta)*(1+dx*hr/k+dx*hc/k)
     a[0,1]=-2*r*(1-theta)
     b[0]=r*theta*T_f+(1-2*r*theta)*T[0]+r*theta*T[1]+lam*Dw*dt/(cp*dx*dx)*(W[1]-2*W[0]+w_f)+r*(1-theta)*2*(dx/k)*(hr*T_r+hc*T_air-temp*(W[0]-W_air))
-    print "b[0]",b[0]
-    print "ALPHA3,4: r*theta", r*theta
-    print "(1-2*r*theta)*T[0]",(1-2*r*theta)*T[0]
-    print "ALPHA3,4*T[1,j], T[i,1] -- r*theta*T[1]",r*theta*T[1]
-    print "lam*Dw*dt/(cp*dx*dx)",lam*Dw*dt/(cp*dx*dx)
-    print "(W[1]-2*W[0]+w_f)",(W[1]-2*W[0]+w_f)
-    print "r*(1-theta)*2*(dx/k)",r*(1-theta)*2*(dx/k)
-    print "hr*T_r+hc*T_air",hr*T_r+hc*T_air
-    print "temp*(W[0]-W_air)",temp*(W[0]-W_air)
+    #print "b[0]",b[0]
+    #print "ALPHA3,4: r*theta", r*theta
+    #print "(1-2*r*theta)*T[0]",(1-2*r*theta)*T[0]
+    #print "ALPHA3,4*T[1,j], T[i,1] -- r*theta*T[1]",r*theta*T[1]
+    #print "lam*Dw*dt/(cp*dx*dx)",lam*Dw*dt/(cp*dx*dx)
+    #print "(W[1]-2*W[0]+w_f)",(W[1]-2*W[0]+w_f)
+    #print "r*(1-theta)*2*(dx/k)",r*(1-theta)*2*(dx/k)
+    #print "hr*T_r+hc*T_air",hr*T_r+hc*T_air
+    #print "temp*(W[0]-W_air)",temp*(W[0]-W_air)
     
     
     #print 

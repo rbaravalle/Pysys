@@ -5,6 +5,7 @@ import time
 import pylab
 from matplotlib import pyplot as plt
 import Image
+import cloadobj
 
 import warp
 
@@ -15,31 +16,23 @@ ctypedef np.float32_t DTYPE_tf
 cdef extern from "math.h":
     int round(float x)
 
-def bake(np.ndarray[DTYPE_tf, ndim=3] field, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
-    cdef float maximo,dist
+def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
+    cdef float dist
 
     cdef np.ndarray[DTYPE_tf, ndim=3] gx, gy, gz
-
-    # distance field of original geometry
-    cdef np.ndarray[DTYPE_tf, ndim=3]  dfield = np.array(ndimage.distance_transform_edt(geom)).astype(np.float32)
-
-    # max distance in the distance field
-    maximo = np.max(dfield)
-
-    dfield = dfield.reshape(N,N,Nz)
-
-    cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((N,N,Nz)).astype(np.float32)
+    cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((256,256,256)).astype(np.float32)#(N,N,Nz)).astype(np.float32)
     cdef int i,j,k,cant
 
     # how many different temperatures
     cant = len(temperatures)
 
-    cdef float f = ((cant-1)/maximo)
+    cdef float f = ((cant-1)/np.max(dfield))
 
-    for i from 0<=i<N:
-        for j from 0<=j<N:
-            for k from 0<=k<Nz:
-                result[i,j,k] = temperatures[np.int(round(dfield[i,j,k]*f))]
+    print "Computing temperatures"
+    for i from 0<=i<256:#N:
+        for j from 0<=j<256:#N:
+            for k from 0<=k<256:#Nz:
+                result[i,j,k] = temperatures[round(dfield[i,j,k]*f)]
 
     #cdef np.ndarray[DTYPE_tf, ndim=2] gx2, gy2
     # For the paper
@@ -48,8 +41,8 @@ def bake(np.ndarray[DTYPE_tf, ndim=3] field, np.ndarray[DTYPE_t, ndim=3] geom, n
         imgplot = plt.imshow(I2)
         plt.colorbar()
         gx2, gy2 = np.gradient(result[:,:,100])
-        gx2 = ndimage.filters.gaussian_filter(gx2,1)
-        gy2 = ndimage.filters.gaussian_filter(gy2,1)
+        gx2 = ndimage.filters.gaussian_filter(gx2,3)
+        gy2 = ndimage.filters.gaussian_filter(gy2,3)
         pylab.quiver(gx2,gy2)
         pylab.show()
         plt.show()
@@ -75,16 +68,23 @@ def bake(np.ndarray[DTYPE_tf, ndim=3] field, np.ndarray[DTYPE_t, ndim=3] geom, n
             pylab.show()
             plt.show()
 
+    print "Gradient..."
     gx, gy, gz = np.gradient(result)
 
-    # FIX ME
-    gx = gx.astype(np.float32)
-    gy = gy.astype(np.float32)
-    gz = gz.astype(np.float32)
+    print "Gaussian's...x..."
+    gx = ndimage.filters.gaussian_filter(gx.astype(np.float32),3)
+    print "Gaussian's...y..."
+    gy = ndimage.filters.gaussian_filter(gx.astype(np.float32),3)
+    print "Gaussian's...z..."
+    gz = ndimage.filters.gaussian_filter(gz.astype(np.float32),3)
 
-    gx = ndimage.filters.gaussian_filter(gx,3)
-    gy = ndimage.filters.gaussian_filter(gy,3)
-    gz = ndimage.filters.gaussian_filter(gz,3)
+    print "Resize gx..."
+    gx = cloadobj.resizef(gx,N,Nz)
+    print "Resize gy..."
+    gy = cloadobj.resizef(gy,N,Nz)
+    print "Resize gz..."
+    gz = cloadobj.resizef(gz,N,Nz)
 
-    return np.array(warp.warp(field.astype(np.uint8), gx, gy, gz, N, Nz,k2)).astype(np.float32)
+    print "warp and return..."
+    return warp.warpExpand(field, gx,gy,gz, N, Nz,k2),gx,gy,gz
 

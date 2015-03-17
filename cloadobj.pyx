@@ -13,20 +13,50 @@ import scipy.ndimage as ndimage
 cdef extern from "math.h":
     int floor(float x)
 
-def resize( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz):
+def resizef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz):
     cdef np.ndarray[DTYPE_tf, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.float32)
 
-    cdef float x,y,z
-    cdef int x2,y2,z2
+    cdef int x,y,z
+    cdef float ar = 255.0/(N-1)
+    cdef float arz = 255.0/(Nz-1)
     for x  from 0<=x<N:
         for y  from 0<=y<N:
             for z  from 0<=z<Nz:
-                #model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny
-                x2 = floor(x*(255.0/(N-1)))
-                y2 = floor(y*(255.0/(N-1)))
-                z2 = floor(z*(255.0/(Nz-1)))
-                model2[Nz-1-z,y,x] = model[x2,y2,z2]  # for bread2.vinbox
-                #model2[Nz-1-z,N-1-y,x] = model[x2,z2,y2] # bunny
+                model2[x,y,z] = model[floor(x*ar),floor(y*ar),floor(z*arz)]
+    return model2
+
+def resize( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
+    cdef np.ndarray[DTYPE_t, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.uint8)
+
+    cdef int x,y,z
+    cdef float ar = 255.0/(N-1)
+    cdef float arz = 255.0/(Nz-1)
+    for x  from 0<=x<N:
+        for y  from 0<=y<N:
+            for z  from 0<=z<Nz:
+                model2[x,y,z] = model[floor(x*ar),floor(y*ar),floor(z*arz)]
+    return model2
+
+def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz):
+    cdef np.ndarray[DTYPE_tf, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.float32)
+
+    cdef int x,y,z
+    for x  from 0<=x<N:
+        for y  from 0<=y<N:
+            for z  from 0<=z<Nz:
+                model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny.binvox
+                #model2[Nz-1-z,y,x] = model[x,y,z]      # bread2.vinbox
+    return model2
+
+def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
+    cdef np.ndarray[DTYPE_t, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.uint8)
+
+    cdef int x,y,z
+    for x  from 0<=x<N:
+        for y  from 0<=y<N:
+            for z  from 0<=z<Nz:
+                model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny.binvox, otherbread
+                #model2[Nz-1-z,y,x] = model[x,y,z]      # bread2.vinbox, croissant
     return model2
 
 # intersection between a cube field and a geometry
@@ -40,33 +70,30 @@ def intersect(field, geom,int N, int Nz):
 
     # distance field
     t = time.clock()
+
     print "Distance Field computing.."
-    dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(N,N,Nz)
-    print "Distance Field computation time: ", t-time.clock()
-    #mask = dfield > thresh
+    dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(256,256,256)
+    print "Distance Field computation time: ", time.clock()-t
 
-    #crumb = 255*(dfield > thresh) #255*np.array(geom-(255*mask*(255-field))).astype(np.uint8)
-    #saveField(255*geom-crust,'crust.png')
-    #crust = np.array(255*geom-crumb).astype(np.uint8)
-    #printFile(crust ,"Ogre/output/media/fields/warpedC.field")
+    print "Crumb..."
+    crumb = np.array(dfield>thresh).astype(np.uint8)
 
-    #print field[210:220,240:250,128]
-    #print mask[210:220,240:250,128]
-    #print geom[210:220,240:250,128]
+    print "Crust..."
+    crust = geom-crumb
 
-    # the bubbles in white (255-field) are taken into account
+    # NOW RESIZE...
+
+    print "Resize Geom..."
+    geom = resize(geom,N,Nz)
+
+    print "Resize Crumb..."
+    crumb = resize(crumb,N,Nz)
+
+    #print "Resize Distance Field..."
+    #dfield = resizef(np.array(dfield).astype(np.float32),N,Nz)
+
+    # the bubbles in white (1-field) are taken into account
     # when they are away from the surface, so this is the 'crumb region'
-    # crumb = mask * (255-field)
-    # geom - crumb = crust
-    t = time.clock()
-    print "Crumb computing.."
-    crumb = 255*(dfield > thresh)*(255-field)
-    print "Crumb computation time: ", time.clock()-t
-    
 
-    print "Result computing.."
-    result = 255*np.array(geom-(crumb)).astype(np.uint8)
-    print "Result time: ", time.clock()-t
-    return result, dfield
-    #return 255*np.array(geom-(255*mask*(255-field))).astype(np.uint8)
+    return (geom-crumb*(1-field)), dfield.astype(np.float32),geom,crust
 

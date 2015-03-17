@@ -28,8 +28,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 400
-Nz = 400
+N = 256
+Nz = 256
 thresh = 4.4
 
 # apply baking step by step or as one accumulated step
@@ -59,9 +59,10 @@ def deform(field, mask):
     
     # distance field
     dfield = np.array(ndimage.distance_transform_edt(mask)).reshape(N,N,Nz)
+
     #field = dfield
     field2 = np.zeros((field.shape[0],field.shape[1],field.shape[2]))
-    #saveField(dfield,'distancefield.png')
+    #saveField(dfield,"","distancefield.png")
     #exit()
 
     #if(False):
@@ -144,12 +145,12 @@ def loadFromAtlas(atlas):
         
     return geom
 
-def saveField(field,filename):
+def saveField(field,folder,filename):
     pp = 0
     I3 = Image.new('L',(N-2*pp,(N-2*pp)*(Nz)),0.0)
 
     if(accumulatedBaking):
-        base = "accumulated/slice"
+        base = folder+"/slice"#"accumulated/slice"
     else:
         base = 'warp2/warped/warpedslice'
 
@@ -158,8 +159,8 @@ def saveField(field,filename):
         II.save(base+str(w)+'.png')
         I3.paste(II,(0,(N-2*pp)*w))
 
-    I3.save(filename)
-    print "Image "+filename+" saved"
+    I3.save(folder+"/"+filename)
+    print "Image "+folder+"/"+filename+" saved"
 
 def struct(r):
     #return np.ones((r,r,r))
@@ -182,7 +183,7 @@ def load_obj(obj):
 
     #model2 = np.zeros((N,N,Nz))
 
-    model = cloadobj.resize(np.array(model).astype(np.float32),N,Nz)
+    #model = cloadobj.resize(np.array(model).astype(np.float32),N,Nz)
 
     #print model[210:220,210:220,128]
     #print model.sum()
@@ -209,7 +210,10 @@ def createFolders():
         os.mkdir ( 'warp2/warped' ) 
 
     if not os.path.isdir('accumulated'): 
-        os.mkdir ( 'accumulated' ) 
+        os.mkdir ( 'accumulated' )
+
+    if not os.path.isdir('accumulated/pre'): 
+        os.mkdir ( 'accumulated/pre' )  
  
 
 
@@ -237,12 +241,12 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     # input geometry
     print "Loading..."
     t = time.clock()
-    geom = np.array(load_obj('bread2.binvox')).astype(np.uint8)
+    geom = np.array(load_obj('otherbread.binvox')).astype(np.uint8)
     print "Loading Time: ", time.clock()-t
 
     print "Intersecting..."
     t = time.clock()
-    field,dfield = cloadobj.intersect(field, geom,N,Nz)
+    field,dfield,geom,crust = cloadobj.intersect(field, geom,N,Nz)
     print "Intersect Time: ", time.clock()-t
 
     # 3D DEFORMATION
@@ -250,7 +254,6 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     t = time.clock()
     field = deform(field, geom)
     print "Warping Time: ", time.clock()-t
-
     # END
     # MIXING + PROVING + KNEADING + 2ND PROVING
     ##############################
@@ -259,46 +262,72 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     print "Baking..."
     t = time.clock()
 
-    fieldf = field.astype(np.float32)
+    # baking effect parameter
+    k = 20.0
 
-    k = 6.0
-
-    #saveField(fieldf,'accumulated/bread.png')
+    #saveField(fieldf,"accumulated","bread.png")
 
     if(accumulatedBaking):
 
-        #geom = scipy.ndimage.binary_closing(fieldf,structure=sphere).astype(np.uint8)
-        #dfield = np.array(ndimage.distance_transform_edt(geom)).reshape(N,N,Nz)
+        bake = True
+        if(bake):
+            temperatures = bk.getTemperaturesArray(20)
 
-        crumb = 255*(dfield > thresh) 
+            t2 = time.clock()
+            # deform bubbles with temperature
+            print "cbake.."
+            saveField(255*field,"accumulated/pre","bread.png")
+            bakedField,gx,gy,gz = cbake.bake(255*field,dfield,temperatures,N,Nz,k)
+            field = cloadobj.orientate(bakedField,N,Nz)
+            saveField(field,"accumulated","postbaking.png")
 
-        #sphere = struct(20)
-        #geom2 = scipy.ndimage.binary_dilation(geom,structure=sphere).astype(np.uint8)
+            # Deform Original Geometry (for Distance Field)
+            geomD = warp.warpExpandGeom(255*geom, gx,gy,gz,N, Nz,k)
 
-        crust = np.array(255*geom-crumb).astype(np.uint8)
-        #saveField(crust, "crust.png")
+            print "Deformed Distance Field computing.."
+            dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
+            print "Deformed Distance Field computation time: ", time.clock()-t
+
+            print "Crumb..."
+            crumbD = np.array(dfieldDeformed>thresh).astype(np.uint8)
+            print "New Crust..."
+            crust = geomD/255-crumbD
+
+            geomD = cloadobj.orientate(geomD,N,Nz)
+            saveField(geomD,"accumulated","postbakingGeom.png")
 
 
-        temperatures = bk.getTemperaturesArray(20)
 
-        t2 = time.clock()
-        # deform bubbles with temperature
-        print "cbake.."
-        fieldf = cbake.bake(fieldf,geom,temperatures,N,Nz,k)
 
-        fieldf = fieldf*((dfield > thresh/4.0))
-        saveField(fieldf,'accumulated/bread.png')
 
+
+            # NOW RESIZE...
+
+            #print "Resize Geom..."
+            #geom = resize(geom,N,Nz)
+
+            #print "Resize Crumb..."
+            #crumb = resize(crumb,N,Nz)
+
+            print "Specific field..."
+            field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz) > thresh/4.0))).astype(np.uint8)
+
+        else:
+            field = cloadobj.orientate(255*field,N,Nz)
+        #saveField(field,"accumulated","finalbread.png")
+
+
+        print "Baking time: ", time.clock()-t
         # loadtexOcclusion
         print "Computing ambient Oclussion..."
-        arr=cprint.cprint2(0,Nz,N,np.array(fieldf).astype(np.uint8),15)
+        arr=cprint.cprint2(0,Nz,N,field,15)
 
-        print "Exporting Field to OGRE: warpedC.field "
-        printFile(crust ,"Ogre/output/media/fields/warpedC.field")
+        print "Resizing crust and Exporting Field to OGRE: warpedC.field "
+        printFile(255*(cloadobj.orientate(cloadobj.resize(crust,N,Nz),N,Nz)) ,"Ogre/output/media/fields/warpedC.field")
         print "Exporting Field to OGRE: warpedO.field "
         printFile(arr,'Ogre/output/media/fields/warpedO.field')
         print "Exporting Field to OGRE: warped.field "
-        printFile(np.array(fieldf).astype(np.uint8),'Ogre/output/media/fields/warped.field')
+        printFile(field,'Ogre/output/media/fields/warped.field')
 
 
     else:
@@ -311,7 +340,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             # geom = scipy.ndimage.binary_closing(fieldf,structure=sphere).astype(np.uint8)
             fieldf = cbake.bake(fieldf,geom,diff,N,Nz,k)
             print w, "Time: ", time.clock()-t2
-            saveField(fieldf,'warp2/warped.png')
+            saveField(fieldf,"warp2","warped.png")
     print "Baking Time: ", time.clock()-t
 
 #    return fieldf
@@ -322,7 +351,10 @@ def main(param_a,param_b,param_c,param_d,param_e):
 
     field = pipeline(param_a,param_b,param_c,param_d,param_e)
 
-    #saveField(field,'warp2/warped.png')
+    #saveField(field,"warp2","warped.png")
 
 
-main(1,0.6,3.4,1,7)
+#main(1,0.25,3.8,1,22)
+maxb = 11
+if(N==512): maxb = 20 
+main(1,0.65,3.8,1,maxb)

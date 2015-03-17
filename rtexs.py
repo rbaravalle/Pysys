@@ -17,7 +17,7 @@ os.system(command3)
 try:
     filename = sys.argv[1]
 except:
-    filename = 'textures/imagenSystem2.png'
+    filename = 'textures/imagenpp.png'
 
 command4 = "python texs.py "+filename
 # compute textures
