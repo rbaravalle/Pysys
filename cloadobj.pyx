@@ -37,6 +37,18 @@ def resize( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
                 model2[x,y,z] = model[floor(x*ar),floor(y*ar),floor(z*arz)]
     return model2
 
+def invresize( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
+    cdef np.ndarray[DTYPE_t, ndim=3] model2 = np.zeros((256,256,256)).astype(np.uint8)
+
+    cdef int x,y,z
+    cdef float ar = (N-1)/255.0
+    cdef float arz = (Nz-1)/255.0
+    for x  from 0<=x<256:
+        for y  from 0<=y<256:
+            for z  from 0<=z<256:
+                model2[x,y,z] = model[floor(x*ar),floor(y*ar),floor(z*arz)]
+    return model2
+
 def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz):
     cdef np.ndarray[DTYPE_tf, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.float32)
 

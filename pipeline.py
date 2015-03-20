@@ -18,6 +18,7 @@ import baking1D as bk
 import cbake
 import cprint
 import cloadobj
+from cloadobj import orientate, resize
 
 # Cython
 #import pipelineCython
@@ -28,8 +29,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 256
-Nz = 256
+N = 300
+Nz = 300
 thresh = 4.4
 
 # apply baking step by step or as one accumulated step
@@ -147,6 +148,7 @@ def loadFromAtlas(atlas):
 
 def saveField(field,folder,filename):
     pp = 0
+    N = field.shape[0]
     I3 = Image.new('L',(N-2*pp,(N-2*pp)*(Nz)),0.0)
 
     if(accumulatedBaking):
@@ -231,6 +233,8 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
     print "Bubbling..."
     t = time.clock()
+
+    # field #(Nx,Ny,Nz)
     field = proving.proving(param_a,param_b,param_c,param_d,param_e,N,Nz)
     #import poisson3D
     #field = poisson3D.main()
@@ -241,19 +245,26 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     # input geometry
     print "Loading..."
     t = time.clock()
+    # geom #(256,256,256)
     geom = np.array(load_obj('otherbread.binvox')).astype(np.uint8)
     print "Loading Time: ", time.clock()-t
 
     print "Intersecting..."
     t = time.clock()
+
+
+    # field #(Nx,Ny,Nz)
+    # dfield #(256,256,256)
+    # geom #(Nx,Ny,Nz)
+    # crust #(256,256,256)
     field,dfield,geom,crust = cloadobj.intersect(field, geom,N,Nz)
     print "Intersect Time: ", time.clock()-t
 
     # 3D DEFORMATION
-    print "Warping..."
-    t = time.clock()
-    field = deform(field, geom)
-    print "Warping Time: ", time.clock()-t
+    #print "Warping..."
+    #t = time.clock()
+    #field = deform(field, geom)
+    #print "Warping Time: ", time.clock()-t
     # END
     # MIXING + PROVING + KNEADING + 2ND PROVING
     ##############################
@@ -276,38 +287,30 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             t2 = time.clock()
             # deform bubbles with temperature
             print "cbake.."
-            saveField(255*field,"accumulated/pre","bread.png")
-            bakedField,gx,gy,gz = cbake.bake(255*field,dfield,temperatures,N,Nz,k)
-            field = cloadobj.orientate(bakedField,N,Nz)
+            saveField(255*orientate(field,N,Nz),"accumulated/pre","bread.png")
+
+            # bakedField #(Nx,Ny,Nz)
+            # geomD      #(Nx,Ny,Nz)
+            bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,temperatures,N,Nz,k)
+            field = orientate(bakedField,N,Nz)
             saveField(field,"accumulated","postbaking.png")
-
-            # Deform Original Geometry (for Distance Field)
-            geomD = warp.warpExpandGeom(255*geom, gx,gy,gz,N, Nz,k)
-
-            print "Deformed Distance Field computing.."
-            dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
-            print "Deformed Distance Field computation time: ", time.clock()-t
-
+            
             print "Crumb..."
             crumbD = np.array(dfieldDeformed>thresh).astype(np.uint8)
             print "New Crust..."
             crust = geomD/255-crumbD
 
-            geomD = cloadobj.orientate(geomD,N,Nz)
+            crust = 255*(orientate(resize(crust,N,Nz),N,Nz))
+            saveField(crust,"accumulated","crust.png")
+
+            # geomD      #(Nx,Ny,Nz)
+            print "New geomD..."
+            geomD = orientate(resize(geomD,N,Nz),N,Nz)
+
+            # version suavizada
+            #geomD = ndimage.filters.gaussian_filter(geomD,3)
             saveField(geomD,"accumulated","postbakingGeom.png")
 
-
-
-
-
-
-            # NOW RESIZE...
-
-            #print "Resize Geom..."
-            #geom = resize(geom,N,Nz)
-
-            #print "Resize Crumb..."
-            #crumb = resize(crumb,N,Nz)
 
             print "Specific field..."
             field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz) > thresh/4.0))).astype(np.uint8)
@@ -319,11 +322,13 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
         print "Baking time: ", time.clock()-t
         # loadtexOcclusion
-        print "Computing ambient Oclussion..."
+        print "Computing ambient Occlusion..."
         arr=cprint.cprint2(0,Nz,N,field,15)
+        saveField(arr,"accumulated","aocclusion.png")
+        
 
         print "Resizing crust and Exporting Field to OGRE: warpedC.field "
-        printFile(255*(cloadobj.orientate(cloadobj.resize(crust,N,Nz),N,Nz)) ,"Ogre/output/media/fields/warpedC.field")
+        printFile(crust ,"Ogre/output/media/fields/warpedC.field")
         print "Exporting Field to OGRE: warpedO.field "
         printFile(arr,'Ogre/output/media/fields/warpedO.field')
         print "Exporting Field to OGRE: warped.field "
