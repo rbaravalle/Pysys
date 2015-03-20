@@ -235,7 +235,8 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     t = time.clock()
 
     # field #(Nx,Ny,Nz)
-    field = proving.proving(param_a,param_b,param_c,param_d,param_e,N,Nz)
+    # density #(Nx,Ny,Nz)
+    field,density = proving.proving(param_a,param_b,param_c,param_d,param_e,N,Nz)
     #import poisson3D
     #field = poisson3D.main()
     print "Bubbling Time: ", time.clock()-t
@@ -291,7 +292,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
             # bakedField #(Nx,Ny,Nz)
             # geomD      #(Nx,Ny,Nz)
-            bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,temperatures,N,Nz,k)
+            bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k)
             field = orientate(bakedField,N,Nz)
             saveField(field,"accumulated","postbaking.png")
             

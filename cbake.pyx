@@ -6,7 +6,7 @@ import pylab
 from matplotlib import pyplot as plt
 import Image
 import cloadobj
-from cloadobj import orientate, resize,invresize,orientatef
+from cloadobj import orientate, resize,resizef,invresize,orientatef
 
 import warp
 
@@ -39,23 +39,27 @@ def saveField(field,folder,filename):
 # field #(Nx,Ny,Nz)
 # geom #(Nx,Ny,Nz)
 # dfield #(256,256,256)
-def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
+def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_t, ndim=3] density, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
 
     cdef float dist
     cdef int i,j,k,cant
 
-    cdef np.ndarray[DTYPE_tf, ndim=3] gx, gy, gz
+    cdef np.ndarray[DTYPE_tf, ndim=3] gx, gy, gz, dfResized, dfieldDeformed
+    cdef np.ndarray[DTYPE_t, ndim=3] geomD
     cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((256,256,256)).astype(np.float32)
 
+    # the rising during baking is modulated by the gravity, distance to the centre, and the density of particles in the point
+
     print "rise geom..."
+    dfResized = resizef(dfield,N,Nz)
     #saveField(orientate(geom,N,Nz),"accumulated","geomPrev.png")
-    geomD = warp.warpExpandGeom(geom,N,Nz)
-    #saveField(orientate(geomD,N,Nz),"accumulated","geomPost.png")
+    geomD = warp.warpExpandGeom(geom,dfResized,density,N,Nz)
+    saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
 
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
-    field = warp.warpExpandGeom(field,N,Nz)
-    #saveField(orientate(field,N,Nz),"accumulated","fieldPost.png")
+    field = warp.warpExpandGeom(field,dfResized,density,N,Nz)
+    saveField(orientate(field,N,Nz),"accumulated","fieldRise.png")
 
     # :s
     geomD = invresize(geomD,N,Nz)

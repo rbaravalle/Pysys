@@ -18,6 +18,7 @@ def proving(int param_a,float param_b,float param_c,int param_d,int param_e, int
     cdef int r, v, i, j, k,x,y,z, maxrank
     cdef float cubr
     cdef np.ndarray[DTYPE_t, ndim=3] field = np.zeros((N,N,Nz),dtype=DTYPE) + np.uint8(1)
+    cdef np.ndarray[DTYPE_t, ndim=3] density = np.zeros((N,N,Nz),dtype=DTYPE) + np.uint8(0)
     cubr = (param_b/float(20.0))*N*N*Nz
     for r from param_d <= r < param_e by param_a:
         maxrank = floor(cubr/(pow(r,param_c)))
@@ -32,5 +33,6 @@ def proving(int param_a,float param_b,float param_c,int param_d,int param_e, int
                             if((x-i)*(x-i)+(y-j)*(y-j)+(z-k)*(z-k) <= r*r):
                                 if(i < N and i >= 0 and j < N and j >= 0 and k < Nz and k >= 0 ):
                                     field[i,j,k] = 0
+                                    density[i,j,k] = r
 
-    return field
+    return field,density
