@@ -74,16 +74,21 @@ def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3]
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
-                df = 1.0-dfield[x,y,z]/300.0
-                rho = 1.0-density[x,y,z]/600.0
+                df = 1.0-dfield[x,y,z]/50.0
+                rho = 1.0-density[x,y,z]/100.0
                 gravity_x = 0.9#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
                 #if(z < 150 and z > 100):
-                gravity_y = ((np.float(N-1)-np.float(y-deltay)/6.0)/np.float(N-1))
+                gravity_y = ((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))
                 #else: vnew = 1.0 
                 gravity_z = 0.9#((np.float(N-1)-np.float(z-deltaz)/6.0)/np.float(N-1))
-                u = (x-deltax)*gravity_x*df*rho
-                v = (y-deltay)*gravity_y*df*rho
-                w = (z-deltaz)*gravity_z*df*rho
+                u = (x-deltax)*gravity_x*rho
+                v = (y-deltay)*gravity_y*rho
+                w = (z-deltaz)*gravity_z*rho
+
+                #df = 1.0-dfield[u,v,w]/50.0
+                #u *= df
+                #v *= df
+                #w *= df
                 try:
                     geomD[x,y,z] = resample(geom,u,v,w)
                 except: pass

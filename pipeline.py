@@ -29,8 +29,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 300
-Nz = 300
+N = 256
+Nz = 256
 thresh = 4.4
 
 # apply baking step by step or as one accumulated step
@@ -152,7 +152,7 @@ def saveField(field,folder,filename):
     I3 = Image.new('L',(N-2*pp,(N-2*pp)*(Nz)),0.0)
 
     if(accumulatedBaking):
-        base = folder+"/slice"#"accumulated/slice"
+        base = folder+"/slice"
     else:
         base = 'warp2/warped/warpedslice'
 
@@ -202,21 +202,12 @@ def load_obj(obj):
     return model
 
 def createFolders():
-    if not os.path.isdir('warp2'): 
-        os.mkdir ( 'warp2' ) 
 
-    if not os.path.isdir('warp2/baked'): 
-        os.mkdir ( 'warp2/baked' ) 
+    dirs = ['warp2','warp2/baked','warp2/warped','accumulated','accumulated/pre','postbaking','fieldrise']
 
-    if not os.path.isdir('warp2/warped'): 
-        os.mkdir ( 'warp2/warped' ) 
-
-    if not os.path.isdir('accumulated'): 
-        os.mkdir ( 'accumulated' )
-
-    if not os.path.isdir('accumulated/pre'): 
-        os.mkdir ( 'accumulated/pre' )  
- 
+    for f in dirs:
+        if not os.path.isdir(f): 
+            os.mkdir (f) 
 
 
 
@@ -294,7 +285,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             # geomD      #(Nx,Ny,Nz)
             bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k)
             field = orientate(bakedField,N,Nz)
-            saveField(field,"accumulated","postbaking.png")
+            saveField(field,"postbaking","postbaking.png")
             
             print "Crumb..."
             crumbD = np.array(dfieldDeformed>thresh).astype(np.uint8)
