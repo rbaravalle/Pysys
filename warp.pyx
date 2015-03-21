@@ -75,7 +75,7 @@ def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3]
         for y from 0<=y<N:
             for z from 0<=z<Nz:
                 df = 1.0-dfield[x,y,z]/50.0
-                rho = 1.0-density[x,y,z]/15.0
+                rho = 1.0-density[x,y,z]/10.0
                 gravity_x = 0.9#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
                 #if(z < 150 and z > 100):
                 gravity_y = ((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))

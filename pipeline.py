@@ -203,7 +203,7 @@ def load_obj(obj):
 
 def createFolders():
 
-    dirs = ['warp2','warp2/baked','warp2/warped','accumulated','accumulated/pre','postbaking','fieldrise']
+    dirs = ['warp2','warp2/baked','warp2/warped','accumulated','accumulated/pre','postbaking','fieldrise','density']
 
     for f in dirs:
         if not os.path.isdir(f): 
@@ -253,7 +253,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     # crust #(256,256,256)
     field,dfield,geom,crust,density = cloadobj.intersect(field, geom,density,N,Nz)
     print "Intersect Time: ", time.clock()-t
-    saveField(20*orientate(density.astype(np.uint8),N,Nz),"accumulated","density.png")
+    saveField(20*orientate(density.astype(np.uint8),N,Nz),"density","density.png")
 
     # 3D DEFORMATION
     #print "Warping..."
