@@ -231,6 +231,8 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     #import poisson3D
     #field = poisson3D.main()
     print "Bubbling Time: ", time.clock()-t
+
+
     
     # INTERSECTION
 
@@ -249,8 +251,9 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     # dfield #(256,256,256)
     # geom #(Nx,Ny,Nz)
     # crust #(256,256,256)
-    field,dfield,geom,crust = cloadobj.intersect(field, geom,N,Nz)
+    field,dfield,geom,crust,density = cloadobj.intersect(field, geom,density,N,Nz)
     print "Intersect Time: ", time.clock()-t
+    saveField(20*orientate(density.astype(np.uint8),N,Nz),"accumulated","density.png")
 
     # 3D DEFORMATION
     #print "Warping..."

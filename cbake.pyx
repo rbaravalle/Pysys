@@ -39,7 +39,7 @@ def saveField(field,folder,filename):
 # field #(Nx,Ny,Nz)
 # geom #(Nx,Ny,Nz)
 # dfield #(256,256,256)
-def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_t, ndim=3] density, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
+def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_tf, ndim=3] density, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
 
     cdef float dist
     cdef int i,j,k,cant
@@ -48,7 +48,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     cdef np.ndarray[DTYPE_t, ndim=3] geomD
     cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((256,256,256)).astype(np.float32)
 
-    # the rising during baking is modulated by the gravity, distance to the centre, and the density of particles in the point
+    # the rising during baking is modulated by gravity, distance to the centre, and the density of particles in the point
 
     print "rise geom..."
     dfResized = resizef(dfield,N,Nz)
@@ -59,7 +59,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
     field = warp.warpExpandGeom(field,dfResized,density,N,Nz)
-    saveField(orientate(field,N,Nz),"accumulated","fieldRise.png")
+    saveField(orientate(field,N,Nz),"fieldrise","fieldRise.png")
 
     # :s
     geomD = invresize(geomD,N,Nz)

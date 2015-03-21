@@ -72,7 +72,7 @@ def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
     return model2
 
 # intersection between a cube field and a geometry
-def intersect(field, geom,int N, int Nz):
+def intersect(field, geom,density,int N, int Nz):
 
     cdef float thresh = 4.4
 
@@ -107,5 +107,5 @@ def intersect(field, geom,int N, int Nz):
     # the bubbles in white (1-field) are taken into account
     # when they are away from the surface, so this is the 'crumb region'
 
-    return (geom-crumb*(1-field)), dfield.astype(np.float32),geom,crust
+    return (geom-crumb*(1-field)), dfield.astype(np.float32),geom,crust,(geom-crumb*(1-density))
 

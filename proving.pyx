@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+import scipy.ndimage as ndimage
 
 from libc.stdlib cimport rand
 
@@ -35,4 +36,4 @@ def proving(int param_a,float param_b,float param_c,int param_d,int param_e, int
                                     field[i,j,k] = 0
                                     density[i,j,k] = r
 
-    return field,density
+    return field,ndimage.filters.gaussian_filter(density.astype(np.float32),11)

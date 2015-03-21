@@ -64,7 +64,7 @@ def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.
 
 # expand the total volume to simulate baking
 # #(depends on N,Nz from parameter)
-def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield,np.ndarray[DTYPE_t, ndim=3] density,int N, int Nz):
+def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield,np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz):
     cdef int x,y,z
     cdef float u,v,w,gravity_x,gravity_y,gravity_z,df,rho
     cdef int deltax = 0 # desplazamiento del modelo en x
@@ -75,15 +75,15 @@ def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3]
         for y from 0<=y<N:
             for z from 0<=z<Nz:
                 df = 1.0-dfield[x,y,z]/50.0
-                rho = 1.0-density[x,y,z]/100.0
+                rho = 1.0-density[x,y,z]/15.0
                 gravity_x = 0.9#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
                 #if(z < 150 and z > 100):
                 gravity_y = ((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))
                 #else: vnew = 1.0 
                 gravity_z = 0.9#((np.float(N-1)-np.float(z-deltaz)/6.0)/np.float(N-1))
-                u = (x-deltax)*gravity_x*rho
-                v = (y-deltay)*gravity_y*rho
-                w = (z-deltaz)*gravity_z*rho
+                u = (x-deltax)*rho#gravity_x*rho
+                v = (y-deltay)*rho#gravity_y*rho
+                w = (z-deltaz)*rho#gravity_z*rho
 
                 #df = 1.0-dfield[u,v,w]/50.0
                 #u *= df
