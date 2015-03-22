@@ -50,15 +50,19 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
 
     # the rising during baking is modulated by gravity, distance to the centre, and the density of particles in the point
 
+    ddfx, ddfy, ddfz = np.gradient(density)
     print "rise geom..."
     dfResized = resizef(dfield,N,Nz)
+    #ddfx = resizef(ddfx,N,Nz)
+    #ddfy = resizef(ddfy,N,Nz)
+    #ddfz = resizef(ddfz,N,Nz)
     #saveField(orientate(geom,N,Nz),"accumulated","geomPrev.png")
-    geomD = warp.warpExpandGeom(geom,dfResized,density,N,Nz)
+    geomD = warp.warpExpandGeom(geom,dfResized,ddfx,ddfy,ddfz,density,N,Nz)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
 
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
-    field = warp.warpExpandGeom(field,dfResized,density,N,Nz)
+    field = warp.warpExpandGeom(field,dfResized,ddfx,ddfy,ddfz,density,N,Nz)
     saveField(orientate(field,N,Nz),"fieldrise","fieldRise.png")
 
     # :s

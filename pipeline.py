@@ -289,6 +289,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k)
             field = orientate(bakedField,N,Nz)
             saveField(field,"postbaking","postbaking.png")
+            exit()
             
             print "Crumb..."
             crumbD = np.array(dfieldDeformed>thresh).astype(np.uint8)

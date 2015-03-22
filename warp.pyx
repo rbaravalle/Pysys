@@ -64,26 +64,30 @@ def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.
 
 # expand the total volume to simulate baking
 # #(depends on N,Nz from parameter)
-def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield,np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz):
+def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield, np.ndarray[DTYPE_tf, ndim=3] ddfx, np.ndarray[DTYPE_tf, ndim=3] ddfy,np.ndarray[DTYPE_tf, ndim=3] ddfz, np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz):
     cdef int x,y,z
-    cdef float u,v,w,gravity_x,gravity_y,gravity_z,df,rho
+    cdef float u,v,w,gravity_x,gravity_y,gravity_z,df,rho,dfx,dfy,dfz
     cdef int deltax = 0 # desplazamiento del modelo en x
     cdef int deltay = 0 # desplazamiento del modelo en y
     cdef int deltaz = 0 # desplazamiento del modelo en z
     cdef np.ndarray[DTYPE_t, ndim=3] geomD = np.zeros((N,N,Nz),dtype=DTYPE)
+    cdef float mmax = np.max(density)
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
-                df = 1.0-dfield[x,y,z]/50.0
-                rho = 1.0-density[x,y,z]/10.0
-                gravity_x = 0.9#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
+                dfx = (ddfx[x,y,z])/10.0
+                dfy = (ddfy[x,y,z])/10.0
+                dfz = (ddfz[x,y,z])/10.0
+                rho = 1.0-(mmax-density[x,y,z])/12.0
+                df = 1.0-dfield[u,v,w]/50.0
+                gravity_x = 0.8#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
                 #if(z < 150 and z > 100):
-                gravity_y = ((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))
+                gravity_y = 0.9*((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))
                 #else: vnew = 1.0 
-                gravity_z = 0.9#((np.float(N-1)-np.float(z-deltaz)/6.0)/np.float(N-1))
-                u = (x-deltax)*rho#gravity_x*rho
-                v = (y-deltay)*rho#gravity_y*rho
-                w = (z-deltaz)*rho#gravity_z*rho
+                gravity_z = 0.8#((np.float(N-1)-np.float(z-deltaz)/6.0)/np.float(N-1))
+                u = (x-deltax)-dfx*rho #*dfx#*rho
+                v = (y-deltay)-dfy*rho #*dfy#*rho
+                w = (z-deltaz)-dfz*rho #*dfz#*rho
 
                 #df = 1.0-dfield[u,v,w]/50.0
                 #u *= df
