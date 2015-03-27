@@ -31,7 +31,7 @@ import binvox
 
 N = 256
 Nz = 256
-thresh = 4.4
+thresh = 1.4
 
 # apply baking step by step or as one accumulated step
 accumulatedBaking = True
@@ -269,7 +269,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     t = time.clock()
 
     # baking effect parameter
-    k = 20.0
+    k = 5.0
 
     #saveField(fieldf,"accumulated","bread.png")
 
@@ -284,19 +284,20 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             print "cbake.."
             saveField(255*orientate(field,N,Nz),"accumulated/pre","bread.png")
 
+            print "Max, min: ", np.max(density), np.min(density)
             # bakedField #(Nx,Ny,Nz)
             # geomD      #(Nx,Ny,Nz)
             bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k)
             field = orientate(bakedField,N,Nz)
             saveField(field,"postbaking","postbaking.png")
-            exit()
+            #exit()
             
             print "Crumb..."
             crumbD = np.array(dfieldDeformed>thresh).astype(np.uint8)
             print "New Crust..."
             crust = geomD/255-crumbD
 
-            crust = 255*(orientate(resize(crust,N,Nz),N,Nz))
+            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),1)#ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),5)
             saveField(crust,"accumulated","crust.png")
 
             # geomD      #(Nx,Ny,Nz)
@@ -309,7 +310,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
 
             print "Specific field..."
-            field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz) > thresh/4.0))).astype(np.uint8)
+            field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz) > thresh/8.0))).astype(np.uint8)
 
         else:
             field = cloadobj.orientate(255*field,N,Nz)

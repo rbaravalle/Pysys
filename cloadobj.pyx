@@ -107,5 +107,5 @@ def intersect(field, geom,density,int N, int Nz):
     # the bubbles in white (1-field) are taken into account
     # when they are away from the surface, so this is the 'crumb region'
 
-    return (geom-crumb*(1-field)), dfield.astype(np.float32),geom,crust,crumb*(1-density)
+    return (geom-crumb*(1-field)), dfield.astype(np.float32),geom,crust,crumb*(density)
 

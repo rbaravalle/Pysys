@@ -1,12 +1,14 @@
 import numpy as np
 cimport numpy as np
 import scipy.ndimage as ndimage
+import scipy
 import time
 import pylab
 from matplotlib import pyplot as plt
 import Image
 import cloadobj
 from cloadobj import orientate, resize,resizef,invresize,orientatef
+import matplotlib
 
 import warp
 
@@ -48,21 +50,36 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     cdef np.ndarray[DTYPE_t, ndim=3] geomD
     cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((256,256,256)).astype(np.float32)
 
-    # the rising during baking is modulated by gravity, distance to the centre, and the density of particles in the point
+    # rising during baking is modulated by gravity, distance to the centre, and the density of particles at the point
 
     ddfx, ddfy, ddfz = np.gradient(density)
+    ddfx = ndimage.filters.gaussian_filter(ddfx,3)
+    ddfy = ndimage.filters.gaussian_filter(ddfy,3)
+    ddfz = ndimage.filters.gaussian_filter(ddfz,3)
+
+
+    #ddfx2, ddfy2 = np.gradient(density[188,:,:])
+    #ddfx2 = ndimage.filters.gaussian_filter(ddfx2,3)
+    #ddfy2 = ndimage.filters.gaussian_filter(ddfy2,3)
+
+    #pylab.quiver(ddfx2,ddfy2)
+    #pylab.show()
+    #plt.show()
     print "rise geom..."
     dfResized = resizef(dfield,N,Nz)
+    cdef float dmax = np.max(density)
+    cdef float dmin = np.min(density)
     #ddfx = resizef(ddfx,N,Nz)
     #ddfy = resizef(ddfy,N,Nz)
     #ddfz = resizef(ddfz,N,Nz)
     #saveField(orientate(geom,N,Nz),"accumulated","geomPrev.png")
-    geomD = warp.warpExpandGeom(geom,dfResized,ddfx,ddfy,ddfz,density,N,Nz)
+    geomD = warp.warpExpandGeom(geom,dfResized,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
 
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
-    field = warp.warpExpandGeom(field,dfResized,ddfx,ddfy,ddfz,density,N,Nz)
+    field = warp.warpExpandGeom(field,dfResized,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
+    #field = 255*scipy.ndimage.morphology.binary_erosion(field,np.ones((2,2,2))).astype(np.uint8)
     saveField(orientate(field,N,Nz),"fieldrise","fieldRise.png")
 
     # :s
@@ -84,10 +101,11 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
                 result[i,j,k] = temperatures[round(dfieldDeformed[i,j,k]*f)]
 
     # For the paper
-    if(False):
-        I2 = Image.frombuffer('L',(256,256), (result[150,:,:]).astype(np.uint8),'raw','L',0,1)
+    if(True):
+        I2 = Image.frombuffer('L',(256,256), (result[:,:,100]).astype(np.uint8),'raw','L',0,1)
         imgplot = plt.imshow(I2)
         plt.colorbar()
+        matplotlib.rcParams.update({'font.size': 22})
         gx2, gy2 = np.gradient(result[:,:,100])
         gx2 = ndimage.filters.gaussian_filter(gx2,3)
         gy2 = ndimage.filters.gaussian_filter(gy2,3)
@@ -95,14 +113,14 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
         pylab.show()
         plt.show()
 
-        if(False):
+        if(True):
             I2 = Image.frombuffer('L',(N,N), (result[:,100,:]).astype(np.uint8),'raw','L',0,1)
             imgplot = plt.imshow(I2)
             plt.colorbar()
             gx2, gy2 = np.gradient(result[:,100,:])
             gx2 = ndimage.filters.gaussian_filter(gx2,3)
             gy2 = ndimage.filters.gaussian_filter(gy2,3)
-            pylab.quiver(gx2,gy2)
+            #pylab.quiver(gx2,gy2)
             pylab.show()
             plt.show()
 
@@ -112,7 +130,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
             gx2, gy2 = np.gradient(result[100,:,:])
             gx2 = ndimage.filters.gaussian_filter(gx2,3)
             gy2 = ndimage.filters.gaussian_filter(gy2,3)
-            pylab.quiver(gx2,gy2)
+            #pylab.quiver(gx2,gy2)
             pylab.show()
             plt.show()
 

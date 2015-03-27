@@ -1,5 +1,8 @@
 import numpy as np
 cimport numpy as np
+import scipy.ndimage as ndimage
+import matplotlib.pyplot as plt
+
 
 cdef extern from "math.h":
     int round(float x)
@@ -62,40 +65,63 @@ def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.
     return field2
 
 
+def plott(Z):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    from matplotlib.ticker import LinearLocator, FormatStrFormatter
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    X = np.arange(0, 256, 1)
+    Y = np.arange(0, 256, 1)
+    X, Y = np.meshgrid(X, Y)
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,linewidth=0, antialiased=False)
+    ax.set_zlim(0.01, 1.01)
+
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+
+    plt.show()
+
 # expand the total volume to simulate baking
 # #(depends on N,Nz from parameter)
-def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield, np.ndarray[DTYPE_tf, ndim=3] ddfx, np.ndarray[DTYPE_tf, ndim=3] ddfy,np.ndarray[DTYPE_tf, ndim=3] ddfz, np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz):
+def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield, np.ndarray[DTYPE_tf, ndim=3] ddfx, np.ndarray[DTYPE_tf, ndim=3] ddfy,np.ndarray[DTYPE_tf, ndim=3] ddfz, np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz,float dmax,float dmin):
     cdef int x,y,z
-    cdef float u,v,w,gravity_x,gravity_y,gravity_z,df,rho,dfx,dfy,dfz
-    cdef int deltax = 0 # desplazamiento del modelo en x
-    cdef int deltay = 0 # desplazamiento del modelo en y
-    cdef int deltaz = 0 # desplazamiento del modelo en z
+    cdef float u,v,w,rx,ry,rz,df,rho,dfx,dfy,dfz,h,rhomin,rhomax,m
     cdef np.ndarray[DTYPE_t, ndim=3] geomD = np.zeros((N,N,Nz),dtype=DTYPE)
-    cdef float mmax = np.max(density)
+
+    rhomax = 0.9
+    rhomin = 0.4
+    m = -(rhomax-rhomin)/(dmax-dmin)
+    h = rhomax-m*dmin
+
+    cdef np.ndarray[DTYPE_tf, ndim=2] maxd = np.zeros((N,N),dtype=np.float32)
+
+    for x from 0<=x<N:
+        for z from 0<=z<N:
+            maxd[x,z] = np.max(density[x,:,z])/2.0
+
+    maxd = ndimage.filters.gaussian_filter(maxd,3)
+    #print maxd*m+h
+    #plott(maxd*m+h)
+
+    #*(np.float(y-deltay)*30.0)/np.float(N-1)
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
-                dfx = (ddfx[x,y,z])/10.0
-                dfy = (ddfy[x,y,z])/10.0
-                dfz = (ddfz[x,y,z])/10.0
-                rho = 1.0-(mmax-density[x,y,z])/12.0
-                df = 1.0-dfield[u,v,w]/50.0
-                gravity_x = 0.8#((np.float(N-1)-np.float(x-deltax)/6.0)/np.float(N-1))
-                #if(z < 150 and z > 100):
-                gravity_y = 0.9*((np.float(N-1)-np.float(y-deltay)/3.0)/np.float(N-1))
-                #else: vnew = 1.0 
-                gravity_z = 0.8#((np.float(N-1)-np.float(z-deltaz)/6.0)/np.float(N-1))
-                u = (x-deltax)-dfx*rho #*dfx#*rho
-                v = (y-deltay)-dfy*rho #*dfy#*rho
-                w = (z-deltaz)-dfz*rho #*dfz#*rho
+                u = x*0.98
+                w = z*0.8 
 
-                #df = 1.0-dfield[u,v,w]/50.0
-                #u *= df
-                #v *= df
-                #w *= df
+                ry = 0.65*(maxd[round(u),round(w)]*m+h)
+                v = y*ry 
+
                 try:
                     geomD[x,y,z] = resample(geom,u,v,w)
                 except: pass
+
 
     return geomD
 
