@@ -29,8 +29,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 256
-Nz = 256
+N = 350
+Nz = 350
 thresh = 1.4
 
 # apply baking step by step or as one accumulated step
@@ -203,7 +203,7 @@ def load_obj(obj):
 
 def createFolders():
 
-    dirs = ['warp2','warp2/baked','warp2/warped','accumulated','accumulated/pre','postbaking','fieldrise','density']
+    dirs = ['warp2','warp2/baked','warp2/warped','accumulated','accumulated/pre','postbaking','fieldrise1','fieldrise2','density']
 
     for f in dirs:
         if not os.path.isdir(f): 
@@ -269,7 +269,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     t = time.clock()
 
     # baking effect parameter
-    k = 5.0
+    k = 10.0
 
     #saveField(fieldf,"accumulated","bread.png")
 

@@ -45,8 +45,10 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
 
     cdef float dist
     cdef int i,j,k,cant
+    cdef float dmax = np.max(density)
+    cdef float dmin = np.min(density)
 
-    cdef np.ndarray[DTYPE_tf, ndim=3] gx, gy, gz, dfResized, dfieldDeformed
+    cdef np.ndarray[DTYPE_tf, ndim=3] gx, gy, gz, dfieldDeformed
     cdef np.ndarray[DTYPE_t, ndim=3] geomD
     cdef np.ndarray[DTYPE_tf, ndim=3] result = np.zeros((256,256,256)).astype(np.float32)
 
@@ -65,40 +67,24 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     #pylab.quiver(ddfx2,ddfy2)
     #pylab.show()
     #plt.show()
-    print "rise geom..."
-    dfResized = resizef(dfield,N,Nz)
-    cdef float dmax = np.max(density)
-    cdef float dmin = np.min(density)
+ 
     #ddfx = resizef(ddfx,N,Nz)
     #ddfy = resizef(ddfy,N,Nz)
     #ddfz = resizef(ddfz,N,Nz)
     #saveField(orientate(geom,N,Nz),"accumulated","geomPrev.png")
-    geomD = warp.warpExpandGeom(geom,dfResized,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
-    saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
 
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
-    field = warp.warpExpandGeom(field,dfResized,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
-    #field = 255*scipy.ndimage.morphology.binary_erosion(field,np.ones((2,2,2))).astype(np.uint8)
-    saveField(orientate(field,N,Nz),"fieldrise","fieldRise.png")
-
-    # :s
-    geomD = invresize(geomD,N,Nz)
-
-    print "distance field..."
-    dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
-    # saveField(orientatef(2*dfieldDeformed,256,256),"accumulated","dfieldDeformed.png")
-
-
+    
     # how many different temperatures
     cant = len(temperatures)
-    cdef float f = ((cant-1)/np.max(dfieldDeformed))
+    cdef float f = ((cant-1)/np.max(dfield))
 
     print "Computing temperatures"
     for i from 0<=i<256:
         for j from 0<=j<256:
             for k from 0<=k<256:
-                result[i,j,k] = temperatures[round(dfieldDeformed[i,j,k]*f)]
+                result[i,j,k] = temperatures[round(dfield[i,j,k]*f)]
 
     # For the paper
     if(True):
@@ -114,7 +100,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
         plt.show()
 
         if(True):
-            I2 = Image.frombuffer('L',(N,N), (result[:,100,:]).astype(np.uint8),'raw','L',0,1)
+            I2 = Image.frombuffer('L',(256,256), (result[:,100,:]).astype(np.uint8),'raw','L',0,1)
             imgplot = plt.imshow(I2)
             plt.colorbar()
             gx2, gy2 = np.gradient(result[:,100,:])
@@ -124,7 +110,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
             pylab.show()
             plt.show()
 
-            I2 = Image.frombuffer('L',(N,N), (result[100,:,:]).astype(np.uint8),'raw','L',0,1)
+            I2 = Image.frombuffer('L',(256,256), (result[100,:,:]).astype(np.uint8),'raw','L',0,1)
             imgplot = plt.imshow(I2)
             plt.colorbar()
             gx2, gy2 = np.gradient(result[100,:,:])
@@ -151,8 +137,30 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     gy = cloadobj.resizef(gy,N,Nz)
     print "Resize gz..."
     gz = cloadobj.resizef(gz,N,Nz)
+    
+    # dfield = resizef(dfield,N,Nz)
+    field = warp.warp(field, gx,gy,gz, N, Nz,k2)
+    saveField(orientate(field,N,Nz),"fieldrise1","fieldRise1.png")
+    #density = warp.warp(density, gx,gy,gz, N, Nz,k2)
+    field = warp.warpExpandGeom(field,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
+
+    saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
+
+    exit()
+    
+    print "rise geom..."
+    geomD = warp.warpExpandGeom(geom,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
+    saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
+    # :s
+    #geomD = invresize(geomD,N,Nz)
+
+    print "distance field..."
+    dfieldDeformed = dfield#np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
+    # saveField(orientatef(2*dfieldDeformed,256,256),"accumulated","dfieldDeformed.png")
+
+
 
 
     print "warp and return..."
-    return warp.warp(field, gx,gy,gz, N, Nz,k2), geomD,dfieldDeformed
+    return field,geomD, dfieldDeformed#warp.warp(field, gx,gy,gz, N, Nz,k2), geomD,dfieldDeformed
 
