@@ -89,7 +89,7 @@ def plott(Z):
 # warp a 3D field using the gradient G(gx,gy,gz)
 def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3] dfield, np.ndarray[DTYPE_tf, ndim=3] ddfx, np.ndarray[DTYPE_tf, ndim=3] ddfy,np.ndarray[DTYPE_tf, ndim=3] ddfz, np.ndarray[DTYPE_tf, ndim=3] density,int N, int Nz,float dmax, float dmin):
     cdef int x,y,z
-    cdef float u,v,w,rho,h,rhomin,rhomax,m
+    cdef float u,v,w,rho,h,rhomin,rhomax,m,aux
     cdef np.ndarray[DTYPE_t, ndim=3] field2 = np.zeros((N,N,Nz),dtype=DTYPE)
     
     rhomax = 0.9
@@ -101,16 +101,19 @@ def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3]
 
     for x from 0<=x<N:
         for z from 0<=z<N:
-            maxd[x,z] = (2.0*np.random.random())*np.max(density[x,:,z])/2.0
+            maxd[x,z] = (np.random.random())*np.max(density[x,:,z])/2.0
 
     maxd = ndimage.filters.gaussian_filter(maxd,3)
+    density = ndimage.filters.gaussian_filter(density,3)
+    
 
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
+                aux = (1.0-0.5*density[x,y,z]/dmax)
                 u = (x)*0.94 # f^(-1)
-                w = (z)*0.98
-                v = (y)*(maxd[round(u),round(w)]*m+h)
+                w = (z)*aux#(1.0-0.5*dfield[x,y,z]/100.0)
+                v = (y)*(maxd[round(u),round(w)]*m+h)*aux#*(0.5+(y/4.0)/(N-1))
 
                 try:
                     field2[x,y,z] = resample(geom,u,v,w)#field[u,v,w]

@@ -29,8 +29,8 @@ import warp
 # voxelizer
 import binvox
 
-N = 350
-Nz = 350
+N = 256
+Nz = 256
 thresh = 1.4
 
 # apply baking step by step or as one accumulated step

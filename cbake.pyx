@@ -142,12 +142,6 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     field = warp.warp(field, gx,gy,gz, N, Nz,k2)
     saveField(orientate(field,N,Nz),"fieldrise1","fieldRise1.png")
     #density = warp.warp(density, gx,gy,gz, N, Nz,k2)
-    field = warp.warpExpandGeom(field,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
-
-    saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
-
-    exit()
-    
     print "rise geom..."
     geomD = warp.warpExpandGeom(geom,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
@@ -155,11 +149,15 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     #geomD = invresize(geomD,N,Nz)
 
     print "distance field..."
-    dfieldDeformed = dfield#np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
+    dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
     # saveField(orientatef(2*dfieldDeformed,256,256),"accumulated","dfieldDeformed.png")
 
+    
+    field = warp.warpExpandGeom(field,dfieldDeformed,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
 
+    saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
 
+    exit()
 
     print "warp and return..."
     return field,geomD, dfieldDeformed#warp.warp(field, gx,gy,gz, N, Nz,k2), geomD,dfieldDeformed
