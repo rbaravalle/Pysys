@@ -18,7 +18,7 @@ cdef extern from "math.h":
 
 def proving(int param_a,float param_b,float param_c,int param_d,int param_e, int N, int Nz):
     cdef int r, v, i, j, k,x,y,z, maxrank
-    cdef float cubr
+    cdef float cubr,rr
     cdef np.ndarray[DTYPE_t, ndim=3] field = np.zeros((N,N,Nz),dtype=DTYPE) + np.uint8(1)
     cdef np.ndarray[DTYPE_tf, ndim=3] density = np.zeros((N,N,Nz),dtype=DTYPE_f)
     cubr = (param_b/float(20.0))*N*N*Nz
@@ -29,12 +29,13 @@ def proving(int param_a,float param_b,float param_c,int param_d,int param_e, int
                 x = floor((rand() / float(INT_MAX))*N)
                 y = floor((rand() / float(INT_MAX))*N)
                 z = floor((rand() / float(INT_MAX))*Nz)
+                rr = 4.0*np.random.random()
                 for i from x-r<=i<=x+r:
                     for j from y-r<=j<=y+r:
                         for k from z-r<=k<=z+r:
                             if((x-i)*(x-i)+(y-j)*(y-j)+(z-k)*(z-k) <= r*r):
                                 if(i < N and i >= 0 and j < N and j >= 0 and k < Nz and k >= 0 ):
                                     field[i,j,k] = 0
-                                    density[i,j,k] = 3.0*r*r/1.0
+                                    density[i,j,k] = 6.0*r*r+rr
 
-    return field,ndimage.filters.gaussian_filter(density.astype(np.float32),15)
+    return field,ndimage.filters.gaussian_filter(density.astype(np.float32),10)

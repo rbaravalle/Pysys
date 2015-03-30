@@ -157,7 +157,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
 
     saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
 
-    exit()
+    #exit()
 
     print "warp and return..."
     return field,geomD, dfieldDeformed#warp.warp(field, gx,gy,gz, N, Nz,k2), geomD,dfieldDeformed
