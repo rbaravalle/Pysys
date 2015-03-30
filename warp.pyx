@@ -47,7 +47,7 @@ cdef resample(np.ndarray[DTYPE_t, ndim=3] field, float u, float v, float w):
     else: return 0
 
 # warp a 3D field using the gradient G(gx,gy,gz)
-def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.ndarray[DTYPE_tf, ndim=3] gy, np.ndarray[DTYPE_tf, ndim=3] gz, int N, int Nz, float k):
+def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.ndarray[DTYPE_tf, ndim=3] gy, np.ndarray[DTYPE_tf, ndim=3] gz, np.ndarray[DTYPE_tf, ndim=3] density, int N, int Nz, float k):
     cdef int x,y,z
     cdef float u,v,w
     cdef np.ndarray[DTYPE_t, ndim=3] field2 = np.zeros((N,N,Nz),dtype=DTYPE)
@@ -55,6 +55,7 @@ def warp(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3] gx, np.
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
+                k *= density[x,y,z]
                 u = (x-gx[x,y,z]*k) # f^(-1)
                 v = (y-gy[x,y,z]*k)
                 w = (z-gz[x,y,z]*k)
@@ -101,18 +102,18 @@ def warpExpandGeom(np.ndarray[DTYPE_t, ndim=3] geom,np.ndarray[DTYPE_tf, ndim=3]
 
     for x from 0<=x<N:
         for z from 0<=z<N:
-            maxd[x,z] = (np.random.random())*np.max(density[x,:,z])/2.0
+            maxd[x,z] = 2.0*(np.random.random())*np.max(density[x,:,z])/2.0
 
     maxd = ndimage.filters.gaussian_filter(maxd,3)
-    density = ndimage.filters.gaussian_filter(density,3)
+    #density = 2.0*ndimage.filters.gaussian_filter(density,10)
     
 
     for x from 0<=x<N:    
         for y from 0<=y<N:
             for z from 0<=z<Nz:
-                aux = (1.0-0.5*density[x,y,z]/dmax)
-                u = (x)*0.94 # f^(-1)
-                w = (z)*aux#(1.0-0.5*dfield[x,y,z]/100.0)
+                aux = (1.0-0.2*density[x,y,z]/dmax)
+                u = (x)*1.0 # f^(-1)
+                w = (z)*0.98#(1.0-0.5*dfield[x,y,z]/100.0)
                 v = (y)*(maxd[round(u),round(w)]*m+h)*aux#*(0.5+(y/4.0)/(N-1))
 
                 try:

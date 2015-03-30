@@ -269,7 +269,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     t = time.clock()
 
     # baking effect parameter
-    k = 10.0
+    k = 5.0
 
     #saveField(fieldf,"accumulated","bread.png")
 

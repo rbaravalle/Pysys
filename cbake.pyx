@@ -87,7 +87,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
                 result[i,j,k] = temperatures[round(dfield[i,j,k]*f)]
 
     # For the paper
-    if(True):
+    if(False):
         I2 = Image.frombuffer('L',(256,256), (result[:,:,100]).astype(np.uint8),'raw','L',0,1)
         imgplot = plt.imshow(I2)
         plt.colorbar()
@@ -139,14 +139,14 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     gz = cloadobj.resizef(gz,N,Nz)
     
     # dfield = resizef(dfield,N,Nz)
-    field = warp.warp(field, gx,gy,gz, N, Nz,k2)
+    field = warp.warp(field, gx,gy,gz, density,N, Nz,k2)
     saveField(orientate(field,N,Nz),"fieldrise1","fieldRise1.png")
     #density = warp.warp(density, gx,gy,gz, N, Nz,k2)
     print "rise geom..."
     geomD = warp.warpExpandGeom(geom,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
     # :s
-    #geomD = invresize(geomD,N,Nz)
+    geomD = invresize(geomD,N,Nz)
 
     print "distance field..."
     dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
