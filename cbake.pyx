@@ -54,25 +54,6 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
 
     # rising during baking is modulated by gravity, distance to the centre, and the density of particles at the point
 
-    ddfx, ddfy, ddfz = np.gradient(density)
-    ddfx = ndimage.filters.gaussian_filter(ddfx,3)
-    ddfy = ndimage.filters.gaussian_filter(ddfy,3)
-    ddfz = ndimage.filters.gaussian_filter(ddfz,3)
-
-
-    #ddfx2, ddfy2 = np.gradient(density[188,:,:])
-    #ddfx2 = ndimage.filters.gaussian_filter(ddfx2,3)
-    #ddfy2 = ndimage.filters.gaussian_filter(ddfy2,3)
-
-    #pylab.quiver(ddfx2,ddfy2)
-    #pylab.show()
-    #plt.show()
- 
-    #ddfx = resizef(ddfx,N,Nz)
-    #ddfy = resizef(ddfy,N,Nz)
-    #ddfz = resizef(ddfz,N,Nz)
-    #saveField(orientate(geom,N,Nz),"accumulated","geomPrev.png")
-
     print "rise field..."
     #saveField(orientate(field,N,Nz),"accumulated","fieldPrev.png")
     
@@ -139,11 +120,11 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     gz = cloadobj.resizef(gz,N,Nz)
     
     # dfield = resizef(dfield,N,Nz)
-    field = warp.warp(field, gx,gy,gz, density,N, Nz,k2)
+    field = warp.warp(field, gx,gy,gz, density,N, Nz,k2,dmax,dmin)
     saveField(orientate(field,N,Nz),"fieldrise1","fieldRise1.png")
     #density = warp.warp(density, gx,gy,gz, N, Nz,k2)
     print "rise geom..."
-    geomD = warp.warpExpandGeom(geom,dfield,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
+    geomD = warp.warpExpandGeom(geom,density,N,Nz,dmax,dmin)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
     # :s
     geomD = invresize(geomD,N,Nz)
@@ -153,12 +134,10 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     # saveField(orientatef(2*dfieldDeformed,256,256),"accumulated","dfieldDeformed.png")
 
     
-    field = warp.warpExpandGeom(field,dfieldDeformed,ddfx,ddfy,ddfz,density,N,Nz,dmax,dmin)
+    field = warp.warpExpandGeom(field,density,N,Nz,dmax,dmin)
 
     saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
 
-    #exit()
-
     print "warp and return..."
-    return field,geomD, dfieldDeformed#warp.warp(field, gx,gy,gz, N, Nz,k2), geomD,dfieldDeformed
+    return field,geomD, dfieldDeformed
 

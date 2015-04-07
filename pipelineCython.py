@@ -3,7 +3,7 @@ from subprocess import call
 import time
 import sys
 
-arr = [ "warp", "proving","cbake","cprint","cloadobj"]
+arr = [ "warp", "proving","cbake","cprint","cloadobj","pipelineC"]
 
 for i in range(len(arr)):
 

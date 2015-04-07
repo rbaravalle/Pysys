@@ -9,6 +9,7 @@ ctypedef np.float32_t DTYPE_tf
 import binvox
 import time
 import scipy.ndimage as ndimage
+from warp import lowsize
 
 cdef extern from "math.h":
     int floor(float x)
@@ -93,7 +94,7 @@ def intersect(field, geom,density,int N, int Nz):
     print "Crust..."
     crust = geom-crumb
 
-    # NOW RESIZE...
+    # NOW resize...
 
     print "Resize Geom..."
     geom = resize(geom,N,Nz)
