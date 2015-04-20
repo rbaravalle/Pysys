@@ -41,7 +41,7 @@ def saveField(field,folder,filename):
 # field #(Nx,Ny,Nz)
 # geom #(Nx,Ny,Nz)
 # dfield #(256,256,256)
-def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_tf, ndim=3] density, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2):
+def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield, np.ndarray[DTYPE_t, ndim=3] geom, np.ndarray[DTYPE_tf, ndim=3] density, np.ndarray[DTYPE_tf, ndim=1]  temperatures,int N,int Nz, int k2,int model):
 
     cdef float dist
     cdef int i,j,k,cant
@@ -67,9 +67,10 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
             for k from 0<=k<256:
                 result[i,j,k] = temperatures[round(dfield[i,j,k]*f)]
 
+    #result = orientatef(resizef(result,N,Nz),N,Nz)
     # For the paper
     if(False):
-        I2 = Image.frombuffer('L',(256,256), (result[:,:,100]).astype(np.uint8),'raw','L',0,1)
+        I2 = Image.frombuffer('L',(N,Nz), (result[:,:,200]).astype(np.uint8),'raw','L',0,1)
         imgplot = plt.imshow(I2)
         plt.colorbar()
         matplotlib.rcParams.update({'font.size': 22})
@@ -80,8 +81,8 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
         pylab.show()
         plt.show()
 
-        if(True):
-            I2 = Image.frombuffer('L',(256,256), (result[:,100,:]).astype(np.uint8),'raw','L',0,1)
+        if(False):
+            I2 = Image.frombuffer('L',(N,Nz), (result[:,200,:]).astype(np.uint8),'raw','L',0,1)
             imgplot = plt.imshow(I2)
             plt.colorbar()
             gx2, gy2 = np.gradient(result[:,100,:])
@@ -91,7 +92,7 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
             pylab.show()
             plt.show()
 
-            I2 = Image.frombuffer('L',(256,256), (result[100,:,:]).astype(np.uint8),'raw','L',0,1)
+            I2 = Image.frombuffer('L',(N,Nz), (result[200,:,:]).astype(np.uint8),'raw','L',0,1)
             imgplot = plt.imshow(I2)
             plt.colorbar()
             gx2, gy2 = np.gradient(result[100,:,:])
@@ -111,30 +112,34 @@ def bake(np.ndarray[DTYPE_t, ndim=3] field, np.ndarray[DTYPE_tf, ndim=3]  dfield
     print "Gaussian's...z..."
     gz = ndimage.filters.gaussian_filter(gz.astype(np.float32),3)
 
-    # gx,gy,gz #(Nx,Ny,Nz)
-    print "Resize gx..."
-    gx = cloadobj.resizef(gx,N,Nz)
-    print "Resize gy..."
-    gy = cloadobj.resizef(gy,N,Nz)
-    print "Resize gz..."
-    gz = cloadobj.resizef(gz,N,Nz)
-    
-    # dfield = resizef(dfield,N,Nz)
+    if(N!=256):
+            # gx,gy,gz #(Nx,Ny,Nz)
+            print "Resize gx..."
+            gx = cloadobj.resizef(gx,N,Nz)
+            print "Resize gy..."
+            gy = cloadobj.resizef(gy,N,Nz)
+            print "Resize gz..."
+            gz = cloadobj.resizef(gz,N,Nz)
+            
+            # dfield = resizef(dfield,N,Nz)
+
     field = warp.warp(field, gx,gy,gz, density,N, Nz,k2,dmax,dmin)
     saveField(orientate(field,N,Nz),"fieldrise1","fieldRise1.png")
     #density = warp.warp(density, gx,gy,gz, N, Nz,k2)
     print "rise geom..."
-    geomD = warp.warpExpandGeom(geom,density,N,Nz,dmax,dmin)
+    geomD = warp.warpExpandGeom(geom,density,N,Nz,dmax,dmin,model)
     saveField(orientate(geomD,N,Nz),"accumulated","geomRise.png")
+
     # :s
-    geomD = invresize(geomD,N,Nz)
+    if(N!=256):
+        geomD = invresize(geomD,N,Nz)
 
     print "distance field..."
     dfieldDeformed = np.array(ndimage.distance_transform_edt(geomD/255)).reshape(256,256,256).astype(np.float32)
     # saveField(orientatef(2*dfieldDeformed,256,256),"accumulated","dfieldDeformed.png")
 
     
-    field = warp.warpExpandGeom(field,density,N,Nz,dmax,dmin)
+    field = warp.warpExpandGeom(field,density,N,Nz,dmax,dmin,model)
 
     saveField(orientate(field,N,Nz),"fieldrise2","fieldRise2.png")
 

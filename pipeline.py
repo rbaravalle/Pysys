@@ -52,80 +52,6 @@ def printFile(arr,filename):
 
 
 
-
-# deform the 3D field
-def deform(field, mask):
-    return field
-    # ...with the gradient of the distance field
-    
-    # distance field
-    dfield = np.array(ndimage.distance_transform_edt(mask)).reshape(N,N,Nz)
-
-    #field = dfield
-    field2 = np.zeros((field.shape[0],field.shape[1],field.shape[2]))
-    #saveField(dfield,"","distancefield.png")
-    #exit()
-
-    #if(False):
-        #from pylab import *
-        #k = 0.2
-        #for z in range(Nz):
-            # 2D gradient of distance field
-            # to induce 3D direction
-            #gx,gy = np.gradient(field[:,:,z])
-
-            # gaussian filter of gradient
-            #gx = ndimage.filters.gaussian_filter(gx,5)
-            #gy = ndimage.filters.gaussian_filter(gy,5)
-
-            #gx = gx.astype(np.float32)
-            #gy = gy.astype(np.float32)
-
-            #if(z == 128):
-                #x = linspace(0, 256, 64)
-                #y = linspace(0, 256, 64)
-                #X, Y = meshgrid(x, y)
-                #quiver(X,Y,gx[0:256:4,0:256:4],gy[0:256:4,0:256:4])
-                #show()
-
-            # warp with perpendicular to gradient (tangent?)
-            #field2[:,:,z] = warp.warp2D(field[:,:,z].astype(np.float32), -gy,gx,N,k)
-
-        #print field2[200:210,200:210,128]
-
-        #return np.round(field2)
-
-    gx, gy, gz = np.gradient(field)
-
-    # FIX ME
-    gx = gx.astype(np.float32)
-    gy = gy.astype(np.float32)
-    gz = gz.astype(np.float32)
-
-    gx = ndimage.filters.gaussian_filter(gx,5)
-    gy = ndimage.filters.gaussian_filter(gy,5)
-    gz = ndimage.filters.gaussian_filter(gz,5)
-
-    #from pylab import *
-    #x = linspace(0, 256, 64)
-    #y = linspace(0, 256, 64)
-    #X, Y = meshgrid(x, y)
-    #quiver(X,Y,gx[0:256:4,0:256:4,128]/128.0,gy[0:256:4,0:256:4,128]/128.0)
-    #show()
-
-    #for x in xrange(N):
-        #for y in xrange(N):
-            #for z in xrange(Nz):
-            # Original modulus
-            
-            # New modulus
-
-    k = 0.1
-    # deform
-    # gy-gz, -gx, gx,
-
-    return warp.warp(field, gx,gy,gz, N, Nz,k)#gx,gy,gz,N,Nz,k)#gy-gz, -gx, gx, N, Nz)
-
 def loadFromAtlas(atlas):
     # load from texture
     I = Image.open(atlas)
@@ -255,11 +181,6 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     print "Intersect Time: ", time.clock()-t
     saveField(2*orientate(density.astype(np.uint8),N,Nz),"density","density.png")
 
-    # 3D DEFORMATION
-    #print "Warping..."
-    #t = time.clock()
-    #field = deform(field, geom)
-    #print "Warping Time: ", time.clock()-t
     # END
     # MIXING + PROVING + KNEADING + 2ND PROVING
     ##############################
@@ -297,15 +218,13 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             print "New Crust..."
             crust = geomD/255-crumbD
 
-            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),1)#ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),5)
+            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),1)
             saveField(crust,"accumulated","crust.png")
 
             # geomD      #(Nx,Ny,Nz)
             print "New geomD..."
             geomD = orientate(resize(geomD,N,Nz),N,Nz)
 
-            # version suavizada
-            #geomD = ndimage.filters.gaussian_filter(geomD,3)
             saveField(geomD,"accumulated","postbakingGeom.png")
 
 
@@ -351,7 +270,11 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
 def main(param_a,param_b,param_c,param_d,param_e):
 
-    field = pipeline(param_a,param_b,param_c,param_d,param_e)
+    import pipelineC
+    #pipelineC.pipeline(param_a,param_b,param_c,param_d,param_e)
+    #return
+    #field = pipeline(param_a,param_b,param_c,param_d,param_e)
+
 
     #saveField(field,"warp2","warped.png")
 

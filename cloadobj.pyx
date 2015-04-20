@@ -50,32 +50,42 @@ def invresize( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
                 model2[x,y,z] = model[floor(x*ar),floor(y*ar),floor(z*arz)]
     return model2
 
-def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz):
+def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz,int modelNumber):
     cdef np.ndarray[DTYPE_tf, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.float32)
 
     cdef int x,y,z
-    for x  from 0<=x<N:
-        for y  from 0<=y<N:
-            for z  from 0<=z<Nz:
-                model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny.binvox
-                #model2[Nz-1-z,y,x] = model[x,y,z]      # bread2.vinbox
+    if(modelNumber == 1 or modelNumber == 2):
+        for x  from 0<=x<N:
+            for y  from 0<=y<N:
+                for z  from 0<=z<Nz:
+                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread
+    else:
+        for x  from 0<=x<N:
+            for y  from 0<=y<N:
+                for z  from 0<=z<Nz:
+                    model2[Nz-1-z,y,x] = model[x,y,z]      # bread2,croissant
+
     return model2
 
-def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
+def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz,int modelNumber):
     cdef np.ndarray[DTYPE_t, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.uint8)
 
     cdef int x,y,z
-    for x  from 0<=x<N:
-        for y  from 0<=y<N:
-            for z  from 0<=z<Nz:
-                model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny.binvox, otherbread
-                #model2[Nz-1-z,y,x] = model[x,y,z]      # bread2.vinbox, croissant
+
+    if(modelNumber == 1 or modelNumber == 2):
+        for x  from 0<=x<N:
+            for y  from 0<=y<N:
+                for z  from 0<=z<Nz:
+                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread
+    else:
+        for x  from 0<=x<N:
+            for y  from 0<=y<N:
+                for z  from 0<=z<Nz:
+                    model2[Nz-1-z,y,x] = model[x,y,z]      # bread2, croissant
     return model2
 
 # intersection between a cube field and a geometry
-def intersect(field, geom,density,int N, int Nz):
-
-    cdef float thresh = 4.4
+def intersect(field, geom,density,int N, int Nz, float thresh):
 
     # threshold value
     # bubble intersection
@@ -96,14 +106,15 @@ def intersect(field, geom,density,int N, int Nz):
 
     # NOW resize...
 
-    print "Resize Geom..."
-    geom = resize(geom,N,Nz)
+    if(N!= 256 ):
+        print "Resize Geom..."
+        geom = resize(geom,N,Nz)
 
-    print "Resize Crumb..."
-    crumb = resize(crumb,N,Nz)
+        print "Resize Crumb..."
+        crumb = resize(crumb,N,Nz)
 
-    #print "Resize Distance Field..."
-    #dfield = resizef(np.array(dfield).astype(np.float32),N,Nz)
+        #print "Resize Distance Field..."
+        #dfield = resizef(np.array(dfield).astype(np.float32),N,Nz)
 
     # the bubbles in white (1-field) are taken into account
     # when they are away from the surface, so this is the 'crumb region'

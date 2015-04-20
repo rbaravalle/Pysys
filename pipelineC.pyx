@@ -1,4 +1,5 @@
 import numpy as np
+cimport numpy as np
 import random
 import Image
 import ImageDraw
@@ -32,6 +33,11 @@ import binvox
 N = 256
 Nz = 256
 thresh = 1.4
+
+DTYPE = np.uint8
+DTYPE_f = np.float32
+ctypedef np.uint8_t DTYPE_t
+ctypedef np.float32_t DTYPE_tf
 
 # apply baking step by step or as one accumulated step
 accumulatedBaking = True
@@ -140,7 +146,18 @@ def createFolders():
 
 def pipeline(param_a,param_b,param_c,param_d,param_e):
 
+    #model = 1
+    #modelStr = 'otherbread.binvox'
+    model = 2
+    modelStr = 'bunny.binvox'
+    #model = 3
+    #modelStr = 'bread2.binvox'
+    #model = 4
+    #modelStr = ' croissant.binvox'
+
     loadCSV = False
+    cdef np.ndarray[DTYPE_t, ndim=3] field = np.zeros((N,N,Nz),dtype=DTYPE)
+    cdef np.ndarray[DTYPE_tf, ndim=3] density = np.zeros((N,N,Nz),dtype=DTYPE_f)
 
     createFolders()
 
@@ -167,11 +184,11 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     print "Loading..."
     t = time.clock()
     # geom #(256,256,256)
-    geom = np.array(load_obj('bunny.binvox')).astype(np.uint8)
+    geom = np.array(load_obj(modelStr)).astype(np.uint8)
 
-    saveField(orientate(255*geom,256,256),"accumulated","geometry.png")
+    saveField(orientate(255*geom,256,256,model),"accumulated","geometry.png")
     geom = warp.lowsize(255*geom)/255
-    saveField(orientate(255*geom,256,256),"density","lowgeometry.png")
+    saveField(orientate(255*geom,256,256,model),"density","lowgeometry.png")
     print "Loading Time: ", time.clock()-t
 
     print "Intersecting..."
@@ -180,9 +197,9 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
     # dfield #(256,256,256)
     # geom #(Nx,Ny,Nz)
     # crust #(256,256,256)
-    field,dfield,geom,crust,density = cloadobj.intersect(field, geom,density,N,Nz)
+    field,dfield,geom,crust,density = cloadobj.intersect(field, geom,density,N,Nz,thresh)
     print "Intersect Time: ", time.clock()-t
-    #saveField(2*orientate(density.astype(np.uint8),N,Nz),"density","density.png")
+    #saveField(2*orientate(density.astype(np.uint8),N,Nz,model),"density","density.png")
 
     # END
     # MIXING + PROVING + KNEADING + 2ND PROVING
@@ -199,7 +216,7 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
 
     if(accumulatedBaking):
 
-        bake = True
+        bake = False
         if(bake):
             t2 = time.clock()
             print "temperatures.."
@@ -210,14 +227,14 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             t2 = time.clock()
             # deform bubbles with temperature
             print "cbake.."
-            saveField(255*orientate(field,N,Nz),"accumulated/pre","bread.png")
+            saveField(255*orientate(field,N,Nz,model),"accumulated/pre","bread.png")
 
             print "Max, min: ", np.max(density), np.min(density)
             # bakedField #(Nx,Ny,Nz)
             # geomD      #(Nx,Ny,Nz)
-            bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k)
-            field = orientate(bakedField,N,Nz)
-            saveField(field,"postbaking","postbaking.png")
+            bakedField,geomD,dfieldDeformed = cbake.bake(255*field,dfield,255*geom,density,temperatures,N,Nz,k,model)
+            field = orientate(bakedField,N,Nz,model)
+            saveField(field,"postbaking","postbaking.png")          
 
             
             print "Crumb..."
@@ -225,28 +242,31 @@ def pipeline(param_a,param_b,param_c,param_d,param_e):
             print "New Crust..."
             crust = geomD/255-crumbD
 
-            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz)),1)
+            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz,model)),1)
             saveField(crust,"accumulated","crust.png")
 
             # geomD      #(Nx,Ny,Nz)
             print "New geomD..."
-            geomD = orientate(resize(geomD,N,Nz),N,Nz)
+            geomD = orientate(resize(geomD,N,Nz),N,Nz,model)
 
             saveField(geomD,"accumulated","postbakingGeom.png")
 
 
             print "Specific field..."
-            field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz) > thresh/8.0))).astype(np.uint8)
+            field = np.array(1.0*field*((cloadobj.orientatef(cloadobj.resizef(dfieldDeformed,N,Nz),N,Nz,model) > thresh/8.0))).astype(np.uint8)
 
         else:
-            field = cloadobj.orientate(255*field,N,Nz)
-        #saveField(field,"accumulated","finalbread.png")
+            field = cloadobj.orientate(255*field,N,Nz,model)
+            crust = ndimage.filters.gaussian_filter(255*(orientate(resize(crust,N,Nz),N,Nz,model)),1)
+        saveField(field,"accumulated","finalbread.png")
+
 
 
         print "Baking time: ", time.clock()-t
         # loadtexOcclusion
         print "Computing ambient Occlusion..."
         arr=cprint.cprint2(0,Nz,N,field,15)
+        arr = ndimage.filters.gaussian_filter(arr,1)
         saveField(arr,"accumulated","aocclusion.png")
         
 
@@ -283,6 +303,6 @@ def main(param_a,param_b,param_c,param_d,param_e):
 
 
 #main(1,0.25,3.8,1,22)
-maxb = 11
+maxb = 11+np.int((N-256.0)/25.0)
 if(N==512): maxb = 15 
 main(1,0.65,3.8,1,maxb)

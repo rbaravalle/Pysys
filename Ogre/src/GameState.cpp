@@ -51,7 +51,7 @@ void GameState::enter()
 
         ////////////////// Setup Camera
         m_pCamera = m_pSceneMgr->createCamera("GameCamera");
-        m_pCamera->setPosition(Vector3(5, 60, 60));
+        m_pCamera->setPosition(Vector3(5, 60, 5));
         m_pCamera->lookAt(Vector3(5, 20, 0));
         m_pCamera->setNearClipDistance(5);
 

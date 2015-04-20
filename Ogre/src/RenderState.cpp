@@ -32,7 +32,7 @@ RenderState::RenderState()
         shadeCoeff = 1.0;
         specCoeff= 0.1;
         specMult = 8;
-        glowCoeff = 0.7;
+        glowCoeff = 5.0;
         misc = 10.0;
         lightIsMoving = true;
 }
@@ -57,8 +57,12 @@ void RenderState::enter()
 
         ////////////////// Setup Camera
         _camera = _sceneMgr->createCamera("GameCamera");
-        _camera->setPosition(Vector3(5, 60, 60));
-        _camera->lookAt(Vector3(5, 20, 0));
+        //_camera->setPosition(Vector3(12, 15, -18));// bread2
+        //_camera->lookAt(Vector3(12, 8, -4));
+
+        _camera->setPosition(Vector3(16, 10, 38)); // bunny
+        _camera->lookAt(Vector3(16, 8, 13));
+
         _camera->setNearClipDistance(5);
 
         Real vpWidth  = Real(framework->_viewport->getActualWidth());
@@ -203,7 +207,7 @@ void RenderState::createScene()
         }
 
         ///////////////////// Volume bounding cubes
-        breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
+        breadVolumeBoundingCubes.create(breadCrustVolume, 32, 1, 255, _sceneMgr);
 
         //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->_viewport;
@@ -551,7 +555,8 @@ void RenderState::updateMaterial()
 
         Ogre::GpuProgramParametersSharedPtr fparams = pass->getFragmentProgramParameters();
 
-        Ogre::Vector3 lightpos(1,0,0);
+        Ogre::Vector3 lightpos(1,0,0); // Bunny
+        //Ogre::Vector3 lightpos(-1,-1,10);
 
         static double ro = 0;
         ro += 0.005;
@@ -637,7 +642,7 @@ void RenderState::updateLight(double timeSinceLastFrame)
                 return;
 
         static double elapsed = 0;
-        elapsed += (timeSinceLastFrame * 0.0001) * shininess;
+        elapsed += (timeSinceLastFrame * 0.0001) * shininess;//1.5;
         double se = sin(elapsed);
         double ce = cos(elapsed);
 
