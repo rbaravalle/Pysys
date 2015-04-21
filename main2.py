@@ -4,8 +4,7 @@ from math import floor, sqrt
 from random import randint, random
 import matplotlib
 from matplotlib import pyplot as plt
-from particle import Particle, particles, sparticles
-from sist import init_particles
+from particle import Particle, init_particles, particles, sparticles
 from maths import *
 from runge_kutta import *
 from globalsv import *
@@ -13,15 +12,17 @@ from time import time
 
 
 # una iteracion del algoritmo
-cdef mover(t) :
-    cdef int largoCont, suma,i,w,k,temp
-    cdef float timm, d,e,rr
+def mover(t) :
     largoCont = 0
     timm = time()
     suma = 0
-    for i in range(len(particles)):
+    for i in range(0,len(particles)):
         pi = particles[i]
         if(pi.alive()):
+            if(pi.size > 6*MCA):
+                print "muerte!"
+                pi.morir()
+                #m.push(i);
             if(pi.repr == 0 and pi.size > np.floor(MCA/2)):
                 pi.repr = 1
                 k = len(particles)
@@ -44,12 +45,10 @@ cdef mover(t) :
                     particles.append(Particle(k, MCA,u,v,s,randomness));
                     k +=1
                     sparticles.append(True); # The particle is alive
-
-            temp = pi.fn()
-            suma += temp
-            for w from 0<=w<temp:
+            suma += pi.fn()
+            for w in range(pi.fn()):
                 pi.grow(randomness)
-            largoCont += pi.contorno.size
+            largoCont = largoCont + pi.contorno.size
 
     print "Iteracion :",t
     print "TIME : ", time()-timm
@@ -70,7 +69,7 @@ def dibujarParticulas() :
         I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[maxcoord2*i:maxcoord2*(i+1)]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,maxcoord*i))
 
-    I.save('textures/imagenSystemPaper.png')
+    I.save('imagenSystemPaper.png')
 
 def alg() :  
 

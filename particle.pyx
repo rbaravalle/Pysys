@@ -18,6 +18,7 @@ cdef extern from "limits.h":
 cdef extern from "math.h":
     float pow(int x ,float y)
     int floor(float x)
+    float sqrt(float x)
 
 def sign():
     if(random() > 0.5): return -1
@@ -146,10 +147,32 @@ cdef float calculatePriority(int x,int y,int z,xp):
 
 class Particle:
     def __init__(self,int i,int lifet,int u,int v,int w,float randomParam):
-        cdef int x,y,z       
+        cdef int x,y,z, tempx,tempy,tempz    
+        cdef float dist,r,vx,vy,rv
         self.xi = randint(0,maxcoord)
         self.yi = randint(0,maxcoord)
         self.zi = randint(0,maxcoordZ)
+
+        tempx = self.xi
+        tempy = self.yi
+        tempz = self.zi
+
+        dist = floor(sqrt((tempx-maxcoord/2)*(tempx-maxcoord/2)+(tempy-maxcoord/2)*(tempy-maxcoord/2)))
+
+
+        r = 1.0*random()*(maxcoord/1.5-dist)
+
+        vx = tempx-maxcoord/2
+        vy = tempy-maxcoord/2
+
+        rv = sqrt(vx*vx+vy*vy)
+
+        vx = vx/rv
+        vy = vy/rv
+
+        self.xi = floor(tempx + r*(vx));
+        self.yi = floor(tempy + r*(vy));
+
 
         x = self.xi
         y = self.yi
@@ -177,7 +200,7 @@ class Particle:
         self.size += 1
 
     def grow(self,float randomParam):
-        cdef int w = 0, h, nx,ny,nz
+        cdef int w = 0, h, nx,ny,nz,pos
         self.tActual += 1
         for h from 0 <= h < len(self.contorno):
             w = h
@@ -204,5 +227,9 @@ class Particle:
     # Different separations depending on the bubble size
     def sep(self):
         return 1
+
+    def fn(self):
+        if(self.size < 5): return 1
+        else: return 1+floor(0.01*self.size)
 
 

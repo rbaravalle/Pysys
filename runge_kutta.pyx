@@ -11,7 +11,7 @@ cdef extern from "math.h":
 
 # 3D Dinamic Systems
 cdef f1(np.ndarray[DTYPE_tf, ndim=1] v):
-    return np.array([v[1],-sin(v[0]),0]).astype(np.float32)
+    return np.array([(1-v[1])*v[1],(1-v[0])*v[0],0]).astype(np.float32)
 
 cdef f2(np.ndarray[DTYPE_tf, ndim=1] v):
     cdef float x,y,z,a,b,c

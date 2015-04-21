@@ -1,0 +1,27 @@
+# This is a simple lindenmeyer project file
+# Author: Andreas Wilhelm
+# Project: Tree
+
+# Number of iterations
+Iterations : 2
+
+# Default angle
+Angle : '50
+#Alpha : '10
+
+# Default line length
+Linelength : 0.1
+
+# Default line width
+Linewidth : 1
+
+# Default line color
+Linecolor : #00ff00
+
+# Default background color
+Background : #ffffff
+
+# Axiom definition
+Axiom : F
+# Definition of mappings
+F = F[--F][-F][---F]

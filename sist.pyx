@@ -20,7 +20,6 @@ ctypedef np.float32_t DTYPE_tf
 cdef fn(int sizei,float randomm):
     cdef float size
     size = sizei/8
-    #if(size > 20 and size < 400): return np.floor(size).astype(np.int32)
     if(randomm > 0.9):
         return np.floor(size).astype(np.int32)
     else: return 1
@@ -28,12 +27,10 @@ cdef fn(int sizei,float randomm):
 def init_particles():
     cdef int k = 0
     cdef int i = 0, h, j
-    for i from 0<= i< N:
-        if(lt[i]>0):
-            for j from 0<=j<np.int32(cp[i]):
-                particles.append(Particle(k,lt[i],-1,-1,-1,0.15))
-                k = k+1
-                sparticles.append(True)
+    for i from 0<= i< cantPart:
+        particles.append(Particle(k,MCA,-1,-1,-1,0.15))
+        k = k+1
+        sparticles.append(True)
 
     for i from 0<= i < len(particles):
         for h from 0<=h<4:

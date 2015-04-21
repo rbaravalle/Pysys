@@ -17,16 +17,15 @@ occupied2 = np.zeros(maxcoord3).astype(np.int32)-np.int32(1) # contourns occupie
 m1 = 1.0/maxcoord
 t = 0
 
-N = 10
-cp = np.zeros(50).astype(np.int32) # # of particles per size (see below)
-lt = np.zeros(50).astype(np.int32) # lifetime of particles
+cantPart = 40000
+
 CT = 0
-distG = 0.8
-cantG = 20 # amount of generators
-sembrado = 0 # random or uniform
-VF = 10.59
-MCA = 5000
-stCA = 6000
+distG = 1
+cantG = 1 # amount of generators
+sembrado = 1 # random or uniform
+#VF = 10.59
+MCA = 500
+#stCA = 6000
 randomness = 0.1
 
 #2D-world limits
@@ -91,7 +90,7 @@ def compute_lifetimes() :
 
 def init_variables() :
     global generadores
-    compute_lifetimes()
+    #compute_lifetimes()
 
     if(sembrado == 0) :
         for i in range(cantG):
