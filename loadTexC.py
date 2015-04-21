@@ -15,7 +15,7 @@ def struct(r):
                     s[i,j,k] = 1
 
 def borderD(data):
-    dfield = np.array(ndimage.distance_transform_edt(data)).reshape(dim,dim,Nz)
+    dfield = np.array(scipy.ndimage.distance_transform_edt(data)).reshape(dim,dim,Nz)
     return np.array(255*(dfield<0.1)).astype(np.uint8)
 
 def border(data):

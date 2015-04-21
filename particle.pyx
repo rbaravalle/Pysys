@@ -148,7 +148,7 @@ cdef float calculatePriority(int x,int y,int z,xp):
 class Particle:
     def __init__(self,int i,int lifet,int u,int v,int w,float randomParam):
         cdef int x,y,z, tempx,tempy,tempz    
-        cdef float dist,r,vx,vy,rv
+        cdef float dist,r,vx,vy,rv,tempfx,tempfy,distf
         self.xi = randint(0,maxcoord)
         self.yi = randint(0,maxcoord)
         self.zi = randint(0,maxcoordZ)
@@ -157,18 +157,23 @@ class Particle:
         tempy = self.yi
         tempz = self.zi
 
-        dist = floor(sqrt((tempx-maxcoord/2)*(tempx-maxcoord/2)+(tempy-maxcoord/2)*(tempy-maxcoord/2)))
+        tempfx = tempx-maxcoord/2
+        tempfy = tempy-maxcoord/2
+
+        distf = sqrt(tempfx*tempfx+tempfy*tempfy)
+        dist = floor(distf)
 
 
         r = 1.0*random()*(maxcoord/1.5-dist)
 
-        vx = tempx-maxcoord/2
-        vy = tempy-maxcoord/2
+        vx = tempfx
+        vy = tempfy
 
-        rv = sqrt(vx*vx+vy*vy)
+        rv = distf
 
-        vx = vx/rv
-        vy = vy/rv
+        if(rv!=0):
+            vx = vx/rv
+            vy = vy/rv
 
         self.xi = floor(tempx + r*(vx));
         self.yi = floor(tempy + r*(vy));
@@ -204,10 +209,7 @@ class Particle:
         self.tActual += 1
         for h from 0 <= h < len(self.contorno):
             w = h
-            cont = self.contorno[h]
-            nx = cont[0]
-            ny = cont[1]
-            nz = cont[2]
+            [nx,ny,nz] = self.contorno[h]
             try:
                 pos = np.int32(nx+ny*maxcoord+nz*maxcoord2)
                 if(not(ocupada(pos)) and not(searchBorder(nx,ny,nz,self.i,self.sep()))):

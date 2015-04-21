@@ -23,9 +23,7 @@ CT = 0
 distG = 1
 cantG = 1 # amount of generators
 sembrado = 1 # random or uniform
-#VF = 10.59
-MCA = 500
-#stCA = 6000
+MCA = 2000
 randomness = 0.1
 
 #2D-world limits
@@ -39,7 +37,6 @@ diffX = x1-x0
 diffY = y1-y0
 diffZ = z1-z0
 
-generadores = np.array([[0,0,0]])
 
 TIEMPO = 120000
 sep = 1 # separation among particles
@@ -87,27 +84,6 @@ def compute_lifetimes() :
     print "Cp: ", cp
     print "Lt: ", lt
             
-
-def init_variables() :
-    global generadores
-    #compute_lifetimes()
-
-    if(sembrado == 0) :
-        for i in range(cantG):
-            b = np.array([[randint(0,maxcoord), randint(0,maxcoord),randint(0,maxcoordZ)]])
-            generadores = np.concatenate((generadores,b), axis = 0)
-
-        
-    else :
-        step = np.float32(maxcoord/cantG)
-        for i in range(0,maxcoord,step):
-            for j in range(0,maxcoord,step):
-                for k in range(0,maxcoordZ,step):
-                    b = np.array([[floor(i),floor(j),floor(k)]])
-                    generadores = np.concatenate((generadores,b), axis = 0)
-
-    generadores = generadores[1:] # take out the dummy (0,0,0)
-    #print generadores
 
 def ocupada(i):
     return (occupied[i] > 0)

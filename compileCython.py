@@ -3,7 +3,7 @@ from subprocess import call
 import time
 import sys
 
-arr = [ "main", "particle","globalsv","runge_kutta", "sist"]
+arr = [ "main", "particle","globalsv","runge_kutta","cprint"]
 
 for i in range(len(arr)):
 

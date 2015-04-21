@@ -12,6 +12,19 @@ from globalsv import *
 from time import time
 
 
+def init_particles():
+    cdef int i = 0, h, j
+    for i from 0<= i< cantPart:
+        particles.append(Particle(i,MCA,-1,-1,-1,0.15))
+        sparticles.append(True)
+
+    for i from 0<= i < len(particles):
+        for h from 0<=h<4:
+            if(random() > 0.8):
+                for j from 0<=j<diffBubbles:
+                    particles[i].grow(0.15) # free growth
+
+
 # una iteracion del algoritmo
 cdef mover(t) :
     cdef int largoCont, suma,i,w,k,temp
