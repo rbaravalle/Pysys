@@ -1,6 +1,5 @@
 import numpy as np
 cimport numpy as np
-from random import randint, random
 
 # global vars
 maxcoord = 180

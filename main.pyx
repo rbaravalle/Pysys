@@ -19,7 +19,7 @@ ctypedef np.int32_t DTYPE_ti
 cdef init_particles():
 
     cdef np.ndarray[DTYPE_ti, ndim=3] occupied = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.int32)
-    cdef np.ndarray[DTYPE_ti, ndim=3] occupied2 = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.int32)-np.int32(1) # contourns occupied (for self-avoidance)
+    cdef np.ndarray[DTYPE_ti, ndim=3] occupied2 = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.int32)-1 # contours occupied (for self-avoidance)
 
     cdef int i = 0, h, j
     cdef Particle pi
@@ -30,18 +30,18 @@ cdef init_particles():
 
         if(pi.randomm > 0.8):
             for j from 0<=j<diffBubbles:
-                grow(pi,randomness,occupied,occupied2) # free growth
+                grow(pi) # free growth
         if(i%(2000)==0):
             print "Time: ", time.clock()-timm,i
             timm = time.clock()
 
         particles.append(pi)
 
-    return particles,occupied,occupied2
+    return particles
 
 
 # una iteracion del algoritmo
-cdef mover(t,particles, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2) :
+cdef mover(t,particles) :
     cdef int largoCont, suma,i,w,k,temp
     cdef float timm, d,e,rr
     largoCont = 0
@@ -50,8 +50,8 @@ cdef mover(t,particles, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_t
 
     for i from 0<=i<cantPart:
         pi = particles[i]
-        grow(pi,randomness,occupied,occupied2)
-        largoCont += pi.contorno.size
+        grow(pi)
+        largoCont += len(pi.contorno)
 
     print "Iteracion :",t
     print "TIME : ", time.clock()-timm
@@ -61,37 +61,44 @@ cdef mover(t,particles, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_t
   
 
 
+
+# ALgorithm
+
+cdef alg(particles) : 
+    cdef int t ,largoCont
+    for t from 0<=t<12000:
+        largoCont = mover(t,particles)
+        print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
+        if(t % 6 == 0): dibujarParticulas(particles[0].occupied)   
+        if(largoCont == 0):
+            break
+
+    print "last draw!"
+    dibujarParticulas(particles[0].occupied)
+    print "good bye!"
+
+
+
 cdef dibujarParticulas(np.ndarray[DTYPE_ti, ndim=3] occupied) :
 
+    cdef int i
     print "draw!"
 
     I = Image.new('L',(maxcoordZ,maxcoord2),0.0)
 
-    for i in range(maxcoordZ):
+    for i from 0<=i<maxcoordZ:
         I2 = Image.frombuffer('L',(maxcoord,maxcoord), np.uint8(255)-np.array(occupied[:,:,i]).astype(np.uint8),'raw','L',0,1)
         I.paste(I2,(0,maxcoord*i))
 
     I.save('textures/imagenSystemPaper.png')
 
-cdef alg(particles,np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2) :  
-    for t from 0<=t<TIEMPO-1:
-        largoCont = mover(t,particles,occupied,occupied2)
-        print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 6 == 0): dibujarParticulas(occupied)   
-        if(largoCont == 0):
-            break
-
-    print "last draw!"
-    dibujarParticulas(occupied)
-    print "good bye!"
-
    
 cdef main():
 
     print "Init Particles..."
-    particles,occupied,occupied2 = init_particles()
+    particles = init_particles()
     print "Algorithm!"
-    alg(particles,occupied,occupied2)
+    alg(particles)
 
 # start
 main()
