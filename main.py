@@ -1,2 +1,1 @@
 import main
-main.main()

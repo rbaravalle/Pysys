@@ -32,24 +32,6 @@ cdef int maxcoord = maxcoord
 cdef int maxcoordZ = maxcoordZ
 cdef int N = N
 
-#2D-world limits
-cdef int x0 = -3
-cdef int y0 = -3
-cdef int x1 = 3
-cdef int y1 = 3
-cdef int z0 = -3
-cdef int z1 = 3
-cdef int diffX = x1-x0
-cdef int diffY = y1-y0
-cdef int diffZ = z1-z0
-
-
-cdef float toSpace(int x):
-    return x*(float(diffX)/maxcoord)+x0
-
-
-cdef float toSpaceZ(int x):
-    return x*(float(diffZ)/maxcoord)+z0
 
 cdef setBorder(int x,int y,int z,int ii,int sep,np.ndarray[DTYPE_ti, ndim=3] occupied2):
     cdef int i,j,k,v
@@ -70,18 +52,22 @@ cdef int searchBorder(int x,int y,int z,int ii,int sep,np.ndarray[DTYPE_ti, ndim
                     v = occupied2[x+i,y+j,z+k]
                     if(v > 0 and v != ii): return True
                 except:pass
-    return 0#False
+    return 0
 
 
-def add(int x,int y,int z,float randomParam, int ii, int sep, np.ndarray[DTYPE_ti, ndim=2] contorno,np.ndarray[DTYPE_ti, ndim=3] occupied2):
-    cdef np.ndarray[DTYPE_tf, ndim=1] xp = np.array([0,0,0]).astype(np.float32)
+def add(Particle pi,int x,int y,int z,float randomParam,np.ndarray[DTYPE_ti, ndim=3] occupied2):
+    cdef np.ndarray[DTYPE_tf, ndim=1] xp = np.zeros(3).astype(np.float32)
+    cdef np.ndarray[DTYPE_ti, ndim=2] contorno
     cdef float d,de,deP,rr
     cdef int bestX,bestY,bestZ,xh,yh,zh,i
 
+    ii = pi.i
+    sep = 1#pi.sep()
+    contorno = np.zeros((1,3)).astype(np.int32)#pi.contorno
 
-    xp[0] = x*(float(diffX)/maxcoord)+x0
-    xp[1] = y*(float(diffX)/maxcoord)+x0
-    xp[2] = z*(float(diffZ)/maxcoordZ)+z0
+    xp[0] = x*(diffX/maxcoord)+x0
+    xp[1] = y*(diffX/maxcoord)+x0
+    xp[2] = z*(diffZ/maxcoordZ)+z0
     xp = runge_kutta(xp,dT)
 
     bestX=bestY=bestZ=deP=10000
@@ -89,7 +75,7 @@ def add(int x,int y,int z,float randomParam, int ii, int sep, np.ndarray[DTYPE_t
         for yh from y-1<=yh<=y+1:
             for zh from z-1<=zh<=z+1:
                 if(not(xh==x and yh==y and zh==z)):
-                    de = float((xp[0] - toSpace(xh))**2+(xp[1] - toSpace(yh))**2+(xp[2] - toSpace(zh))**2)
+                    de = float((xp[0] - (xh*(diffX/maxcoord)+x0))**2+(xp[1] - (yh*(diffX/maxcoord)+x0))**2+(xp[2] - (zh*(diffZ/maxcoord)+x0))**2)
                     if(de <deP):
                         deP = de
                         bestX = xh
@@ -98,10 +84,18 @@ def add(int x,int y,int z,float randomParam, int ii, int sep, np.ndarray[DTYPE_t
                     if(rand()/float(RAND_MAX) >(1.0-randomParam)): contorno = np.vstack((contorno,np.array([[xh,yh,zh]]).astype(np.int32)))
     
     setBorder(x,y,z,ii,sep,occupied2)
-    return np.vstack((contorno,np.array([[bestX,bestY,bestZ]]).astype(np.int32)))
+    return np.vstack((pi.contorno,contorno[1:],np.array([[bestX,bestY,bestZ]]).astype(np.int32)))
 
-def grow(float randomParam,int fn,np.ndarray[DTYPE_ti, ndim=2] contorno,int size,int ii,int sep,np.ndarray[DTYPE_ti, ndim=3] occupied, np.ndarray[DTYPE_ti, ndim=3] occupied2):
+def grow(Particle pi,float randomParam,np.ndarray[DTYPE_ti, ndim=3] occupied, np.ndarray[DTYPE_ti, ndim=3] occupied2):
         cdef int w = 0, h, r,nx,ny,nz
+        cdef int fn,size,ii,sep
+        cdef np.ndarray[DTYPE_ti, ndim = 2] contorno
+        ii = pi.i
+        size = pi.size
+        contorno = pi.contorno
+        sep = 1#pi.sep()
+        fn = pi.fn()
+
         for r from 0 <= r < fn:
             for h from 0 <= h < len(contorno):
                 w = h
@@ -113,21 +107,27 @@ def grow(float randomParam,int fn,np.ndarray[DTYPE_ti, ndim=2] contorno,int size
 
                         occupied[nx,ny,nz] = np.uint8(255)
                         occupied2[nx,ny,nz] = ii
-                        contorno = add(nx,ny,nz,randomParam, ii, sep, contorno,occupied2)
+                        contorno = add(pi,nx,ny,nz,randomParam,occupied2)
                         size+=1
                         break                
                 except: pass
 
             contorno = contorno[w+1:]
 
-        return contorno,size,occupied,occupied2
+        pi.contorno = contorno
+        pi.size = size
 
 
 
 
 
-class Particle:
-    def __init__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2):
+cdef class Particle:
+    #cdef public float randomm
+    #cdef public int i,size
+    #cdef public np.ndarray contorno
+
+
+    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2):
         cdef int x,y,z
         cdef float dist,r,rv,tempfx,tempfy,distf,rm
 
@@ -156,8 +156,9 @@ class Particle:
         self.randomm = rand()/rm
         occupied[x,y,z] = np.uint8(255)
         occupied2[x,y,z] = i
-        self.contorno = add(x,y,z,randomParam, self.i, self.sep(), self.contorno,occupied2)
+        self.contorno = add(self,x,y,z,randomParam,occupied2)
         self.size = 1
+        #self.occupied2=occupied2
 
         
     # Different separations depending on the bubble size

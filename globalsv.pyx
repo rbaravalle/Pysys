@@ -21,9 +21,9 @@ x1 = 3
 y1 = 3
 z0 = -3
 z1 = 3
-diffX = x1-x0
-diffY = y1-y0
-diffZ = z1-z0
+diffX = float(x1-x0)
+diffY = float(y1-y0)
+diffZ = float(z1-z0)
 
 
 TIEMPO = 120000

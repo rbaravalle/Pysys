@@ -3,7 +3,10 @@ import numpy as np
 cimport numpy as np
 from random import randint, random
 
-from particle import Particle,grow
+from particle cimport Particle
+from particle import grow
+
+
 from runge_kutta import *
 from globalsv import *
 import time
@@ -19,14 +22,15 @@ cdef init_particles():
     cdef np.ndarray[DTYPE_ti, ndim=3] occupied2 = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.int32)-np.int32(1) # contourns occupied (for self-avoidance)
 
     cdef int i = 0, h, j
+    cdef Particle pi
     timm = time.clock()
-    particles = []
+    cdef list particles = []
     for i from 0<= i< cantPart:
         pi = Particle(i,MCA,0.15,occupied,occupied2)
 
         if(pi.randomm > 0.8):
             for j from 0<=j<diffBubbles:
-                pi.contorno,pi.size,occupied,occupied2 = grow(randomness,pi.fn(),pi.contorno,pi.size,pi.i,pi.sep(),occupied,occupied2) # free growth
+                grow(pi,randomness,occupied,occupied2) # free growth
         if(i%(2000)==0):
             print "Time: ", time.clock()-timm,i
             timm = time.clock()
@@ -42,17 +46,18 @@ cdef mover(t,particles, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_t
     cdef float timm, d,e,rr
     largoCont = 0
     timm = time.clock()
+    cdef Particle pi
 
     for i from 0<=i<cantPart:
         pi = particles[i]
-        pi.contorno, pi.size,occupied,occupied2 = grow(randomness,pi.fn(),pi.contorno,pi.size,pi.i,pi.sep(),occupied,occupied2)
+        grow(pi,randomness,occupied,occupied2)
         largoCont += pi.contorno.size
 
     print "Iteracion :",t
     print "TIME : ", time.clock()-timm
 
 
-    return largoCont,occupied,occupied2
+    return largoCont
   
 
 
@@ -70,7 +75,7 @@ cdef dibujarParticulas(np.ndarray[DTYPE_ti, ndim=3] occupied) :
 
 cdef alg(particles,np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2) :  
     for t from 0<=t<TIEMPO-1:
-        largoCont,occupied,occupied2 = mover(t,particles,occupied,occupied2)
+        largoCont = mover(t,particles,occupied,occupied2)
         print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
         if(t % 6 == 0): dibujarParticulas(occupied)   
         if(largoCont == 0):
