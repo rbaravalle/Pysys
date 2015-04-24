@@ -5,4 +5,7 @@ cdef class Particle:
     cdef public np.ndarray occupied,occupied2
     cdef public list contorno
 
+    cdef public fn(Particle)
+
+
 

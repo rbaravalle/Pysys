@@ -42,7 +42,7 @@ cdef init_particles():
 
 # una iteracion del algoritmo
 cdef mover(t,particles) :
-    cdef int largoCont, suma,i,w,k,temp
+    cdef int largoCont,largoContAnt, suma,i,w,k,temp
     cdef float timm, d,e,rr
     largoCont = 0
     timm = time.clock()
@@ -51,7 +51,9 @@ cdef mover(t,particles) :
     for i from 0<=i<cantPart:
         pi = particles[i]
         grow(pi)
+        largoContAnt = largoCont
         largoCont += len(pi.contorno)
+        if(largoCont == largoContAnt): return
 
     print "Iteracion :",t
     print "TIME : ", time.clock()-timm
