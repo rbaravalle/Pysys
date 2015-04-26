@@ -111,39 +111,30 @@ float rand(vec3 co){
 
 bool outsideCrust(vec3 pos) {
 
-    //return false;
-    float factor = (0.1/5.0)*textureLod(densityTex, pos+vec3(0.0,0.0,5.8/100.0), 0).x*textureLod(densityTex, pos+vec3(0.0,0.0,5.8/100.0), 1).x;
-    return sqrt((pos.x-0.3)*(pos.x-0.3)/2.0+
-                (pos.y-0.6)*(pos.y-0.6)/1.0+
-                (pos.z-0.4)*(pos.z-0.4)/1.5) < uGlowCoeff/5.0 ||
+    return false; 
+    float factor = (0.1/5.0) * 
+                   textureLod(densityTex, pos + vec3(0.0,0.0,5.8/100.0), 0).x * 
+                   textureLod(densityTex, pos + vec3(0.0,0.0,5.8/100.0), 1).x;
 
-            sqrt((pos.x-0.0)*(pos.x-0.0)/2.0+
-                (pos.y-0.5)*(pos.y-0.5)/1.0+
-                (pos.z-0.5)*(pos.z-0.5)/1.5) < 0.1/5.0  ||
-           /*  pos.y+factor/20.0 > uSpecCoeff/5.0 ||*/
-           pos.x+factor/20.0 < (10.0-uShininess)/10.0 ||
-           (int((pos.x+factor/20.0)*11) % 2 == 0 && pos.x < 0.5);
+    bool first = sqrt((pos.x-0.3)*(pos.x-0.3)/2.0 + 
+                      (pos.y-0.6)*(pos.y-0.6)/1.0 + 
+                      (pos.z-0.4)*(pos.z-0.4)/1.5) < uGlowCoeff/5.0;
 
-/////////////////////
-//    return (int(pos.z*11) % 2 == 0 && pos.z > 0.2 || pos.z < 0.4);
+    bool second = sqrt((pos.x-0.0)*(pos.x-0.0)/2.0 + 
+                       (pos.y-0.5)*(pos.y-0.5)/1.0 + 
+                       (pos.z-0.5)*(pos.z-0.5)/1.5) < 0.1/5.0;
 
-    /* if(int(pos.z*10) % 2 == 0 && pos.z < 0.5) return true; */
+    bool third = pos.x+factor/20.0 < (10.0-uShininess)/10.0;
 
-    /* float limit = (pos.z/1.6-0.25)*(pos.z/1.6-0.25)+(pos.x/1.7-0.25)*(pos.x/1.7-0.25)+(pos.y-0.5)*(pos.y-0.5); */
-    /* bool outr = (pos.y < 0.6 && (pos.x < 0.06 || pos.x > 0.94 )); */
-    /* return /\*outr || *\/limit > uMisc/4.0; */
+    bool fourth = (int((pos.x+factor/20.0)*11) % 2 == 0 && pos.x < 0.5);
+
+    return first || second || third || fourth;
+
 }
 
-
-
-
 //////// Sampling functions
-
-
 float sampleCrust2(vec3 pos) 
 {
-    /*if (pos.z > 0.6)
-        return 0.0;*/
     return textureLod(crustTex, pos, 0).x;
 }
 
@@ -226,6 +217,11 @@ float sampleCrust(vec3 pos)
     }
 } 
 
+float sampleDensity(vec3 pos, int lod) 
+{
+    return textureLod(densityTex, pos, lod).x;
+}
+
 float sampleDensity(vec3 pos) 
 {
     if(outsideCrust(pos)) return 0.0;
@@ -235,20 +231,14 @@ float sampleDensity(vec3 pos)
 
             return textureLod(densityTex, pos, 0).x * densityAux;
     }
-    else*/ return textureLod(densityTex, pos, 0).x;
+    else*/ 
+
+    return sampleDensity(pos, 0);
 }
-
-
-
 
 float sampleOcclusion(vec3 pos) 
 {
     return textureLod(occlusionTex, pos, 0).x;
-}
-
-float sampleDensity(vec3 pos, int lod) 
-{
-    return textureLod(densityTex, pos, lod).x;
 }
 
 vec3 sampleCrustNormal(vec3 pos) 
@@ -321,7 +311,7 @@ float approximateLightDepth(vec3 pos)
     vec4 shadowUV = texViewProj * fh;
     shadowUV.xy = shadowUV.xy  / shadowUV.w ;
 
-    float lightDepth = texture2D(shadowTex, shadowUV.xy).x * shadowUV.w;
+    float lightDepth = texture(shadowTex, shadowUV.xy).x * shadowUV.w;
     float fragmentDepth = shadowUV.z;
 
     return fragmentDepth - lightDepth;
@@ -342,20 +332,27 @@ float getTransmittanceApproximate(vec3 pos, vec3 rd) {
 // Compute accumulated transmittance for the input ray
 float getTransmittanceAcurate(vec3 ro, vec3 rd,float utmk) {
 
-
   //////// Step size is cuadrupled inside this function
   vec3 step = rd * gStepSize * 4.0;
   vec3 pos = ro + step;
   
-  float tm = 1.0;
-  
-  // HARDCODED - FIX ME
-  int maxSteps = 5;//int (4.0 / gStepSize);
+  // Max steps is therefore one fourth of what it would be
+  int maxSteps = int(0.25 / gStepSize); 
 
   float uTMK_gStepSize = -utmk * gStepSize * 16.0;
 
-  for (int i=0; i< maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
-          float sample = sampleDensity(pos);
+  // This values modify how the LOD (mipmap level) grows
+  float lod = 0.0;
+  float lodStep = gStepSize * 16.0 * 3.0; 
+
+  float tm = 1.0;
+  for (int i=0; i < maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
+
+          // LOD is a function of distance, so that finer detail is captured first
+          lod += lodStep;
+          lod = min(lod, 2);
+
+          float sample = sampleDensity(pos, int(lod));
           tm *= exp( uTMK_gStepSize * sample);
   }
 
@@ -363,22 +360,6 @@ float getTransmittanceAcurate(vec3 ro, vec3 rd,float utmk) {
           return 0.0;
 
   return tm;
-}
-
-
-// Cook-Torrance radiance
-float Rs(float m,float F,vec3 N, vec3 L,vec3 V, vec3 H)
-{
-    float result;
-    float NdotV= dot(N,V);
-    float NdotH= dot(N,H);
-    float NdotL= dot(N,L);
-    float VdotH= dot(V,H);
-    float Geom= min(min(1.0, (2.0*NdotV*NdotH)/VdotH), (2.0*NdotL*NdotH)/VdotH);
-    float Rough= (1.0/(pow(m,2.0)*pow(NdotH,4.0)) * 
-                  exp ( pow(NdotH,2.0)-1.0)/( pow(m,2.0)*pow(NdotH,2.0)));
-    float Fresnel= F + pow(1.0-VdotH,5.0) * (1.0-F);
-    return (Fresnel * Rough * Geom)/(NdotV*NdotL);
 }
 
 float getSpecularRadiance(vec3 L, vec3 V, vec3 N,float specCoeff)
@@ -394,11 +375,6 @@ float getSpecularRadiance(vec3 L, vec3 V, vec3 N,float specCoeff)
          if (spec < 0.01) 
                  return 0.0; 
          return pow(spec, specCoeff); */
-
-        /* /////////// Cook-Torrence //////////// */
-        /*vec3 H = normalize(L-V);   // halfway vector 
-         return Rs(2.0, 1.0, N, -L, V, H) ; */
-
 }
 
 
@@ -603,7 +579,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     //vec3(237.0/255.0,207/255.0,145/255.0);//vec3(224.0/255.0,234/255.0,194/255.0);//uColor;
 
     // crust positions
-    float crust = sampleCrust(pos);
+    float crust = 0.0;//sampleCrust(pos);
 
     /* If there's no mass and no back illumination, continue */
     if (volSample < 0.1 && crust < 0.1 /* && co<=0*/) 
@@ -633,7 +609,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
                 float h = lmax-m*bmin;        
                 float posy = pos.y;
 
-                l1 = 30.0*(sampleOcclusion(pos)*sampleAOCrust(pos))+0.3*vec3(pow(posy,2.7));
+                l1 = 30.0*(sampleOcclusion(pos)*sampleAOCrust(pos))+0.3*(pow(posy,2.7));
                 l = l1*m+h;
                 sampleCol2 = xyz2rgb(lab2xyz(vec3(
                         l,
@@ -749,8 +725,8 @@ void main()
   ///////////  Retrieve ray position and direction from textures
   ///////////  
   vec2 texCoord = vec2(gl_FragCoord.x * width_inv, 1.0 - gl_FragCoord.y * height_inv);
-  vec3 ro = texture2D(posTex, texCoord).xyz;
-  vec4 dir  = texture2D(dirTex, texCoord);
+  vec3 ro = texture(posTex, texCoord).xyz;
+  vec4 dir  = texture(dirTex, texCoord);
   vec3 rd = dir.xyz;
   float rlen = dir.w;
   ///////////  ///////////  ///////////  ///////////  ///////////  
