@@ -108,9 +108,9 @@ def grow(Particle pi):
                 ny = contorno[h][1]
                 nz = contorno[h][2]
                 try:
-                    if(pi.occupied[nx,ny,nz] <= 0 and not(searchBorder(pi,nx,ny,nz))):
+                    if(pi.occupied[nx,ny,nz] > 0 and not(searchBorder(pi,nx,ny,nz))):
 
-                        pi.occupied[nx,ny,nz] = 255
+                        pi.occupied[nx,ny,nz] = 0
                         pi.occupied2[nx,ny,nz] = ii
                         contorno = add(pi,nx,ny,nz)
                         size+=1
@@ -128,7 +128,7 @@ def grow(Particle pi):
 
 cdef class Particle:
 
-    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_ti, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2):
+    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2):
         cdef int x,y,z,dist
         cdef float r,rv,tempfx,tempfy,rm
 
@@ -155,7 +155,7 @@ cdef class Particle:
         #self.contorno = np.array([[-1,-1,-1]]).astype(np.int32)
         self.contorno = [[-1,-1,-1]]
         self.randomm = rand()/rm
-        occupied[x,y,z] = 255
+        occupied[x,y,z] = 0
         occupied2[x,y,z] = i
         self.randomParam = randomParam
         self.size = 1
