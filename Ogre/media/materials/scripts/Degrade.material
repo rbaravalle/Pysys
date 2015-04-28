@@ -31,8 +31,10 @@ material Degrade
 
                         fragment_program_ref degrade_fragment
                         {
-                                param_named uCol1     float3 0.5 0.6 1.0
-                                param_named uCol2     float3 0.8 0.9 1.0
+                                // param_named uCol1     float3 0.5 0.6 1.0
+                                // param_named uCol2     float3 0.8 0.9 1.0
+                                param_named uCol1     float3 0.2 0.2 0.2
+                                param_named uCol2     float3 0.4 0.4 0.4
                         }
 		}
 	}

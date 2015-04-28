@@ -9,6 +9,16 @@ using namespace Ogre;
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
 
+static size_t
+getIndex(int x, int y, int z, size_t fieldW, size_t fieldH, size_t fieldD)
+{
+        size_t X = std::min(std::max(x, 0), (int)fieldW);
+        size_t Y = std::min(std::max(y, 0), (int)fieldH);
+        size_t Z = std::min(std::max(z, 0), (int)fieldD);
+
+        return X + Y * fieldW + Z * fieldW * fieldH;
+}
+
 static size_t 
 getParentIndex(int x, int y, int z,
                size_t fieldW, size_t fieldH, size_t fieldD) 
@@ -108,8 +118,6 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
         uint8* pDest = static_cast<uint8*>(pixelBox.data);
         int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
  
-        // Fill in some pixel data. This will give a semi-transparent blue,
-        // but this is of course dependent on the chosen pixel format.
         for (size_t z = 0; z < _texD; z++)
         {
                 for(size_t y = 0; y < _texH; y++)
@@ -166,8 +174,6 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
                 uint8* pDest = static_cast<uint8*>(pixelBox.data);
                 int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
  
-                // Fill in some pixel data. This will give a semi-transparent blue,
-                // but this is of course dependent on the chosen pixel format.
                 for (size_t z = 0; z < levelTexD; z++)
                 {
                         for(size_t y = 0; y < levelTexH; y++)
@@ -204,6 +210,82 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
         _volumeTex->load();
 
         return 0;
+}
+
+int 
+Volume::createTextureAndNormals(Ogre::String fieldFilename, 
+                                Ogre::String textureName,
+                                Ogre::String normalTextureName)
+{
+        if (createTexture(fieldFilename, textureName))
+                return -1;
+
+        TextureManager::getSingleton().remove(normalTextureName);
+
+        _normalTex = TextureManager::getSingleton().createManual(
+                normalTextureName, // name
+                ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, // Group
+                TEX_TYPE_3D,      // type
+                _texW, _texH, _texD,    // width height depth
+                // _UNLIMITED,       // number of mipmaps
+                0,                // number of mipmaps
+                PF_R8G8B8,     // pixel format -> 8 bits rgb
+                TU_DEFAULT);      // usage
+
+        if (_normalTex.isNull())
+                return -1;
+
+        _normalTex->createInternalResources();
+
+        ////////////// Set initial texture level (0)
+        // Get the pixel buffer
+        HardwarePixelBufferSharedPtr pixelBuffer = _normalTex->getBuffer();
+
+        // Lock the pixel buffer and get a pixel box (for performance use HBL_DISCARD!)
+        pixelBuffer->lock(HardwareBuffer::HBL_NORMAL); 
+
+        const PixelBox& pixelBox = pixelBuffer->getCurrentLock();
+ 
+        uint8* pDest = static_cast<uint8*>(pixelBox.data);
+        int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
+ 
+        std::vector<int>& field = _mipFields[0];
+        if (field.size() < _texW*_texH*_texD)
+                return -1;
+
+        for (int z = 0; z < _texD; z++)
+        {
+                for(int y = 0; y < _texH; y++)
+                {
+                        for(int x = 0; x < _texW; x++)
+                        {
+                                int lidx = getIndex(x-1,y  ,z  , _texW, _texH, _texD);
+                                int ridx = getIndex(x+1,y  ,z  , _texW, _texH, _texD);
+                                int tidx = getIndex(x  ,y+1,z  , _texW, _texH, _texD);
+                                int didx = getIndex(x  ,y-1,z  , _texW, _texH, _texD);
+                                int fidx = getIndex(x  ,y  ,z+1, _texW, _texH, _texD);
+                                int bidx = getIndex(x  ,y  ,z-1, _texW, _texH, _texD);
+                                
+                                int normalX = field[ridx] - field[lidx];
+                                int normalY = field[tidx] - field[didx];
+                                int normalZ = field[fidx] - field[bidx];
+
+                                *pDest++ = normalX * 0.5 + 127; 
+                                *pDest++ = normalY * 0.5 + 127; 
+                                *pDest++ = normalZ * 0.5 + 127; 
+                        }
+                        pDest += pixelBox.getRowSkip() * colBytes;
+                }
+                pDest += pixelBox.getSliceSkip() * colBytes;
+        }
+ 
+        // Unlock the pixel buffer
+        pixelBuffer->unlock();
+
+        _volumeTex->load();
+
+        return 0;
+
 }
 
 int 
@@ -268,8 +350,6 @@ Volume::createTextureO(Ogre::String fieldFilenameC, Ogre::String fieldFilenameO,
         uint8* pDest = static_cast<uint8*>(pixelBox.data);
         int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
  
-        // Fill in some pixel data. This will give a semi-transparent blue,
-        // but this is of course dependent on the chosen pixel format.
         for (size_t z = 0; z < _texD; z++)
         {
                 for(size_t y = 0; y < _texH; y++)
@@ -328,8 +408,6 @@ Volume::createTextureO(Ogre::String fieldFilenameC, Ogre::String fieldFilenameO,
                 uint8* pDest = static_cast<uint8*>(pixelBox.data);
                 int colBytes = Ogre::PixelUtil::getNumElemBytes(pixelBox.format);
  
-                // Fill in some pixel data. This will give a semi-transparent blue,
-                // but this is of course dependent on the chosen pixel format.
                 for (size_t z = 0; z < levelTexD; z++)
                 {
                         for(size_t y = 0; y < levelTexH; y++)
@@ -382,6 +460,18 @@ Ogre::TexturePtr
 Volume::getTexturePtr()
 {
         return _volumeTex;
+}
+
+Ogre::TexturePtr 
+Volume::getNormalTexturePtr()
+{
+        return _normalTex;
+}
+
+Ogre::Vector3 
+Volume::getSize() const
+{
+        return Ogre::Vector3(_texW, _texH, _texD);
 }
 
 int 

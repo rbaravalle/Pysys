@@ -36,11 +36,12 @@ material Bread
 
                 param_named shadowTex int 0
                 param_named densityTex   int   1
-                param_named crustTex     int   2
-                param_named occlusionTex int   3
-                param_named noiseTex   int   4
-                param_named posTex     int   5
-                param_named dirTex     int   6
+                param_named normalTex   int    2
+                param_named crustTex     int   3
+                param_named occlusionTex int   4
+                param_named noiseTex   int   5
+                param_named posTex     int   6
+                param_named dirTex     int   7
 
 
                 param_named uOffset float3 0 0 0
@@ -58,7 +59,7 @@ material Bread
                 param_named uTMK2       float 5.0
                 param_named uShininess  float 1.0
                 param_named uAmbient    float 1.0
-                param_named uShadeCoeff float 1.0
+                param_named uDiffuseCoeff float 1.0
 
                 param_named uSpecCoeff  float 1.0
                 param_named uSpecMult   float 0.5
@@ -93,6 +94,15 @@ material Bread
                 max_anisotropy 8
             }
 
+             texture_unit  
+            {
+                texture normalTex 3d unlimited none PF_R8G8B8
+                tex_address_mode clamp clamp clamp
+                tex_coord_set 0
+                filtering bilinear
+                max_anisotropy 8
+            }
+
             texture_unit  
             {
                 texture crustTex 3d unlimited none PF_L8 
@@ -115,21 +125,21 @@ material Bread
             {
                 texture noise2.jpg
                 tex_address_mode wrap wrap
-                filtering point
+                filtering none
             }
 
             // texture_unit  
             // {
             //     texture rayPos 2d 0 none PF_FLOAT16_RGBA
             //     tex_address_mode clamp clamp
-            //     filtering point
+            //     filtering none
             // }
 
             // texture_unit 
             // {
             //     texture rayDir 2d 0 none PF_FLOAT16_RGBA
             //     tex_address_mode clamp clamp
-            //     filtering point
+            //     filtering none
             // }
 	}
     }

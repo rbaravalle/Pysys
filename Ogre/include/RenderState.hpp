@@ -77,6 +77,7 @@ private:
         Volume                                  breadOcclusionVolume;
 
         Ogre::TexturePtr                        breadDensityTex;
+        Ogre::TexturePtr                        breadNormalTex;
         Ogre::TexturePtr                        breadCrustTex;
         Ogre::TexturePtr                        breadOcclusionTex;
 
@@ -116,7 +117,7 @@ private:
         float ambient;
         float backIllum;
         float mintm;
-        float shadeCoeff;
+        float diffuseCoeff;
         float specCoeff;
         float specMult;
         float glowCoeff;
@@ -131,7 +132,7 @@ private:
         OgreBites::Slider* stepsSlider;
         OgreBites::Slider* ambientSlider;
         OgreBites::Slider* backIllumSlider;
-        OgreBites::Slider* shadeCoeffSlider;
+        OgreBites::Slider* diffuseCoeffSlider;
         OgreBites::Slider* specCoeffSlider;
         OgreBites::Slider* specMultSlider;
         OgreBites::Slider* glowCoeffSlider;

@@ -10,7 +10,7 @@ using namespace Ogre;
 
 RenderState::RenderState()
 {
-        _moveSpeed                 = 0.1f;
+        _moveSpeed                 = 0.05f;
         _rotateSpeed               = 0.3f;
 
         _lMouseDown       = false;
@@ -25,14 +25,14 @@ RenderState::RenderState()
         tmk2 = 25.0;
         mintm = 0.2;
         shininess = 9.1;
-        steps = 440.0;
+        steps = 256.0;
         ucolor = Vector3(0.8,0.7,0.6);
         ambient = 0.2;
-        backIllum = 0.5;
-        shadeCoeff = 1.0;
+        backIllum = 0.0;
+        diffuseCoeff = 0.5;
         specCoeff= 0.1;
         specMult = 8;
-        glowCoeff = 5.0;
+        glowCoeff = 0.5;
         misc = 10.0;
         lightIsMoving = true;
 }
@@ -185,21 +185,32 @@ void RenderState::createScene()
         // breadVolume.createTexture("media/fields/imagen3-1.field", "volumeTex");
         // breadVolume.createTexture("media/fields/mengel3d.field", "volumeTex");
         // breadVolume.createTexture("media/fields/3Dbread.256.field", "volumeTex");
-        breadDensityVolume.createTexture("media/fields/warped.field", "densityTex");
+        breadDensityVolume.createTextureAndNormals("media/fields/warped.field", 
+                                                   "densityTex",
+                                                   "normalTex");
+        // breadDensityVolume.createTextureAndNormals("media/fields/warped.old.field", 
+        //                                            "densityTex",
+        //                                            "normalTex");
+        // breadDensityVolume.createTexture("media/fields/bread.field", "densityTex");
         breadDensityTex = breadDensityVolume.getTexturePtr();
-        if (breadDensityTex.isNull()) {
+        breadNormalTex = breadDensityVolume.getNormalTexturePtr();
+        if (breadDensityTex.isNull() || breadNormalTex.isNull()) {
                 printf("Error generating density texture");
                 exit();
         }
 
         breadCrustVolume.createTexture("media/fields/warpedC.field", "crustTex");
+        // breadCrustVolume.createTexture("media/fields/warpedC.old.field", "crustTex");
+        // breadCrustVolume.createTexture("media/fields/bread.field", "crustTex");
         breadCrustTex = breadCrustVolume.getTexturePtr();
         if (breadCrustTex.isNull()) {
                 printf("Error generating crust texture");
                 exit();
         }
 
+        // breadOcclusionVolume.createTexture("media/fields/warpedO.old.field","occlusionTex");
         breadOcclusionVolume.createTexture("media/fields/warpedO.field", "occlusionTex");
+        // breadOcclusionVolume.createTexture("media/fields/breadO.field", "occlusionTex");
         breadOcclusionTex = breadOcclusionVolume.getTexturePtr();
         if (breadOcclusionTex.isNull()) {
                 printf("Error generating occlusion texture");
@@ -232,11 +243,13 @@ void RenderState::createScene()
         // _sceneMgr->setShadowTextureConfig( 0, 512, 512, PF_FLOAT16_R, 50 );
 
         ////////////////////// BREAD
+        Ogre::AxisAlignedBox breadBounds = breadVolumeBoundingCubes.getBounds();
         breadEntity = _sceneMgr->createEntity("BreadEntity", "Cube01.mesh");
         breadNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
         breadNode->attachObject(breadEntity);
         breadNode->setOrientation(Quaternion::IDENTITY);
-        breadNode->setPosition(Vector3(0, 0, 0));
+        breadNode->setPosition(Vector3(0, -20 * breadBounds.getMinimum().y, 0));
+        std::cout << "\n\n\n\n\n BBBBBBB breadNodeMinimum: " << breadBounds.getMinimum().y << std::endl << std::endl << std::endl;
         breadNode->setScale(Vector3(20,20,20));
         // breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
         breadEntity->setCastShadows(true);
@@ -266,18 +279,18 @@ void RenderState::createScene()
         tableNode->attachObject(tableEntity);
         tableNode->setOrientation(Quaternion::IDENTITY);
         tableNode->setPosition(Vector3(0, 0, 0));
-        tableNode->setScale(Vector3(10,10,10));
+        tableNode->setScale(Vector3(100,100,100));
 
         /////////////////////// KNIFE
-        knifeEntity = _sceneMgr->createEntity("KnifeEntity", "knife.mesh");
-        knifeEntity->getSubEntity(0)->setMaterialName("Knife","General");
-        knifeEntity->setCastShadows(false);
-        knifeNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("KnifeNode");
-        knifeNode->attachObject(knifeEntity);
-        Quaternion ori(Radian(-0.5), Vector3(0,1,0));
-        knifeNode->setOrientation(ori);
-        knifeNode->setPosition(Vector3(30, 1, -30));
-        knifeNode->setScale(Vector3(50,50,50));
+        // knifeEntity = _sceneMgr->createEntity("KnifeEntity", "knife.mesh");
+        // knifeEntity->getSubEntity(0)->setMaterialName("Knife","General");
+        // knifeEntity->setCastShadows(false);
+        // knifeNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("KnifeNode");
+        // knifeNode->attachObject(knifeEntity);
+        // Quaternion ori(Radian(-0.5), Vector3(0,1,0));
+        // knifeNode->setOrientation(ori);
+        // knifeNode->setPosition(Vector3(30, 1, -30));
+        // knifeNode->setScale(Vector3(50,50,50));
 
         // Create background rectangle covering the whole screen
         Rectangle2D* rect = new Rectangle2D(true);
@@ -297,6 +310,11 @@ void RenderState::createScene()
         backgroundNode =_sceneMgr->getRootSceneNode()->createChildSceneNode("Background");
         backgroundNode->attachObject(rect);
 
+        ///////////////// Bread bounding cubes
+        breadVolumeBoundingCubes.setPosition(breadNode->getPosition());
+        breadVolumeBoundingCubes.setScale(breadNode->getScale());
+        breadVolumeBoundingCubes.setOrientation(breadNode->getOrientation());
+
         /////////////// Light obj
         // Create background rectangle covering the whole screen
         lightEntity = _sceneMgr->createEntity("LightEntity", "Cube01.mesh");
@@ -310,7 +328,7 @@ void RenderState::createScene()
         ///////////////////////// Set visibility masks for all entities
         lightEntity->setVisibilityFlags(RF_MAIN);
         rect->setVisibilityFlags(RF_MAIN);
-        knifeEntity->setVisibilityFlags(RF_MAIN);
+        // knifeEntity->setVisibilityFlags(RF_MAIN);
         tableEntity->setVisibilityFlags(RF_MAIN);
         breadEntity->setVisibilityFlags(RF_MAIN);
 }
@@ -588,7 +606,7 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uMinTm", mintm); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uShadeCoeff", shadeCoeff); } 
+        try { fparams->setNamedConstant("uShadeCoeff", diffuseCoeff); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uSpecCoeff", specCoeff); } 
@@ -615,6 +633,12 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uMisc", misc); } 
         catch (Ogre::Exception) {}
 
+        try { fparams->setNamedConstant("uTexDim", breadDensityVolume.getSize()); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uInvTexDim", 1.0 / breadDensityVolume.getSize());} 
+        catch (Ogre::Exception) {}
+
 }
 
 void RenderState::updateWidgets()
@@ -622,7 +646,7 @@ void RenderState::updateWidgets()
         tmkSlider->setValue(tmk, false);
         tmk2Slider->setValue(tmk2, false);
         mintmSlider->setValue(mintm, false);
-        shadeCoeffSlider->setValue(shadeCoeff, false);
+        diffuseCoeffSlider->setValue(diffuseCoeff, false);
         specCoeffSlider->setValue(specCoeff, false);
         specMultSlider->setValue(specMult, false);
         shininessSlider->setValue(shininess, false);
@@ -708,13 +732,13 @@ void RenderState::buildGUI()
                                                 "steps",  200,80,44,16,1024,241);
 
         ambientSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "ambient", 
-                                                  "ambient",  200,80,44,-1,3,61);
+                                                  "ambient",  200,80,44,-1,3,41);
+
+        diffuseCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT,"diffuseCoeff",
+                                                     "diffuseCoeff", 200,80,44,0.0,3,31);
 
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
                                           "back illumination", 200,80,44,0,3,31);
-
-        shadeCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shadeCoeff", 
-                                                     "shadeCoeff", 200,80,44,0.1,5,50);
 
         specCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specCoeff", 
                                                      "specCoeff", 200,80,44,0.1,5,50);
@@ -780,9 +804,9 @@ void RenderState::sliderMoved(OgreBites::Slider * slider)
                 mintm = value;
         }
 
-        if (slider == shadeCoeffSlider)
+        if (slider == diffuseCoeffSlider)
         {
-                shadeCoeff = value;
+                diffuseCoeff = value;
         }
 
         if (slider == specCoeffSlider)

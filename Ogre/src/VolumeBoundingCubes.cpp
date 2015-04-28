@@ -65,6 +65,7 @@ VolumeBoundingCubes::create(Volume& volume, int slices,
         _vs.reserve(slices * slices * slices * 8);
         _is.reserve(slices * slices * slices * 3 * 12);
 
+        _aabb.setNull();
         for (uint32_t x = 0; x < slices; ++x) {
                 for (uint32_t y = 0; y < slices; ++y) {
                         for (uint32_t z = 0; z < slices; ++z) {
@@ -73,6 +74,12 @@ VolumeBoundingCubes::create(Volume& volume, int slices,
                                 if (cubeBounds.second < min || cubeBounds.first > max)
                                         continue;
                                
+                                Vector3 minVec = Vector3(x, y, z) * sliceLength;
+                                Vector3 maxVec = minVec + Vector3(1,1,1) * sliceLength;
+
+                                _aabb.merge(minVec);
+                                _aabb.merge(maxVec);
+
                                 _markCubeSides(x,y,z, xIndex, yIndex, zIndex);
                         }
                 }
@@ -231,6 +238,7 @@ VolumeBoundingCubes::_create(Volume& volume, int slices,
         _vs.reserve(slices * slices * slices * 8);
         _is.reserve(slices * slices * slices * 3 * 12);
 
+        _aabb.setNull();
         for (int i = 0; i < slices; ++i) {
                 for (int j = 0; j < slices; ++j) {
                         for (int k = 0; k < slices; ++k) {
@@ -242,6 +250,9 @@ VolumeBoundingCubes::_create(Volume& volume, int slices,
                                 Vector3 minVec = Vector3(i, j, k) * sliceLength;
                                 Vector3 maxVec = minVec + Vector3(1,1,1) * sliceLength;
                                 
+                                _aabb.merge(minVec);
+                                _aabb.merge(maxVec);
+
                                 _addCubeVerts(minVec, maxVec, _vs);
                                 _addCubeIndices(startingIndex, _is);
                                 
@@ -578,4 +589,31 @@ VolumeBoundingCubes::setMaterial(Ogre::String materialName)
 {
         if (_entity)
                 _entity->setMaterialName(materialName);
+}
+
+void
+VolumeBoundingCubes::setPosition(Ogre::Vector3 pos)
+{
+        if (_node)
+                _node->setPosition(pos);
+}
+
+void
+VolumeBoundingCubes::setOrientation(Ogre::Quaternion ori)
+{
+        if (_node)
+                _node->setOrientation(ori);
+}
+
+void
+VolumeBoundingCubes::setScale(Ogre::Vector3 scale)
+{
+        if (_node)
+                _node->setScale(scale);
+}
+
+Ogre::AxisAlignedBox
+VolumeBoundingCubes::getBounds()
+{
+        return _aabb;
 }

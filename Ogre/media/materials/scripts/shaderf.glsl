@@ -42,10 +42,12 @@ uniform vec3 uLightC; // light color
 
 //////////////////// Volume definition uniforms
 uniform sampler3D densityTex;   // 3D volume texture
+uniform sampler3D normalTex;   // 3D normals texture
 uniform sampler3D crustTex;   // 3D volume texture
 uniform sampler3D occlusionTex;   // 3D volume texture
 uniform sampler2D noiseTex;   // 2D noise texture
 uniform vec3 uTexDim;     // dimensions of texture
+uniform vec3 uInvTexDim;     // inverse dimensions of texture
 
 //////////////////// Volume parameters uniforms
 uniform vec3 uColor;      // color of volume
@@ -111,7 +113,11 @@ float rand(vec3 co){
 
 bool outsideCrust(vec3 pos) {
 
-    return false; 
+    return false;
+    if (length(pos-vec3(0.5,0.5,0.5)) > 0.5)
+             return true;
+
+
     float factor = (0.1/5.0) * 
                    textureLod(densityTex, pos + vec3(0.0,0.0,5.8/100.0), 0).x * 
                    textureLod(densityTex, pos + vec3(0.0,0.0,5.8/100.0), 1).x;
@@ -219,26 +225,25 @@ float sampleCrust(vec3 pos)
 
 float sampleDensity(vec3 pos, int lod) 
 {
+    if (outsideCrust(pos))
+            return 0.0;
+
+    /* vec3  posAux = vec3(0.4,0.4,0.4) + mod(pos * 2.0 * uGlowCoeff, vec3(0.2,0.2,0.2));  */
+    /* float densityAux = textureLod(densityTex, posAux, 0).x;  */
+
+    /* return textureLod(densityTex, pos, lod).x * densityAux; */
+
     return textureLod(densityTex, pos, lod).x;
 }
 
 float sampleDensity(vec3 pos) 
 {
-    if(outsideCrust(pos)) return 0.0;
-    /*if(uMisc > 5.0) {
-            vec3  posAux = vec3(0.0,0.0,uShininess) + mod(pos * uGlowCoeff * 0.5, vec3(0.2,0.2,0.2)); 
-            float densityAux = textureLod(densityTex, posAux, 0).x; 
-
-            return textureLod(densityTex, pos, 0).x * densityAux;
-    }
-    else*/ 
-
     return sampleDensity(pos, 0);
 }
 
 float sampleOcclusion(vec3 pos) 
 {
-    return textureLod(occlusionTex, pos, 0).x;
+    return textureLod(occlusionTex, pos, 1).x;
 }
 
 vec3 sampleCrustNormal(vec3 pos) 
@@ -272,16 +277,35 @@ vec3 sampleCrustNormal(vec3 pos)
     return normalize(vec3(dx,dy,dz));
 }
 
-vec3 sampleDensityNormal(vec3 pos) 
+vec3 sampleDensityNormal(vec3 pos, int lod) 
 {
-    const int lod = 1;
+   /* if (uMisc > 3.0) { */
+   /*         vec3 n = texture(normalTex, pos).xyz; */
+   /*         n = n * 2.0 + vec3(1.0,1.0,1.0); */
+   /*         if (abs(n.x) < 0.1 && abs(n.x) < 0.1 && abs(n.x) < 0.1) */
+   /*                 return vec3(0,0,0); */
+   /*         else */
+   /*                 return normalize(n); */
+   /* } */
 
     float c = textureLod(densityTex, pos, lod).x;
 
     ////////// Forward difference
-    float r = textureLodOffset(densityTex, pos, lod, ivec3( 1, 0, 0)).x;
-    float u = textureLodOffset(densityTex, pos, lod, ivec3( 0, 1, 0)).x;
-    float f = textureLodOffset(densityTex, pos, lod, ivec3( 0, 0, 1)).x;
+    /* float r = textureLodOffset(densityTex, pos, lod, ivec3( 1, 0, 0)).x; */
+    /* float u = textureLodOffset(densityTex, pos, lod, ivec3( 0, 1, 0)).x; */
+    /* float f = textureLodOffset(densityTex, pos, lod, ivec3( 0, 0, 1)).x; */
+    float offset = pow(2.0, float(lod));
+    float r = textureLod(densityTex, pos + offset * vec3(uInvTexDim.x,0.0,0.0), lod).x;
+    float u = textureLod(densityTex, pos + offset * vec3(0.0,uInvTexDim.y,0.0), lod).x;
+    float f = textureLod(densityTex, pos + offset * vec3(0.0,0.0,uInvTexDim.z), lod).x;
+
+    /* vec3  posAux = vec3(0.4,0.4,0.4) + mod(pos * 2.0 * uGlowCoeff, vec3(0.2,0.2,0.2));  */
+    /* float ra = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 1, 0, 0)).x; */
+    /* float ua = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 0, 1, 0)).x; */
+    /* float fa = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 0, 0, 1)).x; */
+    /* r *= ra; */
+    /* u *= ua; */
+    /* f *= fa; */
 
     float dx = (r-c);
     float dy = (u-c);
@@ -292,15 +316,24 @@ vec3 sampleDensityNormal(vec3 pos)
     /* float d = textureLodOffset(densityTex, pos, lod, ivec3( 0,-1, 0)).x; */
     /* float b = textureLodOffset(densityTex, pos, lod, ivec3( 0, 0,-1)).x; */
 
-    /* float dx = (r-l); */
-    /* float dy = (u-d); */
-    /* float dz = (f-b); */
+    /* dx = (r-l); */
+    /* dy = (u-d); */
+    /* dz = (f-b); */
 
     if (abs(dx) < 0.1 && abs(dy) < 0.1 && abs(dz) < 0.1)
             return vec3(0,0,0);
         
 
     return normalize(vec3(dx,dy,dz));
+}
+
+vec3 sampleDensityNormal(vec3 pos) 
+{
+    // The normal is sampled at 2 different lods, to preserve high and low frequencies
+    vec3 n = mix(sampleDensityNormal(pos, 0), sampleDensityNormal(pos, 1), 0.3);
+    if (abs(n.x) < 0.1 && abs(n.y) < 0.1 && abs(n.z) < 0.1)
+            return vec3(0,0,0);
+    return normalize(n);
 }
 
 //////// Ray marching functions
@@ -330,30 +363,36 @@ float getTransmittanceApproximate(vec3 pos, vec3 rd) {
 
 
 // Compute accumulated transmittance for the input ray
-float getTransmittanceAcurate(vec3 ro, vec3 rd,float utmk) {
+float getTransmittanceAccurate(vec3 ro, vec3 rd,float utmk) {
 
   //////// Step size is cuadrupled inside this function
-  vec3 step = rd * gStepSize * 4.0;
+  float mult = 3.0 + rand(ro) * 1.5;
+  float invMult = 1.0 / mult;
+  float multSq = mult * mult;
+
+  float stepSize = gStepSize;
+
+  vec3 step = rd * stepSize * mult;
   vec3 pos = ro + step;
   
   // Max steps is therefore one fourth of what it would be
-  int maxSteps = int(0.25 / gStepSize); 
+  int maxSteps = int(invMult / stepSize); 
 
-  float uTMK_gStepSize = -utmk * gStepSize * 16.0;
+  float uTMK_stepSize = -utmk * stepSize * multSq;
 
   // This values modify how the LOD (mipmap level) grows
   float lod = 0.0;
-  float lodStep = gStepSize * 16.0 * 3.0; 
+  float lodStep = stepSize * multSq * 3.0; 
 
   float tm = 1.0;
   for (int i=0; i < maxSteps && !outside(pos) && tm > uMinTm; ++i, pos+=step) {
 
           // LOD is a function of distance, so that finer detail is captured first
           lod += lodStep;
-          lod = min(lod, 2);
+          lod = min(lod, 0);
 
           float sample = sampleDensity(pos, int(lod));
-          tm *= exp( uTMK_gStepSize * sample);
+          tm *= exp( uTMK_stepSize * sample);
   }
 
   if (tm <= uMinTm)
@@ -478,21 +517,54 @@ vec3 lab2rgb(vec3 lab) {
     return xyz2rgb(lab2xyz(lab));
 }
 
-vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,float specMult, float specCoeff, float shadeCoeff,vec3 V)
-{
-        float diffuseCoefficient =  shadeCoeff + //;+ getSpecularRadiance(L,V,N,specCoeff);//
-                pow(specCoeff * abs(dot(L,N)), specMult);
+/* vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,float specMult, float specCoeff, float diffuseCoeff,vec3 V) */
+/* { */
+/*         float diffuseCoefficient =  diffuseCoeff + //;+ getSpecularRadiance(L,V,N,specCoeff);// */
+/*                 pow(specCoeff * abs(dot(L,N)), specMult); */
 
-        return lCol * ltm * diffuseCoefficient;
+/*         return lCol * ltm * diffuseCoefficient; */
+/* } */
+
+/* vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol, float ltm, float specMult, float specCoeff, float diffuseCoeff,float utmk) */
+/* { */
+/*      ltm = getTransmittanceAccurate(P, L,utmk);   // Transmittance towards light  */
+/*         float ambientCoefficient =  diffuseCoeff +  */
+/*                 pow(specCoeff * abs(dot(L,N)), specMult); */
+
+/*         return lCol * ltm * ambientCoefficient; */
+/* } */
+
+vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,
+                      float ltm,float specMult, float specCoeff, 
+                      float diffuseCoeff,vec3 V)
+{
+        float diffuseBounce = 0.4;
+ 
+        if (any(greaterThan(abs(N), ZERO3))) {
+                // We soften the dot product and add a small value to prevent strong
+                //  light changes at grazing angles
+                diffuseBounce = pow ( clamp( 0.05 + dot(-L,N), 0.0, 1.0),  0.3);
+        }
+
+        diffuseBounce = clamp(diffuseBounce, 0.0, 1.0);
+
+
+        float diffuse =  diffuseBounce * diffuseCoeff;
+        /* float specularCoefficient = pow(specCoeff*abs(dot(L,N)),specMult); */
+        return lCol * ltm * diffuse;
 }
 
-vec3 ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol, float ltm, float specMult, float specCoeff, float shadeCoeff,float utmk)
+float ambientComponent(vec3 P, vec3 N, float tm)
 {
-     ltm = getTransmittanceAcurate(P, L,utmk);   // Transmittance towards light 
-        float ambientCoefficient =  shadeCoeff + 
-                pow(specCoeff * abs(dot(L,N)), specMult);
+        vec3 pos = P;
 
-        return lCol * ltm * ambientCoefficient;
+        // If normal exists, move in direction of normal and sample the
+        // occlusion texture, which is the just the filtered density
+        if (any(greaterThan(abs(N), ZERO3))) {
+                pos += N * uInvTexDim * 2.0; 
+        }
+
+       return (1.0 - sampleOcclusion(pos)) * uAmbient;// * pow(tm, 0.5);
 }
 
 struct light_ret 
@@ -514,7 +586,9 @@ float perlin(vec3 pos) {
 }
 
 vec3 doughColor(vec3 pos) {
-    return vec3(179.0/255.0,166/255.0,121/255.0); // 183 166  120
+        
+    return vec3(1.0, 0.8, 0.6); 
+    /* return vec3(179.0/255.0,166/255.0,121/255.0); // 183 166  120 */
     float lmax = 8.0*uMisc;
     float lmin = 8.0*uMisc-20.0;//20.0-2.0*uMisc;
     float bmax = 0.0;
@@ -547,6 +621,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
   float tm = 1.0;         // accumulated transmittance
 
   bool first = true;
+  bool f = true;
   bool pepe = false;
   bool saved = false;
   float l1, l;
@@ -558,11 +633,11 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
   int cr = 0;
  
   for (int i=0; i < gSteps && tm > minTM ; ++i , pos += step) {
-    if(i==0 ) pos+=step*rand(pos.xyz);
+          //if(i==0 ) pos+=step*rand(pos.xyz);
     vec3 L = normalize( uLightP - pos ); // Light direction
     float ltm;
 
-    ltm = getTransmittanceAcurate(pos, L,uTMK);
+    ltm = getTransmittanceAccurate(pos, L,uTMK);
 
     float volSample = sampleDensity(pos); // Density at sample point
 
@@ -579,19 +654,27 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     //vec3(237.0/255.0,207/255.0,145/255.0);//vec3(224.0/255.0,234/255.0,194/255.0);//uColor;
 
     // crust positions
-    float crust = 0.0;//sampleCrust(pos);
+    float crust = sampleCrust(pos);
+    crust = 0.0;
 
     /* If there's no mass and no back illumination, continue */
     if (volSample < 0.1 && crust < 0.1 /* && co<=0*/) 
             continue;
 
+    /* if (f && uMisc > 1.0) { */
+    /*         // Try to go back to where volSample = 0.2,  */
+    /*         //   assuming density is linear and was 0 last step */
+    /*         pos += (-2.0 + (0.2 / volSample)) * step; */
+    /*         f = false; */
+    /*         continue; */
+    /* } */
 
 
-    /// If the sample point is crust, modify the color and transmittance coefficient
+    /* /// If the sample point is crust, modify the color and transmittance coefficient */
     if (crust > 0 && saved == false) {
             float specMult = 8.0;//uSpecMult;
             float specCoeff = 0.9;//tSpecCoeff;
-            float shadeCoeff = 0.6;// uShadeCoeff;
+            float diffuseCoeff = 0.6;// uShadeCoeff;
             float ambient = 0.2;//uAmbient;
             float utmkCrust = 21.5;
             pepe = true;
@@ -606,7 +689,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
                 float a = aref;
                 float b = bref;
                 float m = -(lmax-lmin)/(bmax-bmin);
-                float h = lmax-m*bmin;        
+                float h = lmax-m*bmin;
                 float posy = pos.y;
 
                 l1 = 30.0*(sampleOcclusion(pos)*sampleAOCrust(pos))+0.3*(pow(posy,2.7));
@@ -625,38 +708,29 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
             vec3 ambientColor = ZERO3;
             vec3 N;
 
-            N = sampleCrustNormal(pos+(0.5+rand(pos)/2.0));
+            /* N = sampleCrustNormal(pos+(0.5+rand(pos)/2.0)); */
+            N = sampleCrustNormal(pos);
 
             /////////// get diffuse contribution per light
             vec3 LK = ZERO3;
             for (int k=0; k<LIGHT_NUM; ++k) {
                     vec3 L = normalize( uLightP - pos ); // Light direction
-                    diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm,specMult,specCoeff,shadeCoeff,normalize(rd));
+                    diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm,uSpecMult,tSpecCoeff,uShadeCoeff,normalize(rd)) * sampleCol;
             }
 
             ////////// get ambient contribution, simulated as light close to the view direction
-            vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
-            ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0),ltm, specMult,specCoeff,shadeCoeff,utmkCrust);
-
-            ambientColor *= ambient;
+            ambientColor = ambientComponent(pos, N, ltm) * sampleCol2;
 
             
 
             // Accumulate color based on delta transmittance and mean transmittance
             col2 += (ambientColor + diffuseColor) * sampleCol2;
 
-            if(ltm<3.0/10.0) col2+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0;
+            /* if(ltm<3.0/10.0) col2+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0; */
 
 
             posSaved = pos;
             saved = true;
-
-            // If it's the first hit, save it for depth computation
-            /*ret.first_hit = pos;
-
-            ret.col = vec4(col2, 1.0);
-
-            return ret;*/
     }
 
     // delta transmittance
@@ -674,24 +748,18 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     vec3 LK = ZERO3;
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
-            diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm,uSpecMult,tSpecCoeff,uShadeCoeff,normalize(rd));
+            diffuseColor += diffuseComponent(pos, N, L, uLightC,ltm,uSpecMult,tSpecCoeff,uShadeCoeff,normalize(rd)) * sampleCol;
     }
 
     ////////// get ambient contribution, simulated as light close to the view direction
-    vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
-    ambientColor = ambientComponent(pos, N, C, vec3(1.0, 1.0, 1.0),ltm, uSpecMult,tSpecCoeff,uShadeCoeff,uTMK);
+    /* vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3)); */
 
-    ambientColor *= uAmbient;
-
-    // Get local ambient occlusion to modulate result
-
-    occlusion = 1.0-sampleOcclusion(pos)*(uMisc/10.0); 
+    ambientColor = ambientComponent(pos, N, ltm) * sampleCol;
 
     // Accumulate color based on delta transmittance and mean transmittance
-    col += (ambientColor + diffuseColor) * (1.0-dtm) * sampleCol * occlusion;
+    col += (ambientColor + diffuseColor) * (1.0-dtm);
 
     if(ltm<3.0/10.0) col+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0;
-
 
     // If it's the first hit, save it for depth computation
     if (first) {
@@ -712,7 +780,9 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 //+ vec4(, 2.0 * alpha * alpha * alpha),uMisc/10.0);
     //else ret.col = vec4(col2, 1.0);
   }
-  else ret.col = vec4(col, 2.0 * alpha * alpha * alpha);
+  else {
+          ret.col = vec4(col, clamp(alpha * alpha * alpha, 0.0, 1.0) );
+  }
 
   return ret;
 }
@@ -750,7 +820,7 @@ void main()
   ///////////  Set globals defining ray steps
   ///////////  
   gStepSize = ROOTTHREE / uMaxSteps;
-  gStepSize *= 1.0 + (0.5-rand()) * 0.35;
+  /* gStepSize *= 1.0 + (0.5-rand()) * 0.35; */
   /* ro += rand() * gStepSize * 0.15; */
   gSteps = clamp(rlen / gStepSize, 1, uMaxSteps);
   ///////////  ///////////  ///////////  ///////////  ///////////  
@@ -766,8 +836,15 @@ void main()
   ///////////  
   //////////// Brighten and clamp resulting color
   ///////////  
-  float d = 1.0/length(uLightP-ro);
-  gl_FragColor = clamp(800.0*pow(d,4.0)*vec4(0.4,0.3,0.2,0.0) +ret.col,ZERO4,ONE4);
+  /* float d = 4.5; */
+
+  /* vec3 col = ret.col.rgb * clamp(800.0*pow(d,4.0)*vec3(0.8,0.6,0.4)+vec3(0.3),ZERO3,ONE3); */
+  /* ret.col.rgb = col.rgb; */
+  /* gl_FragColor =  ret.col; */
+
+
+  float d = 1.0/length(uLightP-ret.first_hit);
+  gl_FragColor = clamp(400.0*pow(d,4.0)*vec4(0.4,0.3,0.2,0.0) +ret.col,ZERO4,ONE4);
   ///////////  ///////////  ///////////  ///////////  ///////////  
 
   ///////////  
@@ -790,3 +867,20 @@ void main()
   ///////////  ///////////  ///////////  ///////////  ///////////  
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

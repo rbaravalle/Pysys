@@ -32,7 +32,10 @@ float visibility()
 	// point on shadowmap
 	shadowUV = shadowUV / shadowUV.w;
 	float centerdepth = texture2D(shadowMap, shadowUV.xy).x;
-    
+
+        if (shadowUV.x > 1.0 || shadowUV.y > 1.0 || 
+            shadowUV.x < 0.0 || shadowUV.y < 0.0)
+                return 1.0;
 #if 1 //PCF
 
     // gradient calculation
@@ -76,18 +79,21 @@ void main()
     vec3 tex = texture(uTex, vUV * texScale).xyz;
 
     vec3 V = normalize(vPos - eyePosition);
-    vec3 L = normalize(vPos - lightPositionLocal.xyz);
-    /* vec3 N = vNor; */
-    vec3 N = (vNor * length(tex));
+    vec3 L = (vPos - lightPositionLocal.xyz);
+    float LDist = length(L);
+    L /= LDist;
+    vec3 N = vNor;
+    /* vec3 N = (vNor * length(tex)); */
     
     vec3 diffuse = dot(N,-L) * lightDiffuse;
 
     vec3 R = reflect(-L,N);
     float spec_value = max(0.0, dot(V,R));
     spec_value = pow(spec_value, exponent);
-    vec3 spec = lightSpecular * spec_value;
+    vec3 spec = lightSpecular * spec_value * 0.02;
 
-    vec4 col = vec4(tex * (ambient+diffuse) + spec,1.0);
+    vec4 col = vec4(vec3(0.6,0.6,0.6) * (ambient+diffuse) + spec,1.0);
+    /* col.xyz *= clamp(2.0 - LDist, 0.0, 1.0); */
 
     gl_FragColor = col * vis;
 

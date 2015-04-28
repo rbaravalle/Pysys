@@ -23,7 +23,12 @@ public:
                    Ogre::SceneManager* sceneMgr);
 
         void setMaterial(Ogre::String materialName);
+        void setPosition(Ogre::Vector3 pos);
+        void setOrientation(Ogre::Quaternion ori);
+        void setScale(Ogre::Vector3 scale);
 
+        Ogre::AxisAlignedBox getBounds();
+        
 private:
 
         int _createGeometry(std::vector<Ogre::Vector3>& vertices,
@@ -37,6 +42,7 @@ private:
         VolumeBounds   _bounds;
         int            _slices;
         
+        Ogre::AxisAlignedBox _aabb;
         std::vector<Ogre::Vector3>  _vs; //Vertices
         std::vector<uint32_t> _is; //Indices
 
