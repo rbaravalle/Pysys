@@ -6,10 +6,9 @@ maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
 u6 = 1.0/6.0
 t = 0
-cantPart = 50000
-CT = 0
-MCA = 2000
-randomness = 0.15
+cantPart = 5000
+MCA = 1000
+randomness = 0.1
 
 #2D-world limits
 x0 = -3
@@ -28,4 +27,5 @@ TIEMPO = 120000
 sep = 1 # separation among particles
 diffBubbles = 18
 amountSons = 0
+thresh = 1.4
 
