@@ -128,18 +128,24 @@ def grow(Particle pi):
 
 cdef class Particle:
 
-    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2):
+    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2,int centerx,int centery):
         cdef int x,y,z,dist
         cdef float r,rv,tempfx,tempfy,rm
 
         rm = float(RAND_MAX)
 
-        x = int(maxcoord*(rand()/rm))
-        y = int(maxcoord*(rand()/rm))
-        z = int(maxcoordZ*(rand()/rm))
+        # FIX ME!
+        x = int((maxcoord-1)*(rand()/rm))
+        y = int((maxcoord-1)*(rand()/rm))
+        z = int((maxcoordZ-1)*(rand()/rm))
 
-        tempfx = float(x-maxcoord/2)
-        tempfy = float(y-maxcoord/2)
+        while(occupied2[x,y,z] == -1):
+            x = int((maxcoord-1)*(rand()/rm))
+            y = int((maxcoord-1)*(rand()/rm))
+            z = int((maxcoordZ-1)*(rand()/rm))
+
+        tempfx = float(x-centerx)
+        tempfy = float(y-centery)
 
         rv = sqrt(tempfx*tempfx+tempfy*tempfy)
         if(rv!=0):
@@ -152,7 +158,6 @@ cdef class Particle:
         y = np.clip(floor(y + r*(tempfy)),0,maxcoord-1);
 
         self.i = i
-        #self.contorno = np.array([[-1,-1,-1]]).astype(np.int32)
         self.contorno = [[-1,-1,-1]]
         self.randomm = rand()/rm
         occupied[x,y,z] = 0

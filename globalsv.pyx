@@ -6,7 +6,7 @@ maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
 u6 = 1.0/6.0
 t = 0
-cantPart = 5000
+cantPart = 100000
 MCA = 1000
 randomness = 0.1
 

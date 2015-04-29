@@ -24,14 +24,46 @@ ctypedef np.int32_t DTYPE_ti
 cdef init_particles():
 
     cdef np.ndarray[DTYPE_t, ndim=3] occupied = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.uint8)+ np.uint8(1)
-    cdef np.ndarray[DTYPE_ti, ndim=3] occupied2 = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.int32)-1 # contours occupied (for self-avoidance)
+    cdef np.ndarray[DTYPE_ti, ndim=3] occupied2
+
+    #model = 1
+    #modelStr = 'otherbread.binvox'
+    #model = 2
+    #modelStr = 'bunny.binvox'
+    #model = 3
+    modelStr = 'bread2.binvox'
+    model = 4
+    #modelStr = ' croissant.binvox'
+
+    print "Loading geom..."
+    t = time.clock()
+    geom = np.array(load_obj(modelStr)).astype(np.uint8)
+    print "Loading Time: ", time.clock()-t
+
+    print "Intersecting..."
+    t = time.clock()
+
+    occ,geom,crust = intersect(occupied,orientate(geom,256,256,model),maxcoord,maxcoordZ,thresh)
+
+    # eliminate those regions where there is no material
+    occupied2 = occupied-2*np.array(geom).astype(np.int32)
+    occupied = occ
+
+    saveField(255*occupied,"textures/occupied")
+    saveField(255*occupied2,"textures/occupied2")
+    saveField(255*geom,"textures/geom")
+    saveField(255*crust,"textures/crust")
+    print "Intersect Time: ", time.clock()-t
+
 
     cdef int i = 0, h, j
     cdef Particle pi
     timm = time.clock()
     cdef list particles = []
+    # particle 1 is used to set the region
+    # where bubbles cannot grow
     for i from 0<= i< cantPart:
-        pi = Particle(i,MCA,0.15,occupied,occupied2)
+        pi = Particle(i+2,MCA,0.15,occupied,occupied2,maxcoord/2,maxcoord/2)
 
         if(pi.randomm > 0.8):
             for j from 0<=j<diffBubbles:
@@ -42,8 +74,50 @@ cdef init_particles():
 
         particles.append(pi)
 
-    return particles
+    return particles,crust
 
+# intersection between a cube field and a geometry
+def intersect(field,geom,int N, int Nz, float thresh):
+
+    # threshold value
+    # bubble intersection
+    # based on the distance to the surface
+
+    # distance field
+    t = time.clock()
+
+    #saveField(255*geom,"textures/geometry")
+    #saveField(255*field,"textures/field")
+
+    print "Distance Field computing.."
+    dfield = np.array(scipy.ndimage.distance_transform_edt(geom)).reshape(256,256,256)
+    print "Distance Field computation time: ", time.clock()-t
+
+    print "Crumb..."
+    crumb = np.array(dfield>thresh).astype(np.uint8)
+
+    print "Crust..."
+    crust = geom-crumb
+
+    # NOW resize...
+
+    if(N!= 256 ):
+        print "Resize Geom..."
+        geom = resize(geom,N,Nz)
+
+        print "Resize Crumb..."
+        crumb = resize(crumb,N,Nz)
+
+        print "Resize Crumb..."
+        crust = resize(crust,N,Nz)
+
+
+    # the bubbles in white (1-field) are taken into account
+    # when they are away from the surface, so this is the 'crumb region'
+
+    cdef np.ndarray[DTYPE_t, ndim=3] temp = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.uint8)+ np.uint8(1)
+
+    return (geom-crumb*(1-field)),geom,crust
 
 # una iteracion del algoritmo
 cdef mover(t,particles) :
@@ -80,10 +154,10 @@ def borderD(data):
     return np.array(255*(dfield<0.1)).astype(np.uint8)
 
 def border(data):
-    r = 16
-    r2 = 15
-    r3 = 14
-    r4 = 13
+    r = 48
+    r2 = 46
+    r3 = 44
+    r4 = 42
     c = scipy.ndimage.binary_closing(data,structure=np.ones((r,r,r))).astype(np.uint8)
     d = scipy.ndimage.binary_dilation(c,structure=struct(r2)).astype(np.uint8)
     e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
@@ -96,15 +170,18 @@ def printFile(arr,filename):
     f = open(filename, 'w')
     cprint.cprintfile(0,maxcoordZ,maxcoord,arr,f)
 
-cdef export(np.ndarray[DTYPE_t, ndim=3] occupied):
+cdef export(np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_t, ndim=3] crust):
     cdef np.ndarray[DTYPE_t, ndim=3] arr
     print "Computing A-Occlusion..."
     arr = cprint.occlusion(0,maxcoordZ,maxcoord,occupied,15)
     arr = scipy.ndimage.filters.gaussian_filter(arr,1)
 
+    #arr2 = borderD(occupied)
+    saveField(crust,'textures/crust')  
+
     print "Print Files..."
     print "Crust: warpedC.field "
-    printFile(borderD(occupied) ,"Ogre/output/media/fields/warpedC.field")
+    printFile(crust ,"Ogre/output/media/fields/warpedC.field")
     print "AOcclusion: warpedO.field "
     printFile(arr,'Ogre/output/media/fields/warpedO.field')
     print "Main: warped.field "
@@ -123,13 +200,13 @@ cdef alg(particles) :
         largoCont = mover(t,particles)
 
         print "It ", t , "/" , TIEMPO , ", Contorno: " , largoCont , " Cant Part: " , len(particles)
-        if(t % 10 == 0): saveField(particles[0].occupied,'system')   
-        if(largoCont == 0 or largoCont == largoContAnt):
+        if(t % 10 == 0): saveField(255*particles[2].occupied,'textures/system')   
+        if(t > 520 or largoCont == 0 or largoCont == largoContAnt):
             break
 
-    occupied = particles[0].occupied
+    occupied = particles[2].occupied
     print "last draw!"
-    saveField(occupied,'system')
+    saveField(255*occupied,'textures/system')
 
 
     return occupied
@@ -169,44 +246,7 @@ def resize( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz):
                 model2[x,y,z] = model[round(x*ar),round(y*ar),round(z*arz)]
     return model2
 
-# intersection between a cube field and a geometry
-def intersect(field, geom,int N, int Nz, float thresh):
 
-    # threshold value
-    # bubble intersection
-    # based on the distance to the surface
-
-    # distance field
-    t = time.clock()
-
-    saveField(255*geom,"textures/geometry")
-    saveField(255*field,"textures/field")
-
-    print "Distance Field computing.."
-    dfield = np.array(scipy.ndimage.distance_transform_edt(geom)).reshape(256,256,256)
-    print "Distance Field computation time: ", time.clock()-t
-
-    print "Crumb..."
-    crumb = np.array(dfield>thresh).astype(np.uint8)
-
-    #print "Crust..."
-    #crust = geom-crumb
-    saveField(255*crumb,"textures/crumb")
-
-    # NOW resize...
-
-    if(N!= 256 ):
-        print "Resize Geom..."
-        geom = resize(geom,N,Nz)
-
-        print "Resize Crumb..."
-        crumb = resize(crumb,N,Nz)
-
-
-    # the bubbles in white (1-field) are taken into account
-    # when they are away from the surface, so this is the 'crumb region'
-
-    return (geom-crumb*(1-field))
 
 def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz,int modelNumber):
     cdef np.ndarray[DTYPE_t, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.uint8)
@@ -227,17 +267,10 @@ def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz,int modelNumber):
    
 cdef main():
 
-    #model = 1
-    #modelStr = 'otherbread.binvox'
-    model = 2
-    modelStr = 'bunny.binvox'
-    #model = 3
-    #modelStr = 'bread2.binvox'
-    #model = 4
-    #modelStr = ' croissant.binvox'
+    
 
     print "Init Particles..."
-    particles = init_particles()
+    particles,crust = init_particles()
     print "Algorithm!"
     occupied = alg(particles)
 
@@ -245,16 +278,8 @@ cdef main():
     print "Loading..."
     t = time.clock()
     # geom #(256,256,256)
-    geom = np.array(load_obj(modelStr)).astype(np.uint8)
-
-    print "Loading Time: ", time.clock()-t
-
-    print "Intersecting..."
-    t = time.clock()
-    occupied = intersect(occupied, orientate(geom,256,256,model),maxcoord,maxcoordZ,thresh)
-    saveField(255*occupied,"textures/intersect")
-    print "Intersect Time: ", time.clock()-t
-    export(255*occupied)
+    
+    export(255*occupied,255*crust)
     print "Process finished OK"
 
 # start
