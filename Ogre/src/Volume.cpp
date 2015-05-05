@@ -85,6 +85,18 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
         int i = 0;
         while (!input.eof() && i < field.size()) {
                 input >> val;
+                int z =  i / (_texH*_texW);
+                int y =  (i % (_texH*_texW)) / _texW;
+                int x =  i % _texW;
+
+                int X = abs(127-x);
+                int Y = abs(127-y);
+                int Z = abs(127-z);
+
+                // if (sqrt(Y*Y + Z*Z) > 125 || x < 50)
+                // if (x < 50)
+                        // val = 0;
+
                 field[i++] = val;
         }
 

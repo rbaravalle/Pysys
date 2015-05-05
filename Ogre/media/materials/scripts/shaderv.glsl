@@ -16,8 +16,8 @@ void main()
     vPos = vertex.xyz;
 
     vec4 worldPos = world * vertex;
-    vec3 lightDir = normalize(
-            lightPosition.xyz - (worldPos.xyz * lightPosition.w));
+    /* vec3 lightDir = normalize( */
+    /*         lightPosition.xyz - (worldPos.xyz * lightPosition.w)); */
 
     // calculate shadow map coords
     sUV = texViewProj * worldPos;

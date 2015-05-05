@@ -21,19 +21,21 @@ RenderState::RenderState()
 
         _detailsPanel             = 0;
 
-        tmk = 15.0;
-        tmk2 = 25.0;
+        tmk = 4.0;
+        tmk2 = 15.4;
         mintm = 0.2;
-        shininess = 9.1;
-        steps = 256.0;
+        shininess = 1.3;
+        steps = 128.0;
         ucolor = Vector3(0.8,0.7,0.6);
-        ambient = 0.2;
+        ambient = 0.4;
         backIllum = 0.0;
-        diffuseCoeff = 0.5;
-        specCoeff= 0.1;
-        specMult = 8;
-        glowCoeff = 0.5;
-        misc = 10.0;
+        diffuseCoeff = 1.5;
+        specCoeff= 3.7;
+        specMult = 0.7;
+        gamma = 1.7;
+        misc =  4.1;
+        misc2 = 4.0;
+        misc3 = 0.6;
         lightIsMoving = true;
 }
 
@@ -182,26 +184,18 @@ void RenderState::exit()
 void RenderState::createScene()
 {
         ////////////////////// Volume texture
-        // breadVolume.createTexture("media/fields/imagen3-1.field", "volumeTex");
-        // breadVolume.createTexture("media/fields/mengel3d.field", "volumeTex");
-        // breadVolume.createTexture("media/fields/3Dbread.256.field", "volumeTex");
-        breadDensityVolume.createTextureAndNormals("media/fields/warped.field", 
-                                                   "densityTex",
-                                                   "normalTex");
         // breadDensityVolume.createTextureAndNormals("media/fields/warped.old.field", 
         //                                            "densityTex",
         //                                            "normalTex");
-        // breadDensityVolume.createTexture("media/fields/bread.field", "densityTex");
+        breadDensityVolume.createTexture("media/fields/warped.field", "densityTex");
         breadDensityTex = breadDensityVolume.getTexturePtr();
-        breadNormalTex = breadDensityVolume.getNormalTexturePtr();
-        if (breadDensityTex.isNull() || breadNormalTex.isNull()) {
+        // breadNormalTex = breadDensityVolume.getNormalTexturePtr();
+        if (breadDensityTex.isNull()) {
                 printf("Error generating density texture");
                 exit();
         }
 
         breadCrustVolume.createTexture("media/fields/warpedC.field", "crustTex");
-        // breadCrustVolume.createTexture("media/fields/warpedC.old.field", "crustTex");
-        // breadCrustVolume.createTexture("media/fields/bread.field", "crustTex");
         breadCrustTex = breadCrustVolume.getTexturePtr();
         if (breadCrustTex.isNull()) {
                 printf("Error generating crust texture");
@@ -209,16 +203,17 @@ void RenderState::createScene()
         }
 
         // breadOcclusionVolume.createTexture("media/fields/warpedO.old.field","occlusionTex");
-        breadOcclusionVolume.createTexture("media/fields/warpedO.field", "occlusionTex");
+        // breadOcclusionVolume.createTexture("media/fields/warpedO.field", "occlusionTex");
         // breadOcclusionVolume.createTexture("media/fields/breadO.field", "occlusionTex");
-        breadOcclusionTex = breadOcclusionVolume.getTexturePtr();
-        if (breadOcclusionTex.isNull()) {
-                printf("Error generating occlusion texture");
-                exit();
-        }
+        // breadOcclusionTex = breadOcclusionVolume.getTexturePtr();
+        // if (breadOcclusionTex.isNull()) {
+        //         printf("Error generating occlusion texture");
+        //         exit();
+        // }
 
         ///////////////////// Volume bounding cubes
         breadVolumeBoundingCubes.create(breadCrustVolume, 32, 1, 255, _sceneMgr);
+        // breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
 
         //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->_viewport;
@@ -248,8 +243,7 @@ void RenderState::createScene()
         breadNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
         breadNode->attachObject(breadEntity);
         breadNode->setOrientation(Quaternion::IDENTITY);
-        breadNode->setPosition(Vector3(0, -20 * breadBounds.getMinimum().y, 0));
-        std::cout << "\n\n\n\n\n BBBBBBB breadNodeMinimum: " << breadBounds.getMinimum().y << std::endl << std::endl << std::endl;
+        // breadNode->setPosition(Vector3(0, -20 * breadBounds.getMinimum().y, 0));
         breadNode->setScale(Vector3(20,20,20));
         // breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
         breadEntity->setCastShadows(true);
@@ -576,10 +570,9 @@ void RenderState::updateMaterial()
         Ogre::Vector3 lightpos(1,0,0); // Bunny
         //Ogre::Vector3 lightpos(-1,-1,10);
 
-        static double ro = 0;
-        ro += 0.005;
+        // static double ro = 0;
+        // ro += 0.005;
         
-        // lightpos = Ogre::Vector3(sin(ro), cos(ro), 0);
         // try { fparams->setNamedConstant("uLightP", lightpos); } 
         // catch (Ogre::Exception) {}
 
@@ -627,10 +620,16 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uBackIllum", backIllum); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uGlowCoeff", glowCoeff); } 
+        try { fparams->setNamedConstant("uGamma", gamma); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uMisc", misc); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uMisc2", misc2); } 
+        catch (Ogre::Exception) {}
+
+        try { fparams->setNamedConstant("uMisc3", misc3); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uTexDim", breadDensityVolume.getSize()); } 
@@ -653,8 +652,10 @@ void RenderState::updateWidgets()
         stepsSlider->setValue(steps, false);
         ambientSlider->setValue(ambient, false);
         backIllumSlider->setValue(backIllum, false);
-        glowCoeffSlider->setValue(glowCoeff, false);
+        gammaSlider->setValue(gamma, false);
         miscSlider->setValue(misc, false);
+        misc2Slider->setValue(misc2, false);
+        misc3Slider->setValue(misc3, false);
         lightCheckBox->setChecked(lightIsMoving, false);
 }
 
@@ -666,7 +667,7 @@ void RenderState::updateLight(double timeSinceLastFrame)
                 return;
 
         static double elapsed = 0;
-        elapsed += (timeSinceLastFrame * 0.0001) * shininess;//1.5;
+        elapsed += (timeSinceLastFrame * 0.001);//1.5;
         double se = sin(elapsed);
         double ce = cos(elapsed);
 
@@ -735,7 +736,7 @@ void RenderState::buildGUI()
                                                   "ambient",  200,80,44,-1,3,41);
 
         diffuseCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT,"diffuseCoeff",
-                                                     "diffuseCoeff", 200,80,44,0.0,3,31);
+                                                     "diffuse", 200,80,44,0.0,3,31);
 
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
                                           "back illumination", 200,80,44,0,3,31);
@@ -744,13 +745,19 @@ void RenderState::buildGUI()
                                                      "specCoeff", 200,80,44,0.1,5,50);
 
         specMultSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specMult", 
-                                                     "specMult", 200,80,44,0.1,8,80);
+                                                     "specMult", 200,80,44,0.0,8,81);
 
-        glowCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "glowCoeff", 
-                                               "glowCoeff", 200,80,44,0,5,101);
+        gammaSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "gamma", 
+                                               "gamma", 200,80,44,0,5,101);
 
         miscSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc", 
                                                "misc", 200,80,44,0,10,101);
+
+        misc2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc2", 
+                                               "misc2", 200,80,44,0,10,101);
+
+        misc3Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc3", 
+                                               "misc3", 200,80,44,0,10,101);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
@@ -839,14 +846,24 @@ void RenderState::sliderMoved(OgreBites::Slider * slider)
                 backIllum = value;
         }
 
-        if (slider == glowCoeffSlider) 
+        if (slider == gammaSlider) 
         {
-                glowCoeff = value;
+                gamma = value;
         }
 
         if (slider == miscSlider) 
         {
                 misc = value;
+        }
+
+        if (slider == misc2Slider) 
+        {
+                misc2 = value;
+        }
+
+        if (slider == misc3Slider) 
+        {
+                misc3 = value;
         }
 
 }

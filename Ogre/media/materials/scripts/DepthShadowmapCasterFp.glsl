@@ -35,7 +35,6 @@ bool outside(vec3 pos)
 
 bool outsideCrust(vec3 pos) {
         return false;
-        /* return (int(pos.z*11) % 2 == 0 && pos.z > 0.5); */
 }
 
 float sampleVolTex(vec3 pos) 

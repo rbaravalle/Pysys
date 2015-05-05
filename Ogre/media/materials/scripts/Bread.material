@@ -34,14 +34,12 @@ material Bread
                 param_named_auto uLightP light_position_object_space 0    
                 param_named_auto uCamPos camera_position_object_space
 
-                param_named shadowTex int 0
-                param_named densityTex   int   1
-                param_named normalTex   int    2
-                param_named crustTex     int   3
-                param_named occlusionTex int   4
-                param_named noiseTex   int   5
-                param_named posTex     int   6
-                param_named dirTex     int   7
+                param_named shadowTex  int   0
+                param_named densityTex int   1
+                param_named crustTex   int   2
+                param_named noiseTex   int   3
+                param_named posTex     int   4
+                param_named dirTex     int   5
 
 
                 param_named uOffset float3 0 0 0
@@ -64,9 +62,11 @@ material Bread
                 param_named uSpecCoeff  float 1.0
                 param_named uSpecMult   float 0.5
 
-                param_named uGlowCoeff  float 1.0
+                param_named uGamma      float 1.0
 
                 param_named uMisc       float 1.0
+                param_named uMisc2      float 1.0
+                param_named uMisc3      float 1.0
                 
                 param_named_auto inv_world_matrix  inverse_world_matrix 
                 param_named_auto world_matrix      world_matrix 
@@ -88,35 +88,19 @@ material Bread
              texture_unit  
             {
                 texture densityTex 3d unlimited none PF_L8
-                tex_address_mode clamp clamp clamp
+                tex_border_colour 0.0 0.0 0.0
+                tex_address_mode border border border
                 tex_coord_set 0
-                filtering bilinear
-                max_anisotropy 8
-            }
-
-             texture_unit  
-            {
-                texture normalTex 3d unlimited none PF_R8G8B8
-                tex_address_mode clamp clamp clamp
-                tex_coord_set 0
-                filtering bilinear
+                filtering anisotropic
                 max_anisotropy 8
             }
 
             texture_unit  
             {
                 texture crustTex 3d unlimited none PF_L8 
-                tex_address_mode clamp clamp clamp
+                tex_border_colour 0.0 0.0 0.0
+                tex_address_mode border border border
                 tex_coord_set 1
-                filtering bilinear
-                max_anisotropy 8
-            }
-
-           texture_unit  
-            {
-                texture occlusionTex 3d unlimited none PF_L8
-                tex_address_mode clamp clamp clamp
-                tex_coord_set 2
                 filtering bilinear
                 max_anisotropy 8
             }

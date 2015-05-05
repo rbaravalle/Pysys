@@ -120,8 +120,10 @@ private:
         float diffuseCoeff;
         float specCoeff;
         float specMult;
-        float glowCoeff;
+        float gamma;
         float misc;
+        float misc2;
+        float misc3;
         Ogre::Vector3 ucolor;
         bool  lightIsMoving;
 
@@ -135,8 +137,10 @@ private:
         OgreBites::Slider* diffuseCoeffSlider;
         OgreBites::Slider* specCoeffSlider;
         OgreBites::Slider* specMultSlider;
-        OgreBites::Slider* glowCoeffSlider;
+        OgreBites::Slider* gammaSlider;
         OgreBites::Slider* miscSlider;
+        OgreBites::Slider* misc2Slider;
+        OgreBites::Slider* misc3Slider;
         OgreBites::CheckBox* lightCheckBox;
 
 };
