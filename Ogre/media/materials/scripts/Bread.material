@@ -88,18 +88,18 @@ material Bread
              texture_unit  
             {
                 texture densityTex 3d unlimited none PF_L8
-                tex_border_colour 0.0 0.0 0.0
-                tex_address_mode border border border
+                tex_address_mode mirror mirror mirror
+                // tex_border_colour 0.0 0.0 0.0
                 tex_coord_set 0
-                filtering anisotropic
+                filtering bilinear
                 max_anisotropy 8
             }
 
             texture_unit  
             {
                 texture crustTex 3d unlimited none PF_L8 
-                tex_border_colour 0.0 0.0 0.0
-                tex_address_mode border border border
+                tex_address_mode mirror mirror mirror
+                // tex_border_colour 0.0 0.0 0.0
                 tex_coord_set 1
                 filtering bilinear
                 max_anisotropy 8

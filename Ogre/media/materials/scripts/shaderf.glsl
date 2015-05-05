@@ -57,7 +57,7 @@ uniform float uShininess;
 uniform float uAmbient;
 uniform float uBackIllum;
 uniform float uMinTm;
-uniform float uShadeCoeff;
+uniform float uDiffuseCoeff;
 uniform float uSpecCoeff;
 uniform float uSpecMult;
 uniform float uGamma;
@@ -114,6 +114,11 @@ float rand(vec3 co){
 }
 
 bool outsideCrust(vec3 pos) {
+
+        if (pos.x < 0.2)
+                return true;
+        if (pos.x > 0.4 && pos.x < 0.6)
+                return true;
 
     return false;
     /*if (length(pos-vec3(0.5,0.5,0.5)) > 0.5)
@@ -232,35 +237,42 @@ float sampleDensity(vec3 pos, int lod)
     if (outsideCrust(pos))
             return 0.0;
 
-    pos = mod(pos * uMisc3, vec3(1.0, 1.0, 1.0));
+    // This computes a falloff function if the position is outside
+    //  the [0,1] cube. This attenuates the value of repeating textures
+    //  near the surface of the cube.
+    ///////////////////////////////////////////////////////
+    float lodCoeff = pow(2.0, float(lod));
+    vec3  falloff = lodCoeff * uInvTexDim;
+    vec3  posExcess = abs(pos - vec3(0.5)) - vec3(0.5);
+    vec3  mul = clamp(1.0 - posExcess / falloff, 0.0, 1.0);
+    ///////////////////////////////////////////////////////
 
-    float scale = 0.24 / uMisc3;
-    pos = vec3(scale * pos.x , pos.y, pos.z);
-    pos = mod(pos, vec3(1.0, 1.0, 1.0));
+    /// Scale coordinates
+    pos = mod(pos * uMisc3, vec3(1.0));
 
+    /// Sample density volume
     float density = textureLod(densityTex, pos, lod).x;
 
-    ////////// Aux
-    vec3  posAux = mod(pos * vec3(uMisc2, uMisc2, uMisc2), vec3(1.0, 1.0, 1.0));
-    float densityAux = textureLod(densityTex, posAux, lod).x;
-    /* densityAux = pow(densityAux, 0.5); */
+
+    ////////// Sample auxiliary density volume
+    vec3  posAux = mod(pos * uMisc2, vec3(1.0, 1.0, 1.0));
+    float densityAux = textureLod(crustTex, posAux, lod).x;
     density *= densityAux;
 
     ////////// Aux 2
-    // vec3  posAux2 = mod(pos*6.5*vec3(uMisc2, uMisc2, 0.3*uMisc2), vec3(1.0, 1.0, 1.0));
-    // float densityAux2 = textureLod(densityTex, posAux2, lod).x;
-    // densityAux2 = pow(densityAux2, 0.5);
+    /* vec3  posAux2 = mod(pos*6.5*uMisc2, vec3(1.0, 1.0, 1.0)); */
+    /* float densityAux2 = textureLod(crustTex, posAux2, lod).x; */
+    /* density *= densityAux2; */
 
 
-    /* if (uMisc3 > 0.0) */
+    density *= mul.x * mul.y * mul.z;
 
-    return density; 
+    return pow(density, 1.2); 
 }
 
 float sampleDensity(vec3 pos) 
 {
-        float d = pow(sampleDensity(pos, 0), uMisc * 0.2);
-        return d;
+        return sampleDensity(pos, 0);
 }
 
 /* float sampleOcclusion(vec3 pos)  */
@@ -271,7 +283,10 @@ float sampleDensity(vec3 pos)
 float sampleObscurance(vec3 pos, vec3 nor) 
 {
     vec3 P = pos;
-    vec3 N = nor * uInvTexDim;
+
+    //The normal used for sampling is stretched outside a little to 
+    // compensate that we may sample inside a volume when we reach a surface
+    vec3 N = nor * uInvTexDim * 1.9; 
 
     float R1 = sampleDensity(pos + N,   1);
     float R2 = sampleDensity(pos + N*2, 2);
@@ -327,63 +342,50 @@ vec3 sampleCrustNormal(vec3 pos)
 
 vec3 sampleDensityNormal(vec3 pos, int lod) 
 {
-   /* if (uMisc > 3.0) { */
-   /*         vec3 n = texture(normalTex, pos).xyz; */
-   /*         n = n * 2.0 + vec3(1.0,1.0,1.0); */
-   /*         if (abs(n.x) < 0.1 && abs(n.x) < 0.1 && abs(n.x) < 0.1) */
-   /*                 return vec3(0,0,0); */
-   /*         else */
-   /*                 return normalize(n); */
-   /* } */
 
-    /* float c = textureLod(densityTex, pos, lod).x; */
-    float c = sampleDensity(pos, lod);
+    float dx, dy, dz;
 
-    ////////// Forward difference
-    /* float r = textureLodOffset(densityTex, pos, lod, ivec3( 1, 0, 0)).x; */
-    /* float u = textureLodOffset(densityTex, pos, lod, ivec3( 0, 1, 0)).x; */
-    /* float f = textureLodOffset(densityTex, pos, lod, ivec3( 0, 0, 1)).x; */
-    float offset = pow(2.0, float(lod)) / 2.0;
-    float r = sampleDensity(pos + offset * vec3(uInvTexDim.x,0.0,0.0), lod);
-    float u = sampleDensity(pos + offset * vec3(0.0,uInvTexDim.y,0.0), lod);
-    float f = sampleDensity(pos + offset * vec3(0.0,0.0,uInvTexDim.z), lod);
+    /////////////////
+    ///////////////// Central difference is preferred because sampling in one direction
+    /////////////////  only will miss the steep gradient when entering the volume
+    /////////////////
 
+    if (false) {
+            ////////// Forward difference
+            float offset = pow(2.0, float(lod));
+            float r = sampleDensity(pos + offset * vec3(uInvTexDim.x,0.0,0.0), lod);
+            float u = sampleDensity(pos + offset * vec3(0.0,uInvTexDim.y,0.0), lod);
+            float f = sampleDensity(pos + offset * vec3(0.0,0.0,uInvTexDim.z), lod);
+            float c = sampleDensity(pos, lod);
+            dx = (c-r);
+            dy = (c-u);
+            dz = (c-f);
 
-    /* float r = textureLod(densityTex, pos + offset * vec3(uInvTexDim.x,0.0,0.0), lod).x; */
-    /* float u = textureLod(densityTex, pos + offset * vec3(0.0,uInvTexDim.y,0.0), lod).x; */
-    /* float f = textureLod(densityTex, pos + offset * vec3(0.0,0.0,uInvTexDim.z), lod).x; */
+    } else {
+            ///////// Central difference 
+            float offset = pow(2.0, float(lod)) * 0.5;
+            float r = sampleDensity(pos + offset * vec3(uInvTexDim.x,0.0,0.0), lod);
+            float u = sampleDensity(pos + offset * vec3(0.0,uInvTexDim.y,0.0), lod);
+            float f = sampleDensity(pos + offset * vec3(0.0,0.0,uInvTexDim.z), lod);
+            float l = sampleDensity(pos + offset * vec3(-uInvTexDim.x,0.0,0.0), lod);
+            float d = sampleDensity(pos + offset * vec3(0.0,-uInvTexDim.y,0.0), lod);
+            float b = sampleDensity(pos + offset * vec3(0.0,0.0,-uInvTexDim.z), lod);
 
-    /* vec3  posAux = vec3(0.4,0.4,0.4) + mod(pos * 2.0 * uGamma, vec3(0.2,0.2,0.2));  */
-    /* float ra = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 1, 0, 0)).x; */
-    /* float ua = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 0, 1, 0)).x; */
-    /* float fa = textureLodOffset(densityTex, pos+posAux, lod, ivec3( 0, 0, 1)).x; */
-    /* r *= ra; */
-    /* u *= ua; */
-    /* f *= fa; */
+            dx = (l-r);
+            dy = (d-u);
+            dz = (b-f);
+    }
 
-    float dx = (c-r);
-    float dy = (c-u);
-    float dz = (c-f);
-
-    ///////// For central difference (disabled)
-    /* float l = textureLodOffset(densityTex, pos, lod, ivec3(-1, 0, 0)).x; */
-    /* float d = textureLodOffset(densityTex, pos, lod, ivec3( 0,-1, 0)).x; */
-    /* float b = textureLodOffset(densityTex, pos, lod, ivec3( 0, 0,-1)).x; */
-
-    /* dx = (r-l); */
-    /* dy = (u-d); */
-    /* dz = (f-b); */
-
-    if (abs(dx) < 0.001 && abs(dy) < 0.001 && abs(dz) < 0.001)
-            return vec3(0,0,0);
-        
-    return normalize(vec3(dx,dy,dz));
+    return vec3(dx,dy,dz);
 }
 
 vec3 sampleDensityNormal(vec3 pos) 
 {
     // The normal is sampled at 2 different lods, to preserve high and low frequencies
         vec3 n = mix(sampleDensityNormal(pos, 0), sampleDensityNormal(pos, 1), 0.75);
+
+    if (abs(n.x) < 0.001 && abs(n.y) < 0.001 && abs(n.z) < 0.001)
+            return vec3(0,0,0);
 
     return normalize(n);
 }
@@ -414,7 +416,7 @@ float getTransmittanceApproximate(vec3 pos, vec3 rd, float utmk) {
 }
 
 // Compute accumulated transmittance for the input ray
-/* float getTransmittanceAcurate(vec3 ro, vec3 rd,float utmk) { */
+/* float getTransmittanceAccurate(vec3 ro, vec3 rd,float utmk) { */
 
 
 /*   //////// Step size is cuadrupled inside this function */
@@ -440,7 +442,7 @@ float getTransmittanceApproximate(vec3 pos, vec3 rd, float utmk) {
 /* } */
 
 // Compute accumulated transmittance for the input ray
-float getTransmittanceAcurate(vec3 ro, vec3 rd,float utmk) {
+float getTransmittanceAccurate(vec3 ro, vec3 rd,float utmk) {
 
   float depth = approximateLightDepth(ro);
 
@@ -599,91 +601,34 @@ vec3 lab2rgb(vec3 lab) {
     return xyz2rgb(lab2xyz(lab));
 }
 
-float diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,float specMult, float specCoeff, float diffuseCoeff,vec3 V) 
+float diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,float ltm,
+                       float specMult, float specCoeff, float diffuseCoeff,vec3 V) 
  { 
-         /* float diffuseCoefficient =  diffuseCoeff + //;+ getSpecularRadiance(L,V,N,specCoeff);//  */
-         /*         pow(specCoeff * abs(max(0.0, dot(L,N))), specMult);  */
-
-         /* return lCol * ltm * diffuseCoefficient;  */
-
-
          
-         float ln = dot(L,N);
+    float ln = dot(L,N);
 
-         /// The 0.8 constant is to remove the excesive gradient in the surface
-         ln = clamp(0.8 + ln, 0.0, 1.0);
+    /// The 0.8 constant is to remove the excesive gradient in the surface
+    ln = clamp(0.8 + ln, 0.0, 1.0);
 
-         if (ln > 0.01)
-                 ln = pow(ln, uShininess * 0.2);
+    if (ln > 0.01)
+            ln = pow(ln, uShininess * 0.2);
 
-         float diffuseCoefficient =  diffuseCoeff * ln;
+    float diffuseCoefficient =  diffuseCoeff * ln;
 
-         float specularRadiance = getSpecularRadiance(L, V, N, specCoeff);
-         diffuseCoefficient += specularRadiance * uSpecMult;
+    float specularRadiance = getSpecularRadiance(L, V, N, specCoeff);
+    diffuseCoefficient += specularRadiance * uSpecMult;
 
-         float val = ltm * diffuseCoefficient;
+    float val = ltm * diffuseCoefficient;
 
-         return val;
-
+    return val;
  } 
 
-float ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol, float ltm, float specMult, float specCoeff, float diffuseCoeff,float utmk) 
- { 
-         
- /*         if (false) { */
- /*      ltm = getTransmittanceAcurate(P, L,utmk);   // Transmittance towards light   */
- /*         float ambientCoefficient =  diffuseCoeff +   */
- /*                 pow(specCoeff * abs(max(0.0, dot(L,N))), specMult);  */
-
- /*         return lCol * ltm * ambientCoefficient;  */
- /* }  */
-
-/*vec3 diffuseComponent(vec3 P, vec3 N, vec3 L, vec3 lCol,
-                      float ltm,float specMult, float specCoeff, 
-                      float diffuseCoeff,vec3 V) */
- /* else { */
-        /* float diffuseBounce = 0.4; */
- 
-        /* if (any(greaterThan(abs(N), ZERO3))) { */
-        /*         // We soften the dot product and add a small value to prevent strong */
-        /*         //  light changes at grazing angles */
-        /*         diffuseBounce = pow ( clamp( 0.05 + dot(-L,N), 0.0, 1.0),  0.3); */
-        /* } */
-
-        /* diffuseBounce = clamp(diffuseBounce, 0.0, 1.0); */
-
-
-        /* float diffuse =  diffuseBounce * diffuseCoeff; */
-        /* // float specularCoefficient = pow(specCoeff*abs(dot(L,N)),specMult);  */
-        /* return lCol * ltm * diffuse; */
-
-
-        /* vec3 pos = P; */
-
-        // If normal exists, move in direction of normal and sample the
-        // occlusion texture, which is the just the filtered density
-        /* if (any(greaterThan(abs(N), ZERO3))) { */
-        /*         pos += N * uInvTexDim * 2.0;  */
-        /* } */
-
-         float val =  clamp(sampleObscurance(P, N), 0.0, 1.0) ;// * pow(tm, 0.5);
-         return val;
-
-/* } */
- }
-
-/*float ambientComponent(vec3 P, vec3 N, float tm,float ambient)
-{
-        vec3 pos = P;
-
-        // If normal exists, move in direction of normal and sample the
-        // occlusion texture, which is the just the filtered density
-        if (any(greaterThan(abs(N), ZERO3))) {
-                pos += N * uInvTexDim * 2.0; 
-        }
-
-       return (1.0 - sampleOcclusion(pos)*0.5) * ambient;// * pow(tm, 0.5);
-}*/
+float ambientComponent(vec3 P, vec3 N, vec3 L, vec3 lCol, float ltm, 
+                       float specMult, float specCoeff, float diffuseCoeff,float utmk) 
+{ 
+    float val =  clamp(sampleObscurance(P, N), 0.0, 1.0) ;// * pow(tm, 0.5);
+    return val;
+}
 
 struct light_ret 
 {
@@ -753,7 +698,8 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
   int cr = 0;
   float aref = 5.0;//18.0
   float bref = 43.0;
-  pos+=step*rand(pos.xyz);
+
+  pos+=step*rand(pos.xyz)*0.2;
  
   float radiance = 0.0;
 
@@ -762,7 +708,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     vec3 L = normalize( uLightP - pos ); // Light direction
     float ltm;
 
-    ltm = getTransmittanceAcurate(pos, L,uTMK);
+    ltm = getTransmittanceAccurate(pos, L,uTMK);
 
     float volSample = sampleDensity(pos); // Density at sample point
     
@@ -795,7 +741,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     if (crust > 0 && saved == false && false) {
             float specMult = 8.0;//uSpecMult;
             float specCoeff = 0.9;//tSpecCoeff;
-            float shadeCoeff = 0.6;// uShadeCoeff;
+            float shadeCoeff = 0.6;// uDiffuseCoeff;
             float ambient = 0.2;//uAmbient;
             float utmkCrust = 21.5;
             pepe = true;
@@ -876,7 +822,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
     for (int k=0; k<LIGHT_NUM; ++k) {
             vec3 L = normalize( uLightP - pos ); // Light direction
             directionalRadiance += diffuseComponent(pos, N, L, uLightC,ltm, uSpecMult,
-                                             tSpecCoeff,uShadeCoeff,normalize(rd));
+                                             tSpecCoeff,uDiffuseCoeff,normalize(rd));
     }
 
     ////////// get ambient contribution, simulated as light close to the view direction
@@ -886,7 +832,7 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     vec3 C = -normalize(rd + vec3(0.3, -0.3, 0.3));
     float ambientRadiance = ambientComponent(pos, N, C, sampleCol,ltm, 
-                                          uSpecMult,tSpecCoeff,uShadeCoeff,uTMK);
+                                          uSpecMult,tSpecCoeff,uDiffuseCoeff,uTMK);
     ambientRadiance *= uAmbient;
 
     // Accumulate color based on delta transmittance and mean transmittance
@@ -895,7 +841,6 @@ light_ret raymarchLight(vec3 ro, vec3 rd, float tr) {
 
     float localRadiance = ambientRadiance + directionalRadiance;
     radiance += localRadiance * tm * (1.0 - dtm);
-    /* col += mix(colDark, colLight, radiance) * radiance * (1.0-dtm);  */
 
     /* if(ltm<3.0/10.0) col+=(1.0-ltm)*vec3(152/255.0,95/255.0,14.0/255.0)*uBackIllum/20.0; */
 

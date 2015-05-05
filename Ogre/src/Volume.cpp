@@ -12,9 +12,9 @@ using namespace Ogre;
 static size_t
 getIndex(int x, int y, int z, size_t fieldW, size_t fieldH, size_t fieldD)
 {
-        size_t X = std::min(std::max(x, 0), (int)fieldW);
-        size_t Y = std::min(std::max(y, 0), (int)fieldH);
-        size_t Z = std::min(std::max(z, 0), (int)fieldD);
+        size_t X = std::min(std::max(x, 0), (int)fieldW-1);
+        size_t Y = std::min(std::max(y, 0), (int)fieldH-1);
+        size_t Z = std::min(std::max(z, 0), (int)fieldD-1);
 
         return X + Y * fieldW + Z * fieldW * fieldH;
 }
@@ -80,6 +80,9 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
         _mipFields.resize(1);
         std::vector<int>& field = _mipFields[0];
         field.resize(_texW * _texH * _texD);
+
+        std::vector<int> file_contents;
+        file_contents.resize(field.size());
         
         int val;
         int i = 0;
@@ -97,7 +100,7 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
                 // if (x < 50)
                         // val = 0;
 
-                field[i++] = val;
+                file_contents[i++] = val;
         }
 
         TextureManager::getSingleton().setDefaultNumMipmaps(MIP_UNLIMITED);
@@ -136,8 +139,33 @@ Volume::createTexture(Ogre::String fieldFilename, Ogre::String textureName)
                 {
                         for(size_t x = 0; x < _texW; x++)
                         {
-                                int idx = x + y * _texW + z * _texW * _texH;
-                                *pDest++ = field[idx]; 
+
+                                // int real_idx = getIndex(x,y,z, _texW, _texH, _texD);
+
+                                // float X = x * 0.7;
+                                // int idx = getIndex(X,y,z, _texW, _texH, _texD);
+
+                                // int idx_1 = getIndex(X-1.,y,z, _texW, _texH, _texD);
+                                // int idx_2 = getIndex(X-2.,y,z, _texW, _texH, _texD);
+
+                                // int idx1  = getIndex(X+1.,y,z, _texW, _texH, _texD);
+                                // int idx2  = getIndex(X+2.,y,z, _texW, _texH, _texD);
+
+                                // int f   = file_contents[idx];
+                                // int f_1 = file_contents[idx_1];
+                                // int f_2 = file_contents[idx_2];
+                                // int f1  = file_contents[idx1];
+                                // int f2  = file_contents[idx2];
+
+                                // f = (f_1 + f_2 + f + f1 + f2) * 0.2;
+
+                                // field[real_idx] = f;
+
+                                int idx = getIndex(x,y,z, _texW, _texH, _texD);
+                                float f = file_contents[idx];
+                                field[idx] = f;
+
+                                *pDest++ = f; 
                         }
                         pDest += pixelBox.getRowSkip() * colBytes;
                 }

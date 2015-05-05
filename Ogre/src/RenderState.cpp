@@ -21,21 +21,21 @@ RenderState::RenderState()
 
         _detailsPanel             = 0;
 
-        tmk = 4.0;
-        tmk2 = 15.4;
+        tmk = 20.0;
+        tmk2 =  30.0;
         mintm = 0.2;
-        shininess = 1.3;
         steps = 128.0;
         ucolor = Vector3(0.8,0.7,0.6);
-        ambient = 0.4;
+        ambient = 0.6;
         backIllum = 0.0;
         diffuseCoeff = 1.5;
         specCoeff= 3.7;
         specMult = 0.7;
-        gamma = 1.7;
+        gamma = 1.8;
+        shininess = 1.1;
         misc =  4.1;
-        misc2 = 4.0;
-        misc3 = 0.6;
+        misc2 = 3.0;
+        misc3 = 1.0;
         lightIsMoving = true;
 }
 
@@ -195,7 +195,7 @@ void RenderState::createScene()
                 exit();
         }
 
-        breadCrustVolume.createTexture("media/fields/warpedC.field", "crustTex");
+        breadCrustVolume.createTexture("media/fields/warpedAux.field", "crustTex");
         breadCrustTex = breadCrustVolume.getTexturePtr();
         if (breadCrustTex.isNull()) {
                 printf("Error generating crust texture");
@@ -212,8 +212,8 @@ void RenderState::createScene()
         // }
 
         ///////////////////// Volume bounding cubes
-        breadVolumeBoundingCubes.create(breadCrustVolume, 32, 1, 255, _sceneMgr);
-        // breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
+        // breadVolumeBoundingCubes.create(breadCrustVolume, 32, 1, 255, _sceneMgr);
+        breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
 
         //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->_viewport;
@@ -351,10 +351,17 @@ bool RenderState::keyPressed(const OIS::KeyEvent &keyEventRef)
                                 pMenu->selectItem(pMenu->getSelectionIndex() - 1);
                 }
 
-                if(keyboard->isKeyDown(OIS::KC_R))
-                {
-                        steps = 20;
-                }
+        }
+
+
+        if(keyboard->isKeyDown(OIS::KC_R))
+        {
+                steps = 20;
+        }
+
+        if(keyboard->isKeyDown(OIS::KC_T))
+        {
+                steps = 512;
         }
 
         if(keyboard->isKeyDown(OIS::KC_ESCAPE))
@@ -599,7 +606,7 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uMinTm", mintm); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uShadeCoeff", diffuseCoeff); } 
+        try { fparams->setNamedConstant("uDiffuseCoeff", diffuseCoeff); } 
         catch (Ogre::Exception) {}
 
         try { fparams->setNamedConstant("uSpecCoeff", specCoeff); } 
@@ -726,9 +733,6 @@ void RenderState::buildGUI()
         mintmSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "minTm", 
                                                 "minTm", 200,80,44,0,1,101);
 
-        shininessSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shininess", 
-                                                    "shininess",  200,80,44,0,10,101);
-
         stepsSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "steps", 
                                                 "steps",  200,80,44,16,1024,241);
 
@@ -750,14 +754,17 @@ void RenderState::buildGUI()
         gammaSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "gamma", 
                                                "gamma", 200,80,44,0,5,101);
 
+        shininessSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "shininess", 
+                                                    "shininess",  200,80,44,0,10,101);
+
         miscSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc", 
-                                               "misc", 200,80,44,0,10,101);
+                                               "misc", 200,80,44,0,10,51);
 
         misc2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc2", 
-                                               "misc2", 200,80,44,0,10,101);
+                                               "misc2", 200,80,44,0,10,21);
 
         misc3Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc3", 
-                                               "misc3", 200,80,44,0,10,101);
+                                               "misc3", 200,80,44,0,10,51);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
