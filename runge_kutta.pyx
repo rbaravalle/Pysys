@@ -12,7 +12,9 @@ cdef extern from "math.h":
 
 # 3D Dinamic Systems
 cdef f1(float v0,float v1, float v2):
-    return (1-v1)*v1, (1-v0)*v0,0
+    #return (1-v1)*v1, (1-v0)*v0,0
+    #return (v1-4)*v1, (v0-4)*v0,0
+    return v1, -sin(v0),0
 
 cdef f2(float v0,float v1,float v2):
     cdef float x,y,z,a,b,c
