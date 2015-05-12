@@ -79,12 +79,10 @@ cdef add(Particle pi,int x,int y,int z):
     tempx = pi.dx[skip]
     tempy = pi.dy[skip]
 
-    #if(abs(tempx.T[x,y])> 0.0 or abs(tempy.T[x,y])> 0.0):
-    #xp0 += 100*(tempy[x,y]) # CAREFUL - WORKING
-    #xp1 += -100*(tempx[x,y])
-
-    xp0 = (x+500*tempy[x,y])*dm1+x0
-    xp1 = (y-500*tempx[x,y])*dm1+y0
+    # tempx-> to GRID, GRID operation with x -> to SPACE (xp)
+    if(tempx[x,y] > 0.02 or tempy[x,y] > 0.02):
+        xp0 = (x+0.5*(tempy[x,y])/dm1)*dm1+x0
+        xp1 = (y-0.5*(tempx[x,y])/dm1)*dm1+y0
 
     sliceN = 30
     if(False and z == sliceN):
@@ -99,7 +97,7 @@ cdef add(Particle pi,int x,int y,int z):
         plt.colorbar(im)
 
         # orthogonal to the dfield
-        ax.quiver(xx[skip], yy[skip], tempy, -tempx)
+        ax.quiver(xx[skip], yy[skip], tempy.T, -tempx.T)
 
         ax.set(aspect=1, title='Quiver Plot')
         plt.show()

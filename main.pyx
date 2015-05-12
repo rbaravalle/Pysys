@@ -34,7 +34,7 @@ cdef init_particles():
 
 
     #model = 1
-    #modelStr = 'otherbread.binvox'
+    #modelStr = 'makingProc/otherbread.binvox'
     model = 2
     modelStr = 'bunny.binvox'
     #model = 3
