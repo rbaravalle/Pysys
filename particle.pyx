@@ -4,6 +4,8 @@ import numpy as np
 cimport numpy as np
 from runge_kutta cimport *
 from globalsv import *
+import matplotlib.pyplot as plt
+import Image
 
 
 from libc.stdlib cimport rand, RAND_MAX
@@ -33,7 +35,7 @@ cdef int N = N
 cdef setBorder(Particle pi,int x,int y,int z):
     cdef int i,j,k,sep,ii
     ii = pi.i
-    sep = 1
+    sep = pi.sep()#2
     cdef np.ndarray[DTYPE_ti, ndim=3] occ = pi.occupied2
     for i from -sep<=i<sep:
         for j from -sep<=j<sep:
@@ -45,7 +47,7 @@ cdef setBorder(Particle pi,int x,int y,int z):
 
 cdef int searchBorder(Particle pi, int x,int y,int z):
     cdef int i,j,k,v,sep,ii
-    sep = 1
+    sep = pi.sep()#2
     ii = pi.i
     cdef np.ndarray[DTYPE_ti, ndim=3] occ = pi.occupied2
     for i from -sep<=i<sep:
@@ -62,13 +64,44 @@ cdef add(Particle pi,int x,int y,int z):
 
     cdef list contorno
     cdef float d,de,deP,rr,xp0,xp1,xp2,xt,yt,zt
-    cdef int bestX,bestY,bestZ,xh,yh,zh,i
+    cdef int bestX,bestY,bestZ,xh,yh,zh,i#,isBestAdded
+    # to avoid repeating elements
+    #isBestAdded = 0
 
-    sep = 1#pi.sep()
     contorno = pi.contorno
 
-
     xp0,xp1,xp2 = runge_kutta(x,y,z)
+
+
+    # FIX ME!: if b.condition > 0, mix b.condition with the dynamic system
+    skip = (slice(None, None, 1), slice(None, None, 1), z)
+
+    tempx = pi.dx[skip]
+    tempy = pi.dy[skip]
+
+    # tempx-> to GRID, GRID operation with x -> to SPACE (xp)
+    if(tempx[x,y] > 0.02 or tempy[x,y] > 0.02):
+        xp0 = (x+0.5*(tempy[x,y])/dm1)*dm1+x0
+        xp1 = (y-0.5*(tempx[x,y])/dm1)*dm1+y0
+
+    sliceN = 30
+    if(False and z == sliceN):
+
+        I = Image.frombuffer('L',(maxcoord,maxcoord), np.array(pi.geom[:,:,sliceN]).astype(np.uint8),'raw','L',0,1)
+        fig, ax = plt.subplots()
+
+
+        xx, yy,zz = np.mgrid[0:256:256j, 0:256:256j,0:256:256j]
+
+        im = ax.imshow(I, extent=[xx.min(), xx.max(), yy.min(), yy.max()])
+        plt.colorbar(im)
+
+        # orthogonal to the dfield
+        ax.quiver(xx[skip], yy[skip], tempy.T, -tempx.T)
+
+        ax.set(aspect=1, title='Quiver Plot')
+        plt.show()
+        exit()
 
     bestX=bestY=bestZ=deP=10000
     for xh from x-1<=xh<=x+1:
@@ -84,26 +117,27 @@ cdef add(Particle pi,int x,int y,int z):
                         bestX = xh
                         bestY = yh
                         bestZ = zh
+                        #isBestAdded = 0
                     if(rand()/float(RAND_MAX) >(1.0-pi.randomParam)):
                         contorno.append([xh,yh,zh])
+                        #isBestAdded = 1
     
     setBorder(pi,x,y,z)
+    #if(not(isBestAdded)):
     contorno.append([bestX,bestY,bestZ])
     return contorno
 
 def grow(Particle pi):
-        cdef int w = 0, h, r,nx,ny,nz,lenc,fn,size,ii,sep
+        cdef int w = 0, h, r,nx,ny,nz,lenc,fn,size,ii
         cdef list contorno
         ii = pi.i
         size = pi.size
         contorno = pi.contorno
-        sep = 1#pi.sep()
         fn = pi.fn()
-        lenc = len(contorno)
 
         for r from 0 <= r < fn:
+            lenc = len(contorno)
             for h from 0 <= h < lenc:
-                w = h
                 nx = contorno[h][0]
                 ny = contorno[h][1]
                 nz = contorno[h][2]
@@ -117,7 +151,7 @@ def grow(Particle pi):
                         break                
                 except: pass
 
-        del contorno[0:w]
+            del contorno[0:h]
 
         pi.contorno = contorno
         pi.size = size
@@ -128,7 +162,7 @@ def grow(Particle pi):
 
 cdef class Particle:
 
-    def __cinit__(self,int i,int lifet,float randomParam, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2,int centerx,int centery):
+    def __cinit__(self,int i,int lifet,float randomParam, int sep, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2,np.ndarray[DTYPE_tf, ndim=3] dx,np.ndarray[DTYPE_tf, ndim=3] dy,np.ndarray[DTYPE_tf, ndim=3] dz,np.ndarray[DTYPE_t, ndim=3] geom,int centerx,int centery):
         cdef int x,y,z,dist
         cdef float r,rv,tempfx,tempfy,rm
 
@@ -139,23 +173,23 @@ cdef class Particle:
         y = int((maxcoord-1)*(rand()/rm))
         z = int((maxcoordZ-1)*(rand()/rm))
 
-        while(occupied2[x,y,z] == -1):
+        while(occupied2[x,y,z] == 1 or occupied[x,y,z]==0):
             x = int((maxcoord-1)*(rand()/rm))
             y = int((maxcoord-1)*(rand()/rm))
             z = int((maxcoordZ-1)*(rand()/rm))
 
-        tempfx = float(x-centerx)
-        tempfy = float(y-centery)
+        #tempfx = float(x-centerx)
+        #tempfy = float(y-centery)
 
-        rv = sqrt(tempfx*tempfx+tempfy*tempfy)
-        if(rv!=0):
-            tempfx = tempfx/rv
-            tempfy = tempfy/rv
+        #rv = sqrt(tempfx*tempfx+tempfy*tempfy)
+        #if(rv!=0):
+        #    tempfx = tempfx/rv
+        #    tempfy = tempfy/rv
 
-        r = 1.0*(rand()/rm)*(maxcoord/1.5-rv)
+        #r = 1.0*(rand()/rm)*(maxcoord/1.5-rv)
 
-        x = np.clip(floor(x + r*(tempfx)),0,maxcoord-1);
-        y = np.clip(floor(y + r*(tempfy)),0,maxcoord-1);
+        #x = np.clip(floor(x + r*(tempfx)),0,maxcoord-1);
+        #y = np.clip(floor(y + r*(tempfy)),0,maxcoord-1);
 
         self.i = i
         self.contorno = [[-1,-1,-1]]
@@ -166,15 +200,23 @@ cdef class Particle:
         self.size = 1
         self.occupied2=occupied2
         self.occupied=occupied
+        self.sepp = sep
+        self.dx = dx
+        self.dy = dy
+        self.dz = dz
+        self.geom=geom
         self.contorno = add(self,x,y,z)
 
         
-    # Different separations depending on the bubble size
+    # Different separations, depending on bubble size
     def sep(self):
-        return 1
+        return self.sepp
+        #if(self.size > 140): return 2
+        #return 1
+
 
     cdef fn(self):
         if(self.size < 5): return 1
-        else: return 1+floor(0.01*self.size)
+        else: return 1+round(20.0*self.randomm)#*self.size)
 
 
