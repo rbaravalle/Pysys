@@ -63,23 +63,25 @@ private:
         void updateWidgets();
         void updateLight(double timeSinceLastFrame);
 
-        VolumeBoundingCubes                     breadVolumeBoundingCubes;
+        VolumeBoundingCubes                     volumeBoundingCubes;
 
         RenderTex                               rayPositions;
         RenderTex                               rayDirections;
 
-        Ogre::SceneNode*                        breadNode;
-        Ogre::Entity*                           breadEntity;
-        Ogre::MaterialPtr                       breadMat; 
+        Ogre::SceneNode*                        mainNode;
+        Ogre::Entity*                           mainEntity;
+        Ogre::MaterialPtr                       mainMat; 
 
-        Volume                                  breadDensityVolume;
-        Volume                                  breadCrustVolume;
-        Volume                                  breadOcclusionVolume;
+        Volume                                  shapeVolume;
+        Volume                                  structureVolume;
+        Volume                                  shellVolume;
+        // Volume                                  breadOcclusionVolume;
 
-        Ogre::TexturePtr                        breadDensityTex;
-        Ogre::TexturePtr                        breadNormalTex;
-        Ogre::TexturePtr                        breadCrustTex;
-        Ogre::TexturePtr                        breadOcclusionTex;
+        Ogre::TexturePtr                        shapeTex;
+        Ogre::TexturePtr                        structureTex;
+        Ogre::TexturePtr                        shellTex;
+        // Ogre::TexturePtr                        breadNormalTex;
+        // Ogre::TexturePtr                        breadOcclusionTex;
 
 
         Ogre::SceneNode*                        tableNode;
@@ -124,6 +126,7 @@ private:
         float misc;
         float misc2;
         float misc3;
+
         Ogre::Vector3 ucolor;
         bool  lightIsMoving;
 
@@ -141,6 +144,11 @@ private:
         OgreBites::Slider* miscSlider;
         OgreBites::Slider* misc2Slider;
         OgreBites::Slider* misc3Slider;
+
+        OgreBites::Slider* colRSlider;
+        OgreBites::Slider* colGSlider;
+        OgreBites::Slider* colBSlider;
+
         OgreBites::CheckBox* lightCheckBox;
 
 };

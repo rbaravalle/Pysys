@@ -21,21 +21,21 @@ RenderState::RenderState()
 
         _detailsPanel             = 0;
 
-        tmk = 20.0;
-        tmk2 =  30.0;
+        tmk = 18.0;
+        tmk2 =  28.7;
         mintm = 0.2;
-        steps = 128.0;
-        ucolor = Vector3(0.8,0.7,0.6);
+        steps = 512.0;
+        ucolor = Vector3(0.62,0.34,0.0);
         ambient = 0.6;
-        backIllum = 0.0;
+        backIllum = 3.6;
         diffuseCoeff = 1.5;
-        specCoeff= 3.7;
+        specCoeff= 1.9;
         specMult = 0.7;
         gamma = 1.8;
         shininess = 1.1;
-        misc =  4.1;
-        misc2 = 3.0;
-        misc3 = 1.0;
+        misc =  2.4;
+        misc2 = 3.4;
+        misc3 = 6.4;
         lightIsMoving = true;
 }
 
@@ -59,7 +59,7 @@ void RenderState::enter()
 
         ////////////////// Setup Camera
         _camera = _sceneMgr->createCamera("GameCamera");
-        //_camera->setPosition(Vector3(12, 15, -18));// bread2
+        //_camera->setPosition(Vector3(12, 15, -18));
         //_camera->lookAt(Vector3(12, 8, -4));
 
         _camera->setPosition(Vector3(16, 10, 38)); // bunny
@@ -117,7 +117,7 @@ void RenderState::enter()
         float width_inv = 1.0 / vpWidth;
         float height_inv = 1.0 / vpHeight;
         fragParameters = 
-                breadMat->getTechnique(0)->getPass(0)->getFragmentProgramParameters();
+                mainMat->getTechnique(0)->getPass(0)->getFragmentProgramParameters();
         try {
                 fragParameters->setNamedConstant("width_inv", width_inv);
                 fragParameters->setNamedConstant("height_inv", height_inv);
@@ -137,8 +137,8 @@ void RenderState::enter()
         tableEntity->getSubEntity(0)->setMaterialName("DepthShadowmap/Receiver/Float",
                                                       "General");
 
-        breadEntity->getSubEntity(0)->getMaterial()->setReceiveShadows(true);
-        breadEntity->setCastShadows(true);
+        mainEntity->getSubEntity(0)->getMaterial()->setReceiveShadows(true);
+        mainEntity->setCastShadows(true);
         
 }
 
@@ -183,37 +183,34 @@ void RenderState::exit()
 
 void RenderState::createScene()
 {
-        ////////////////////// Volume texture
-        // breadDensityVolume.createTextureAndNormals("media/fields/warped.old.field", 
-        //                                            "densityTex",
-        //                                            "normalTex");
-        breadDensityVolume.createTexture("media/fields/warped.field", "densityTex");
-        breadDensityTex = breadDensityVolume.getTexturePtr();
-        // breadNormalTex = breadDensityVolume.getNormalTexturePtr();
-        if (breadDensityTex.isNull()) {
+        ////////////////////// Shape texture
+        shapeVolume.createTexture("media/fields/warped.field", "shapeTex");
+        shapeTex = shapeVolume.getTexturePtr();
+        if (shapeTex.isNull()) {
                 printf("Error generating density texture");
                 exit();
         }
 
-        breadCrustVolume.createTexture("media/fields/warpedAux.field", "crustTex");
-        breadCrustTex = breadCrustVolume.getTexturePtr();
-        if (breadCrustTex.isNull()) {
+        ////////////////////// Structure texture
+
+        shellVolume.createTexture("media/fields/warpedAux.field", "strucTex");
+        shapeTex = shapeVolume.getTexturePtr();
+        if (shapeTex.isNull()) {
+                printf("Error generating density texture");
+                exit();
+        }
+
+        ////////////////////// Shell texture
+        shellVolume.createTexture("media/fields/warpedC.field", "shellTex");
+        shellTex = shellVolume.getTexturePtr();
+        if (shellTex.isNull()) {
                 printf("Error generating crust texture");
                 exit();
         }
 
-        // breadOcclusionVolume.createTexture("media/fields/warpedO.old.field","occlusionTex");
-        // breadOcclusionVolume.createTexture("media/fields/warpedO.field", "occlusionTex");
-        // breadOcclusionVolume.createTexture("media/fields/breadO.field", "occlusionTex");
-        // breadOcclusionTex = breadOcclusionVolume.getTexturePtr();
-        // if (breadOcclusionTex.isNull()) {
-        //         printf("Error generating occlusion texture");
-        //         exit();
-        // }
-
         ///////////////////// Volume bounding cubes
-        // breadVolumeBoundingCubes.create(breadCrustVolume, 32, 1, 255, _sceneMgr);
-        breadVolumeBoundingCubes.create(breadDensityVolume, 32, 1, 255, _sceneMgr);
+        volumeBoundingCubes.create(shellVolume, 1, 1, 255, _sceneMgr);
+        // volumeBoundingCubes.create(shapeVolume, 32, 1, 255, _sceneMgr);
 
         //////////// Background color
         Ogre::Viewport* vp = OgreFramework::getSingletonPtr()->_viewport;
@@ -238,20 +235,20 @@ void RenderState::createScene()
         // _sceneMgr->setShadowTextureConfig( 0, 512, 512, PF_FLOAT16_R, 50 );
 
         ////////////////////// BREAD
-        Ogre::AxisAlignedBox breadBounds = breadVolumeBoundingCubes.getBounds();
-        breadEntity = _sceneMgr->createEntity("BreadEntity", "Cube01.mesh");
-        breadNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
-        breadNode->attachObject(breadEntity);
-        breadNode->setOrientation(Quaternion::IDENTITY);
-        // breadNode->setPosition(Vector3(0, -20 * breadBounds.getMinimum().y, 0));
-        breadNode->setScale(Vector3(20,20,20));
-        // breadEntity->setRenderQueueGroup(RENDER_QUEUE_8);
-        breadEntity->setCastShadows(true);
+        Ogre::AxisAlignedBox breadBounds = volumeBoundingCubes.getBounds();
+        mainEntity = _sceneMgr->createEntity("BreadEntity", "Cube01.mesh");
+        mainNode = _sceneMgr->getRootSceneNode()->createChildSceneNode("BreadNode");
+        mainNode->attachObject(mainEntity);
+        mainNode->setOrientation(Quaternion::IDENTITY);
+        // mainNode->setPosition(Vector3(0, -20 * breadBounds.getMinimum().y, 0));
+        mainNode->setScale(Vector3(20,20,20));
+        // mainEntity->setRenderQueueGroup(RENDER_QUEUE_8);
+        mainEntity->setCastShadows(true);
 
-        breadEntity->getSubEntity(0)->setMaterialName("Bread","General");
-        breadMat = breadEntity->getSubEntity(0)->getMaterial();
+        mainEntity->getSubEntity(0)->setMaterialName("Bread","General");
+        mainMat = mainEntity->getSubEntity(0)->getMaterial();
 
-        Ogre::Pass* breadPass = breadMat->getTechnique(0)->getPass(0);
+        Ogre::Pass* breadPass = mainMat->getTechnique(0)->getPass(0);
 
         Ogre::TextureUnitState* posTU = breadPass->createTextureUnitState("rayPos");
         Ogre::TextureUnitState* dirTU = breadPass->createTextureUnitState("rayDir");
@@ -305,9 +302,9 @@ void RenderState::createScene()
         backgroundNode->attachObject(rect);
 
         ///////////////// Bread bounding cubes
-        breadVolumeBoundingCubes.setPosition(breadNode->getPosition());
-        breadVolumeBoundingCubes.setScale(breadNode->getScale());
-        breadVolumeBoundingCubes.setOrientation(breadNode->getOrientation());
+        volumeBoundingCubes.setPosition(mainNode->getPosition());
+        volumeBoundingCubes.setScale(mainNode->getScale());
+        volumeBoundingCubes.setOrientation(mainNode->getOrientation());
 
         /////////////// Light obj
         // Create background rectangle covering the whole screen
@@ -324,7 +321,7 @@ void RenderState::createScene()
         rect->setVisibilityFlags(RF_MAIN);
         // knifeEntity->setVisibilityFlags(RF_MAIN);
         tableEntity->setVisibilityFlags(RF_MAIN);
-        breadEntity->setVisibilityFlags(RF_MAIN);
+        mainEntity->setVisibilityFlags(RF_MAIN);
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||
@@ -362,6 +359,11 @@ bool RenderState::keyPressed(const OIS::KeyEvent &keyEventRef)
         if(keyboard->isKeyDown(OIS::KC_T))
         {
                 steps = 512;
+        }
+
+        if(keyboard->isKeyDown(OIS::KC_Y))
+        {
+                steps = 1024;
         }
 
         if(keyboard->isKeyDown(OIS::KC_ESCAPE))
@@ -553,11 +555,11 @@ void RenderState::update(double timeSinceLastFrame)
         ////////// Update render textures
         if (_dirtyCam || true) {
         
-                breadVolumeBoundingCubes.setMaterial("BoundingCubesPositions");
+                volumeBoundingCubes.setMaterial("BoundingCubesPositions");
                 rayPositions.clear(ColourValue::Black, 1.0);
                 rayPositions.update();
 
-                breadVolumeBoundingCubes.setMaterial("BoundingCubesDirections");
+                volumeBoundingCubes.setMaterial("BoundingCubesDirections");
                 rayDirections.clear(ColourValue::Black, 0.0);
                 rayDirections.update();
         }
@@ -570,7 +572,7 @@ void RenderState::update(double timeSinceLastFrame)
 
 void RenderState::updateMaterial()
 {
-        Ogre::Pass* pass = breadMat->getBestTechnique()->getPass(0);
+        Ogre::Pass* pass = mainMat->getBestTechnique()->getPass(0);
 
         Ogre::GpuProgramParametersSharedPtr fparams = pass->getFragmentProgramParameters();
 
@@ -609,6 +611,9 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uDiffuseCoeff", diffuseCoeff); } 
         catch (Ogre::Exception) {}
 
+        try { fparams->setNamedConstant("uColor", ucolor); } 
+        catch (Ogre::Exception) {}
+
         try { fparams->setNamedConstant("uSpecCoeff", specCoeff); } 
         catch (Ogre::Exception) {}
 
@@ -639,10 +644,10 @@ void RenderState::updateMaterial()
         try { fparams->setNamedConstant("uMisc3", misc3); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uTexDim", breadDensityVolume.getSize()); } 
+        try { fparams->setNamedConstant("uTexDim", shapeVolume.getSize()); } 
         catch (Ogre::Exception) {}
 
-        try { fparams->setNamedConstant("uInvTexDim", 1.0 / breadDensityVolume.getSize());} 
+        try { fparams->setNamedConstant("uInvTexDim", 1.0 / shapeVolume.getSize());} 
         catch (Ogre::Exception) {}
 
 }
@@ -663,6 +668,10 @@ void RenderState::updateWidgets()
         miscSlider->setValue(misc, false);
         misc2Slider->setValue(misc2, false);
         misc3Slider->setValue(misc3, false);
+        colRSlider->setValue(ucolor.x, false);
+        colGSlider->setValue(ucolor.y, false);
+        colBSlider->setValue(ucolor.z, false);
+
         lightCheckBox->setChecked(lightIsMoving, false);
 }
 
@@ -743,7 +752,7 @@ void RenderState::buildGUI()
                                                      "diffuse", 200,80,44,0.0,3,31);
 
         backIllumSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "backIllum", 
-                                          "back illumination", 200,80,44,0,3,31);
+                                          "back illumination", 200,80,44,0,10,51);
 
         specCoeffSlider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "specCoeff", 
                                                      "specCoeff", 200,80,44,0.1,5,50);
@@ -761,10 +770,19 @@ void RenderState::buildGUI()
                                                "misc", 200,80,44,0,10,51);
 
         misc2Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc2", 
-                                               "misc2", 200,80,44,0,10,21);
+                                               "misc2", 200,80,44,0,10,51);
 
         misc3Slider = trayMgr->createLongSlider(OgreBites::TL_TOPLEFT, "misc3", 
                                                "misc3", 200,80,44,0,10,51);
+
+        colRSlider = trayMgr->createLongSlider(OgreBites::TL_TOPRIGHT, "R", 
+                                               "R", 200,80,44,0,1,51);
+
+        colGSlider = trayMgr->createLongSlider(OgreBites::TL_TOPRIGHT, "G", 
+                                               "G", 200,80,44,0,1,51);
+
+        colBSlider = trayMgr->createLongSlider(OgreBites::TL_TOPRIGHT, "B", 
+                                               "B", 200,80,44,0,1,51);
 
         // OgreBites::Button* reloadMaterialButton = 
         //         trayMgr->createButton(OgreBites::TL_RIGHT, 
@@ -873,6 +891,20 @@ void RenderState::sliderMoved(OgreBites::Slider * slider)
                 misc3 = value;
         }
 
+        if (slider == colRSlider) 
+        {
+                ucolor.x = value;
+        }
+
+        if (slider == colGSlider) 
+        {
+                ucolor.y = value;
+        }
+
+        if (slider == colBSlider) 
+        {
+                ucolor.z = value;
+        }
 }
 
 //|||||||||||||||||||||||||||||||||||||||||||||||

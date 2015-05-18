@@ -12,9 +12,9 @@ using namespace Ogre;
 static size_t
 getIndex(int x, int y, int z, size_t fieldW, size_t fieldH, size_t fieldD)
 {
-        size_t X = std::min(std::max(x, 0), (int)fieldW-1);
-        size_t Y = std::min(std::max(y, 0), (int)fieldH-1);
-        size_t Z = std::min(std::max(z, 0), (int)fieldD-1);
+        size_t X = std::min(std::max(x, 0), (int)fieldW);
+        size_t Y = std::min(std::max(y, 0), (int)fieldH);
+        size_t Z = std::min(std::max(z, 0), (int)fieldD);
 
         return X + Y * fieldW + Z * fieldW * fieldH;
 }
