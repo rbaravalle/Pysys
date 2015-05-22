@@ -15,7 +15,8 @@ ctypedef np.uint8_t DTYPE_t
 ctypedef np.float32_t DTYPE_tf
 ctypedef np.int32_t DTYPE_ti
 
-cdef float dm1 = dm1
+cdef float dXm1 = dXm1
+cdef float dYm1 = dYm1
 cdef float dZm1 = dZm1
 cdef float x0 = x0
 cdef float y0 = y0
@@ -70,19 +71,19 @@ cdef add(Particle pi,int x,int y,int z):
 
     contorno = pi.contorno
 
-    xp0,xp1,xp2 = runge_kutta(x,y,z)
+    cdef float cx = pi.l[z][0], cy = pi.l[z][1]
+    xp0,xp1,xp2 = runge_kutta(x,y,z,cx,cy)
 
 
-    # FIX ME!: if b.condition > 0, mix b.condition with the dynamic system
     skip = (slice(None, None, 1), slice(None, None, 1), z)
 
     tempx = pi.dx[skip]
     tempy = pi.dy[skip]
 
     # tempx-> to GRID, GRID operation with x -> to SPACE (xp)
-    if(tempx[x,y] > 0.02 or tempy[x,y] > 0.02):
-        xp0 = (x+0.5*(tempy[x,y])/dm1)*dm1+x0
-        xp1 = (y-0.5*(tempx[x,y])/dm1)*dm1+y0
+    if(tempx[x,y] > 0.01 or tempy[x,y] > 0.01):
+        xp0 = (x+0.5*(tempy[x,y])/dXm1)*dXm1+(x0+cx)
+        xp1 = (y-0.5*(tempx[x,y])/dYm1)*dYm1+(y0+cy)
 
     sliceN = 30
     if(False and z == sliceN):
@@ -108,8 +109,10 @@ cdef add(Particle pi,int x,int y,int z):
         for yh from y-1<=yh<=y+1:
             for zh from z-1<=zh<=z+1:
                 if(not(xh==x and yh==y and zh==z)):
-                    xt = (xp0 - (xh*(dm1)+x0))
-                    yt = (xp1 - (yh*(dm1)+y0))
+                    cx = pi.l[zh][0]
+                    cy = pi.l[zh][1]
+                    xt = (xp0 - (xh*(dXm1)+(x0+cx)))
+                    yt = (xp1 - (yh*(dYm1)+(y0+cy)))
                     zt = (xp2 - (zh*(dZm1)+z0))
                     de = float(xt*xt+yt*yt+zt*zt)
                     if(de <deP):
@@ -162,31 +165,48 @@ def grow(Particle pi):
 
 cdef class Particle:
 
-    def __cinit__(self,int i,int lifet,float randomParam, int sep, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2,np.ndarray[DTYPE_tf, ndim=3] dx,np.ndarray[DTYPE_tf, ndim=3] dy,np.ndarray[DTYPE_tf, ndim=3] dz,np.ndarray[DTYPE_t, ndim=3] geom,int centerx,int centery):
+    def __cinit__(self,int i,float randomParam, int sep, np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_ti, ndim=3] occupied2,np.ndarray[DTYPE_tf, ndim=3] dx,np.ndarray[DTYPE_tf, ndim=3] dy,np.ndarray[DTYPE_tf, ndim=3] dz,np.ndarray[DTYPE_t, ndim=3] geom, list l, list l2):
         cdef int x,y,z,dist
-        cdef float r,rv,tempfx,tempfy,rm
+        cdef float r,rv,tempfx,tempfy,rm,cx,cy
 
         rm = float(RAND_MAX)
 
-        # FIX ME!
-        x = int((maxcoord-1)*(rand()/rm))
-        y = int((maxcoord-1)*(rand()/rm))
         z = int((maxcoordZ-1)*(rand()/rm))
 
+        cx = l2[z][0]#-maxcoord/2)*dXm1#maxcoord/2
+        cy = l2[z][1]#maxcoord/2
+
+        cdef float delta = 0.7*maxcoord/2
+        x =  np.clip(int((2*delta)*(rand()/rm)) + (cx-delta),0,maxcoord-1)
+        y =  np.clip(int((2*delta)*(rand()/rm)) + (cy-delta),0,maxcoord-1)
+
+        #print x, y
+
+        # FIX ME!
+        #x = int((maxcoord-1)*(rand()/rm))
+        #y = int((maxcoord-1)*(rand()/rm))
+
+
         while(occupied2[x,y,z] == 1 or occupied[x,y,z]==0):
-            x = int((maxcoord-1)*(rand()/rm))
-            y = int((maxcoord-1)*(rand()/rm))
-            z = int((maxcoordZ-1)*(rand()/rm))
+            #x = int((maxcoord-1)*(rand()/rm))
+            #y = int((maxcoord-1)*(rand()/rm))
+            x =  np.clip(int((2*delta)*(rand()/rm)) + (cx-delta),0,maxcoord-1)
+            y =  np.clip(int((2*delta)*(rand()/rm)) + (cy-delta),0,maxcoord-1)
+            #print x, y
+            #z = int((maxcoordZ-1)*(rand()/rm))
 
-        #tempfx = float(x-centerx)
-        #tempfy = float(y-centery)
 
+
+        #tempfx = float(x-cx)
+        #tempfy = float(y-cy)
+
+        # normalize
         #rv = sqrt(tempfx*tempfx+tempfy*tempfy)
         #if(rv!=0):
         #    tempfx = tempfx/rv
         #    tempfy = tempfy/rv
 
-        #r = 1.0*(rand()/rm)*(maxcoord/1.5-rv)
+        #r = 0.1*(rand()/rm)*(maxcoord/1.5-rv)
 
         #x = np.clip(floor(x + r*(tempfx)),0,maxcoord-1);
         #y = np.clip(floor(y + r*(tempfy)),0,maxcoord-1);
@@ -205,6 +225,7 @@ cdef class Particle:
         self.dy = dy
         self.dz = dz
         self.geom=geom
+        self.l = l
         self.contorno = add(self,x,y,z)
 
         

@@ -13,7 +13,7 @@ from particle import grow
 cdef extern from "math.h":
     int round(float x)
 
-from runge_kutta import *
+from runge_kutta cimport *
 from globalsv import *
 import time
 
@@ -30,7 +30,7 @@ cdef init_particles():
     cdef np.ndarray[DTYPE_t, ndim=3] occupied = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.uint8)+ np.uint8(1)
     cdef np.ndarray[DTYPE_ti, ndim=3] occupied2
     cdef np.ndarray[DTYPE_tf, ndim=3] dx,dy,dz
-    cdef int centerx,centery,centerz
+    cdef list l = [], l2 = []
 
 
     #model = 1
@@ -38,7 +38,7 @@ cdef init_particles():
     model = 2
     modelStr = 'bunny.binvox'
     #model = 3
-    #modelStr = 'bread2.binvox'
+    #modelStr = 'makingProc/bread2.binvox'
     #model = 4
     #modelStr = ' croissant.binvox'
 
@@ -52,10 +52,7 @@ cdef init_particles():
         print "Intersecting..."
         t = time.clock()
 
-        occ,geom,crust,a,b,c = intersect(occupied,orientate(geom,256,256,model),maxcoord,maxcoordZ,thresh)
-        centerx = a
-        centery = b
-        centerz = c
+        occ,geom,crust,l,l2 = intersect(occupied,orientate(geom,256,256,model),maxcoord,maxcoordZ,thresh)
 
         geomInt = geom.astype(np.int32) # (see http://stackoverflow.com/questions/30079740/image-gradient-vector-field-in-python)
 
@@ -116,9 +113,9 @@ cdef init_particles():
     # particle 1 is used to set the region
     # where bubbles cannot grow
     for i from 0<= i< cantPart:
-        pi = Particle(i+2,MCA,randomness,sep,occupied,occupied2,dx,dy,dz,geom,centerx,centery)
+        pi = Particle(i+2,randomness,sep,occupied,occupied2,dx,dy,dz,geom,l,l2)
 
-        rr = int(pi.randomm*10)
+        rr = 1#int(pi.randomm*10)
         #f(pi.randomm > 0.8):
         for j from 0<=j<rr:
             grow(pi) # free growth
@@ -148,8 +145,6 @@ def intersect(field,geom,int N, int Nz, float thresh):
     print "Distance Field computation time: ", time.clock()-t
     saveField(4*dfield.astype(np.uint8), "textures/dfield")
 
-    centerx,centery,centerz = np.unravel_index(dfield.argmax(), dfield.shape)
-
     print "Crumb..."
     crumb = np.array(dfield>thresh).astype(np.uint8)
 
@@ -169,12 +164,28 @@ def intersect(field,geom,int N, int Nz, float thresh):
         crust = resize(crust,N,Nz)
 
 
+    l = []
+    l2 = []
+    for zz in range(maxcoordZ):
+        if(np.sum(geom[:,:,zz]) > 0.0):
+            cx,cy = scipy.ndimage.measurements.center_of_mass(geom[:,:,zz])
+            l2.append([cx,cy])
+            cx = (cx-maxcoord/2)*dXm1
+            cy = (cy-maxcoord/2)*dYm1
+        else: 
+            l2.append([0,0])
+            cx=0#(maxcoord/2)*dXm1
+            cy=0#(maxcoord/2)*dYm1
+
+        l.append([-cx,-cy])
+
+
     # the bubbles in white (1-field) are taken into account
     # when they are away from the surface, so this is the 'crumb region'
 
     #cdef np.ndarray[DTYPE_t, ndim=3] temp = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.uint8)+ np.uint8(1)
 
-    return (geom-crumb*(1-field)),geom,crust,centerx,centery,centerz
+    return (geom-crumb*(1-field)),geom,crust,l,l2#centerx,centery,centerz
 
 # una iteracion del algoritmo
 cdef mover(t,particles) :
@@ -197,31 +208,31 @@ cdef mover(t,particles) :
     return largoCont
   
 
-def struct(r):
+#def struct(r):
     #return np.ones((r,r,r))
-    s = np.zeros((r,r,r))
-    for i in range(r):
-        for j in range(r):
-            for k in range(r):
-                if(np.sqrt((i-r/2)**2+(j-r/2)**2+(k-r/2)**2) < r):
-                    s[i,j,k] = 1
+#    s = np.zeros((r,r,r))
+#    for i in range(r):
+#        for j in range(r):
+#            for k in range(r):
+#                if(np.sqrt((i-r/2)**2+(j-r/2)**2+(k-r/2)**2) < r):
+#                    s[i,j,k] = 1
 
-def borderD(data):
-    dfield = np.array(scipy.ndimage.distance_transform_edt(data)).reshape(maxcoord,maxcoord,maxcoordZ)
-    return np.array(255*(dfield<0.1)).astype(np.uint8)
+#def borderD(data):
+#    dfield = np.array(scipy.ndimage.distance_transform_edt(data)).reshape(maxcoord,maxcoord,maxcoordZ)
+#    return np.array(255*(dfield<0.1)).astype(np.uint8)
 
-def border(data):
-    r = 48
-    r2 = 46
-    r3 = 44
-    r4 = 42
-    c = scipy.ndimage.binary_closing(data,structure=np.ones((r,r,r))).astype(np.uint8)
-    d = scipy.ndimage.binary_dilation(c,structure=struct(r2)).astype(np.uint8)
-    e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
+#def border(data):
+#    r = 48
+#    r2 = 46
+#    r3 = 44
+#    r4 = 42
+#    c = scipy.ndimage.binary_closing(data,structure=np.ones((r,r,r))).astype(np.uint8)
+#    d = scipy.ndimage.binary_dilation(c,structure=struct(r2)).astype(np.uint8)
+#    e = scipy.ndimage.binary_erosion(d,structure=struct(r3)).astype(np.uint8)
 
-    c = scipy.ndimage.binary_closing(d-e,structure=struct(r4)).astype(np.uint8)
-    c = scipy.ndimage.binary_dilation(c,structure=struct(r4)).astype(np.uint8)
-    return np.array(255*(c)).astype(np.uint8)
+#    c = scipy.ndimage.binary_closing(d-e,structure=struct(r4)).astype(np.uint8)
+#    c = scipy.ndimage.binary_dilation(c,structure=struct(r4)).astype(np.uint8)
+#    return np.array(255*(c)).astype(np.uint8)
 
 def printFile(arr,filename):
     f = open(filename, 'w')
@@ -280,6 +291,8 @@ def saveField(field,filename):
 
     for w in range(Nz):
         II = Image.frombuffer('L',(N-2*pp,N-2*pp), np.array(field[pp:N-pp,pp:N-pp,w]).astype(np.uint8),'raw','L',0,1)
+        if(w == 216 and filename == "textures/system"): 
+            II.save(filename+"/slice216.png")
         I3.paste(II,(0,(N-2*pp)*w))
 
     I3.save(filename+".png")
