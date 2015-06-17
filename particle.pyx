@@ -6,6 +6,7 @@ from runge_kutta cimport *
 from globalsv import *
 import matplotlib.pyplot as plt
 import Image
+import time
 
 
 from libc.stdlib cimport rand, RAND_MAX
@@ -21,6 +22,7 @@ cdef float dZm1 = dZm1
 cdef float x0 = x0
 cdef float y0 = y0
 cdef float z0 = z0
+cdef float randomnessZ = randomnessZ
 
 cdef extern from "math.h":
     float pow(int x ,float y)
@@ -46,7 +48,7 @@ cdef setBorder(Particle pi,int x,int y,int z):
                 except: pass
 
 
-cdef int searchBorder(Particle pi, int x,int y,int z):
+cdef int searchBorder(Particle pi, int x,int y,int z, list particles):
     cdef int i,j,k,v,sep,ii
     sep = pi.sep()#2
     ii = pi.i
@@ -57,6 +59,7 @@ cdef int searchBorder(Particle pi, int x,int y,int z):
                 try:
                     v = occ[x+i,y+j,z+k]
                     if(v > 0 and v != ii): return True
+                    #if(4*particles[v].size < particles[i].size): return 0
                 except:pass
     return 0
 
@@ -64,8 +67,8 @@ cdef int searchBorder(Particle pi, int x,int y,int z):
 cdef add(Particle pi,int x,int y,int z):
 
     cdef list contorno
-    cdef float d,de,deP,rr,xp0,xp1,xp2,xt,yt,zt
-    cdef int bestX,bestY,bestZ,xh,yh,zh,i#,isBestAdded
+    cdef float d,de,deP,de2,de2P, rr,xp0,xp1,xp2,xt,yt,zt,inv0,inv1,inv2
+    cdef int bestX,bestY,bestZ,best2X,best2Y,best2Z,xh,yh,zh,i, temp#,isBestAdded
     # to avoid repeating elements
     #isBestAdded = 0
 
@@ -73,6 +76,7 @@ cdef add(Particle pi,int x,int y,int z):
 
     cdef float cx = pi.l[z][0], cy = pi.l[z][1]
     xp0,xp1,xp2 = runge_kutta(x,y,z,cx,cy)
+    #inv0,inv1,inv2 = runge_kuttainv(x,y,z,cx,cy)
 
 
     skip = (slice(None, None, 1), slice(None, None, 1), z)
@@ -84,6 +88,9 @@ cdef add(Particle pi,int x,int y,int z):
     if(tempx[x,y] > 0.01 or tempy[x,y] > 0.01):
         xp0 = (x+0.5*(tempy[x,y])/dXm1)*dXm1+(x0+cx)
         xp1 = (y-0.5*(tempx[x,y])/dYm1)*dYm1+(y0+cy)
+
+        #inv0 = (x+0.5*(tempy[x,y])/dXm1)*dXm1+(x0+cx)
+        #inv1 = (y-0.5*(tempx[x,y])/dYm1)*dYm1+(y0+cy)
 
     sliceN = 30
     if(False and z == sliceN):
@@ -121,16 +128,39 @@ cdef add(Particle pi,int x,int y,int z):
                         bestY = yh
                         bestZ = zh
                         #isBestAdded = 0
-                    if(rand()/float(RAND_MAX) >(1.0-pi.randomParam)):
-                        contorno.append([xh,yh,zh])
+
                         #isBestAdded = 1
+
+                    # inverse
+                    #xt = (inv0 - (xh*(dXm1)+(x0+cx)))
+                    #yt = (inv1 - (yh*(dYm1)+(y0+cy)))
+                    #zt = (inv2 - (zh*(dZm1)+z0))
+                    #de2 = float(xt*xt+yt*yt+zt*zt)
+                    #if(de2 <de2P):
+                    #    de2P = de2
+                    #    best2X = xh
+                    #    best2Y = yh
+                    #    best2Z = zh
+
+                    # random!
+                    if(rand()/float(RAND_MAX) >(1.0-pi.randomParam)):# and zh == z):
+                        contorno.append([xh,yh,zh])
+                  
     
     setBorder(pi,x,y,z)
     #if(not(isBestAdded)):
     contorno.append([bestX,bestY,bestZ])
+
+    # randomZ!
+    if(rand()/float(RAND_MAX) >(1.0-randomnessZ)):# and zh == z):
+        temp = -1
+        if(rand()/float(RAND_MAX) > 0.5):
+            temp = 1
+        contorno.append([xh,yh,zh+temp])
+    #contorno.append([best2X,best2Y,best2Z])
     return contorno
 
-def grow(Particle pi):
+def grow(Particle pi, list particles):
         cdef int w = 0, h, r,nx,ny,nz,lenc,fn,size,ii
         cdef list contorno
         ii = pi.i
@@ -145,7 +175,7 @@ def grow(Particle pi):
                 ny = contorno[h][1]
                 nz = contorno[h][2]
                 try:
-                    if(pi.occupied[nx,ny,nz] > 0 and not(searchBorder(pi,nx,ny,nz))):
+                    if(pi.occupied[nx,ny,nz] > 0 and not(searchBorder(pi,nx,ny,nz,particles))):
 
                         pi.occupied[nx,ny,nz] = 0
                         pi.occupied2[nx,ny,nz] = ii
@@ -186,15 +216,17 @@ cdef class Particle:
         #x = int((maxcoord-1)*(rand()/rm))
         #y = int((maxcoord-1)*(rand()/rm))
 
-
-        while(occupied2[x,y,z] == 1 or occupied[x,y,z]==0):
-            #x = int((maxcoord-1)*(rand()/rm))
-            #y = int((maxcoord-1)*(rand()/rm))
-            x =  np.clip(int((2*delta)*(rand()/rm)) + (cx-delta),0,maxcoord-1)
-            y =  np.clip(int((2*delta)*(rand()/rm)) + (cy-delta),0,maxcoord-1)
+        #t2 = time.clock()
+        #print "Entra al while..."
+        #if(occupied[:,:,z].sum()>0):
+        #    while((occupied2[x,y,z] == 1 or occupied[x,y,z]==0) and time.clock()-t2 <1):
+                #x = int((maxcoord-1)*(rand()/rm))
+                #y = int((maxcoord-1)*(rand()/rm))
+        #        x =  np.clip(int((2*delta)*(rand()/rm)) + (cx-delta),0,maxcoord-1)
+        #        y =  np.clip(int((2*delta)*(rand()/rm)) + (cy-delta),0,maxcoord-1)
             #print x, y
             #z = int((maxcoordZ-1)*(rand()/rm))
-
+        #print "Sale del while..."
 
 
         #tempfx = float(x-cx)

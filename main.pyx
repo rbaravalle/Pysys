@@ -6,6 +6,7 @@ import scipy.ndimage
 import cprint
 import binvox
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 from particle cimport Particle
 from particle import grow
@@ -33,17 +34,24 @@ cdef init_particles():
     cdef list l = [], l2 = []
 
 
-    #model = 1
-    #modelStr = 'makingProc/otherbread.binvox'
-    model = 2
-    modelStr = 'bunny.binvox'
+    model = 1
+    modelStr = 'makingProc/otherbread.binvox'
+    #model = 2
+    #modelStr = 'bunny.binvox'
     #model = 3
     #modelStr = 'makingProc/bread2.binvox'
     #model = 4
     #modelStr = ' croissant.binvox'
+    #model = 5
+    #modelStr = 'landscape_rocks.binvox'
+    #model = 6
+    #modelStr = 'Sponge.binvox'
+    #model = 7
+    #modelStr = 'landscape_rocks2.binvox'
 
     t = time.clock()
     cubo = False;
+
     if(not(cubo)):
         print "Loading geom..."
         geom = np.array(load_obj(modelStr)).astype(np.uint8)
@@ -61,30 +69,31 @@ cdef init_particles():
         # FIX ME!
         dx, dy, dz = np.asarray(np.gradient(geomInt)).astype(np.float32)
 
-        # "border conditions"
-        dx = scipy.ndimage.filters.gaussian_filter(dx,3)
-        dy = scipy.ndimage.filters.gaussian_filter(dy,3)
-        dz = scipy.ndimage.filters.gaussian_filter(dz,3)
+        # "boundary conditions"
+        dx = scipy.ndimage.filters.gaussian_filter(dx,3)/10
+        dy = scipy.ndimage.filters.gaussian_filter(dy,3)/10
+        dz = scipy.ndimage.filters.gaussian_filter(dz,3)/10
 
-        #sliceN = 60
-        
+        if(False): # Fig4, paper
+            sliceN = 60
+            
 
-        #skip = (slice(None, None, 3), slice(None, None, 3), sliceN)
-        #I = Image.frombuffer('L',(maxcoord,maxcoord), np.array(geom[:,:,sliceN]).astype(np.uint8),'raw','L',0,1)
-        #fig, ax = plt.subplots()
+            skip = (slice(None, None, 5), slice(None, None, 5), sliceN)
+            I = Image.frombuffer('L',(maxcoord,maxcoord), np.array(geom[:,:,sliceN]).astype(np.uint8),'raw','L',0,1)
+            fig, ax = plt.subplots()
 
 
-        #x, y,z = np.mgrid[0:256:256j, 0:256:256j,0:256:256j]
+            x, y,z = np.mgrid[0:256:256j, 0:256:256j,0:256:256j]
 
-        #im = ax.imshow(I, extent=[x.min(), x.max(), y.min(), y.max()])
-        #im = ax.imshow(I.transpose(Image.FLIP_TOP_BOTTOM))
-        #plt.colorbar(im)
+            im = ax.imshow(I, extent=[x.min(), x.max(), y.min(), y.max()])
+            im = ax.imshow(I.transpose(Image.FLIP_TOP_BOTTOM), cmap=cm.terrain)
+            plt.colorbar(im)
 
-        # orthogonal to the dfield
-        #ax.quiver(x[skip], y[skip], dx[skip].T, dy[skip].T)
+            # orthogonal to the dfield
+            ax.quiver(x[skip], y[skip], dx[skip].T, dy[skip].T,color="#AA2222")
 
-        #ax.set(aspect=1, title='Quiver Plot')
-        #plt.show()
+            #ax.set(aspect=1, title='Quiver Plot')
+            plt.show()
 
         #exit()
 
@@ -106,6 +115,7 @@ cdef init_particles():
     print "Intersect Time: ", time.clock()-t
 
 
+    print "Particles init..."
     cdef int i = 0, h, j,rr
     cdef Particle pi
     timm = time.clock()
@@ -113,19 +123,22 @@ cdef init_particles():
     # particle 1 is used to set the region
     # where bubbles cannot grow
     for i from 0<= i< cantPart:
+
+        #print i
+        #if(cantPart%50==0): print "50 particles"
         pi = Particle(i+2,randomness,sep,occupied,occupied2,dx,dy,dz,geom,l,l2)
 
         rr = 1#int(pi.randomm*10)
         #f(pi.randomm > 0.8):
         for j from 0<=j<rr:
-            grow(pi) # free growth
+            grow(pi,particles) # free growth
         if(i%(2000)==0):
             print "Time: ", time.clock()-timm,i
             timm = time.clock()
 
         particles.append(pi)
 
-    return particles,crust
+    return occupied, particles,crust
 
 # intersection between a cube field and a geometry
 def intersect(field,geom,int N, int Nz, float thresh):
@@ -184,8 +197,8 @@ def intersect(field,geom,int N, int Nz, float thresh):
     # when they are away from the surface, so this is the 'crumb region'
 
     #cdef np.ndarray[DTYPE_t, ndim=3] temp = np.zeros((maxcoord,maxcoord,maxcoord)).astype(np.uint8)+ np.uint8(1)
-
-    return (geom-crumb*(1-field)),geom,crust,l,l2#centerx,centery,centerz
+#scipy.ndimage.filters.gaussian_filter(occupied,3)
+    return scipy.ndimage.filters.gaussian_filter(255*(geom-crumb*(1-field)),3),geom,crust,l,l2#centerx,centery,centerz
 
 # una iteracion del algoritmo
 cdef mover(t,particles) :
@@ -197,7 +210,7 @@ cdef mover(t,particles) :
 
     for i from 0<=i<cantPart:
         pi = particles[i]
-        grow(pi)
+        grow(pi,particles)
 
         largoCont += len(pi.contorno)
 
@@ -244,7 +257,13 @@ cdef export(np.ndarray[DTYPE_t, ndim=3] occupied,np.ndarray[DTYPE_t, ndim=3] cru
     #arr = cprint.occlusion(0,maxcoordZ,maxcoord,occupied,15)
     #arr = scipy.ndimage.filters.gaussian_filter(arr,1)
 
+    #cdef np.ndarray[DTYPE_t, ndim=3] crustSoft = scipy.ndimage.filters.gaussian_filter(crust,3)
+    #cdef np.ndarray[DTYPE_t, ndim=3] occupiedSoft = scipy.ndimage.filters.gaussian_filter(occupied,3)
+
+    crust = scipy.ndimage.filters.gaussian_filter(crust,3)
+
     #arr2 = borderD(occupied)
+    saveField(occupied,'textures/system')  
     saveField(crust,'textures/crust')  
 
     print "Print Files..."
@@ -327,11 +346,11 @@ def orientate( np.ndarray[DTYPE_t, ndim=3] model,int N, int Nz,int modelNumber):
 
     cdef int x,y,z
 
-    if(modelNumber == 1 or modelNumber == 2):
+    if(modelNumber in [1,2,5,6,7]):
         for x  from 0<=x<N:
             for y  from 0<=y<N:
                 for z  from 0<=z<Nz:
-                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread
+                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread, sponge, rocks
     else:
         for x  from 0<=x<N:
             for y  from 0<=y<N:
@@ -343,11 +362,11 @@ def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz,int modelNumber
     cdef np.ndarray[DTYPE_tf, ndim=3] model2 = np.zeros((N,N,Nz)).astype(np.float32)
 
     cdef int x,y,z
-    if(modelNumber == 1 or modelNumber == 2):
+    if(modelNumber in [1,2,5,6,7]):
         for x  from 0<=x<N:
             for y  from 0<=y<N:
                 for z  from 0<=z<Nz:
-                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread
+                    model2[Nz-1-z,N-1-y,x] = model[x,z,y] # bunny, otherbread, sponge, rocks
     else:
         for x  from 0<=x<N:
             for y  from 0<=y<N:
@@ -359,18 +378,33 @@ def orientatef( np.ndarray[DTYPE_tf, ndim=3] model,int N, int Nz,int modelNumber
 cdef main():
 
     
-
+    t = time.clock()
     print "Init Particles..."
-    particles,crust = init_particles()
-    print "Algorithm!"
-    occupied = alg(particles)
+    occupied,particles,crust = init_particles()
+
+
+    noises = False
+    if(noises == True):
+        #import whiteNoise
+        #import perlin
+        #import voronoi
+        import worley
+        print "Noise computation..."
+        #occupied*=whiteNoise.createField(256)
+        #occupied*=voronoi.createField(256)
+        #occupied*=perlin.createField(256)
+        occupied*=worley.createField(256)
+    else:
+        print "Algorithm!..."
+        occupied = alg(particles)
 
     # input geometry
-    print "Loading..."
-    t = time.clock()
+    #print "Loading..."
     # geom #(256,256,256)
     
-    export(255*occupied,255*crust)
+    #print "Exporting..."
+    export(occupied,255*crust)
+    print "Total time: ", time.clock() - t
     print "Process finished OK"
 
 # start

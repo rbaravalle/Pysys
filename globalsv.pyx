@@ -1,14 +1,15 @@
 # global vars
-maxcoord = 256
-maxcoordZ = 256
+maxcoord = 350
+maxcoordZ = 350
 maxcoord2 = maxcoord*maxcoord
 maxcoord3 = maxcoord2*maxcoordZ
 m1 = 1.0/maxcoord
 u6 = 1.0/6.0
 t = 0
-cantPart = 5000
+cantPart = 7000
 MCA = 1000
-randomness = 0.05
+randomness = 0.03
+randomnessZ = 0.1
 fx = 1
 fy = 1
 
@@ -31,5 +32,5 @@ TIEMPO = 120000
 sep = 1 # separation among particles
 diffBubbles = 0
 amountSons = 0
-thresh = 1.4
+thresh = 3.4
 
